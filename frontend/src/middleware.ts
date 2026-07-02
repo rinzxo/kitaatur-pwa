@@ -88,8 +88,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Redirect logged-in users away from auth pages
-  if (url.pathname.startsWith('/login') || url.pathname.startsWith('/register')) {
+  // Redirect logged-in users away from auth and root pages
+  if (url.pathname.startsWith('/login') || url.pathname.startsWith('/register') || url.pathname === '/') {
     if (user) {
       url.pathname = '/personal/dashboard'
       return NextResponse.redirect(url)
@@ -101,6 +101,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/',
     '/dashboard/:path*',
     '/personal/:path*',
     '/login',
