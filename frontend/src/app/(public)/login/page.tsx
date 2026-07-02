@@ -23,10 +23,23 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const supabase = createClient()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const code = searchParams.get('code')
+    if (code) {
+      const next = searchParams.get('next') || '/personal/dashboard'
+      router.replace(`/auth/callback?code=${code}&next=${encodeURIComponent(next)}`)
+    }
+  }, [searchParams, router])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
