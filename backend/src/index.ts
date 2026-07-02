@@ -19,6 +19,7 @@ const port = process.env.PORT || 5000
 
 app.use(cors({
   origin: ['https://kitatur.rinzgroup.web.id', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
 }))
 app.use(express.json())
