@@ -6,6 +6,9 @@ import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 export const metadata: Metadata = {
   title: "KitaAtur - Absensi & Keuangan Organisasi",
   description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+  icons: {
+    icon: '/logo.png',
+  }
 };
 
 export default function RootLayout({
