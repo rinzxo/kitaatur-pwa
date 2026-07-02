@@ -162,7 +162,7 @@ export default function OrganizationMembersPage() {
     try {
       const res = await api.post(`/org/${orgSlug}/invite-code/reset`)
       setInviteCode(res.data.invite_code)
-      toast.error(res.data.message)
+      toast.success(res.data.message)
     } catch (err) {
       console.error('Error resetting invite code:', err)
       toast.error('Gagal mereset link invite')

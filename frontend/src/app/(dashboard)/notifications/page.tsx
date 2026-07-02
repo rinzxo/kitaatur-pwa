@@ -99,12 +99,13 @@ export default function NotificationsPage() {
       setPushStatus(permission as any)
       
       if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.register('/sw.js')
+        await navigator.serviceWorker.register('/sw.js')
+        const readyRegistration = await navigator.serviceWorker.ready
         const VAPID_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
         
         if (!VAPID_KEY) throw new Error("VAPID KEY is missing")
 
-        const subscription = await registration.pushManager.subscribe({
+        const subscription = await readyRegistration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_KEY)
         })

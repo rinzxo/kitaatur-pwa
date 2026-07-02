@@ -99,7 +99,7 @@ export default function ScanAttendancePage() {
       const res = await api.post(`/org-attendance/${orgSlug}/scan`, payload)
       
       const successMsg = res.data.message || 'Absen berhasil dicatat!'
-      toast.error(successMsg)
+      toast.success(successMsg)
       router.push(`/org/${orgSlug}/attendance`)
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal melakukan check-in.')
