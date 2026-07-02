@@ -23,13 +23,10 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null)
-  const [pending, setPending] = useState(false)
-  const supabase = createClient()
+function AuthCodeHandler() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -40,6 +37,14 @@ export default function LoginPage() {
       router.replace(`/auth/callback?code=${code}&next=${encodeURIComponent(next)}`)
     }
   }, [searchParams, router])
+
+  return null
+}
+
+export default function LoginPage() {
+  const [error, setError] = useState<string | null>(null)
+  const [pending, setPending] = useState(false)
+  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -94,6 +99,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
+      <Suspense fallback={null}>
+        <AuthCodeHandler />
+      </Suspense>
       {/* Left Pane (Hero Branding) - Hidden on Mobile */}
       <div className="hidden md:flex md:w-1/2 bg-blue-600 p-12 flex-col justify-between relative overflow-hidden text-white">
         <div className="relative z-10">
