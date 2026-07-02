@@ -24,7 +24,7 @@ app.use((req, res, next) => {
 })
 
 app.use(cors({
-  origin: ['https://kitatur.rinzgroup.web.id', 'http://localhost:3000'],
+  origin: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true
 }))
