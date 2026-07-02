@@ -156,43 +156,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           ))}
         </div>
 
-        {/* User Profile Section at Bottom of Sidebar */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50 mt-auto">
-          {currentUserInfo ? (
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center shrink-0 border border-slate-200">
-                {currentUserInfo.avatar_url ? (
-                  <img src={currentUserInfo.avatar_url} alt={currentUserInfo.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-blue-700 font-bold">{currentUserInfo.name.charAt(0).toUpperCase()}</span>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-bold text-slate-900 truncate">{currentUserInfo.name}</p>
-                <p className="text-xs text-slate-500 truncate">{currentUserInfo.email}</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 mb-4 animate-pulse">
-              <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
-              <div className="flex-1 space-y-2">
-                <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-                <div className="h-3 bg-slate-200 rounded w-1/2"></div>
-              </div>
-            </div>
-          )}
-          
-          <button 
-            onClick={async () => {
-              await supabase.auth.signOut()
-              window.location.href = '/login'
-            }}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Keluar
-          </button>
-        </div>
       </aside>
 
       {/* MAIN CONTENT AREA */}
