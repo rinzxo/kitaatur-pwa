@@ -1,0 +1,10 @@
+[build]
+  # Mengarahkan Netlify untuk masuk ke folder frontend
+  base = "frontend"
+  # Perintah untuk mem-build aplikasi Next.js
+  command = "npm run build"
+  # Folder output hasil build Next.js
+  publish = ".next"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
