@@ -18,7 +18,7 @@ const app = express()
 const port = process.env.PORT || 5000
 
 app.use(cors({
-  origin: true,
+  origin: ['https://kitatur.rinzgroup.web.id', 'http://localhost:3000'],
   credentials: true
 }))
 app.use(express.json())
