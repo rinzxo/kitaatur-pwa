@@ -17,7 +17,7 @@ export async function handlePakasirWebhook(req: Request, res: Response) {
   console.log(`[Webhook Received] Event: ${event}`, data)
 
   // Menangani event pembayaran sukses
-  if (event === 'PAID' || event === 'payment.success' || event === 'subscription.activated') {
+  if (event === 'PAID' || event === 'payment.success' || event === 'subscription.activated' || event === 'completed' || event === 'success') {
     // Pakasir returns order_id as the ID we sent!
     const order_id = data.order_id || data.subscription_id
     const user_id = data.user_id || data.customer_id
