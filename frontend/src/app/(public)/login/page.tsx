@@ -34,9 +34,9 @@ function AuthCodeHandler() {
     const code = searchParams.get('code')
     if (code) {
       const next = searchParams.get('next') || '/personal/dashboard'
-      router.replace(`/auth/callback?code=${code}&next=${encodeURIComponent(next)}`)
+      window.location.href = `/auth/callback?code=${code}&next=${encodeURIComponent(next)}`
     }
-  }, [searchParams, router])
+  }, [searchParams])
 
   return null
 }
