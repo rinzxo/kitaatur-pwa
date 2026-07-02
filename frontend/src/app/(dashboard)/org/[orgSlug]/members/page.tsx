@@ -359,7 +359,7 @@ export default function OrganizationMembersPage() {
                   </div>
 
                   {/* Desktop View: Table */}
-                  <div className="hidden md:block overflow-visible -mx-6 px-6 md:mx-0 md:px-0">
+                  <div className="hidden md:block overflow-x-auto -mx-6 px-6 md:mx-0 md:px-0">
                     <table className="w-full min-w-[600px] text-left border-collapse">
                       <thead>
                         <tr className="border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
