@@ -197,6 +197,20 @@ export async function addOrganizationMember(req: Request, res: Response) {
       }
     })
 
+    // Kirim notifikasi
+    const orgInfo = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId }
+    })
+    
+    if (orgInfo) {
+      await sendPushNotification(
+        targetProfileId,
+        'Selamat Datang',
+        `Anda telah ditambahkan ke workspace ${orgInfo.name}.`,
+        `/org/${orgInfo.slug}`
+      )
+    }
+
     return res.status(201).json(newMemberRelation)
   } catch (err) {
     console.error('Error adding organization member:', err)
@@ -980,6 +994,27 @@ export async function joinOrganization(req: any, res: Response) {
       userId,
       req.body.custom_data ? JSON.stringify(req.body.custom_data) : null
     )
+
+    // Kirim notifikasi ke Head(s)
+    const joiner = await prisma.profiles.findUnique({ where: { id: userId } })
+    const heads = await prisma.organization_members.findMany({
+      where: { organization_id: org.id, role: 'head' },
+      select: { profile_id: true }
+    })
+    
+    if (joiner && heads.length > 0) {
+      for (const head of heads) {
+        // Jangan kirim notifikasi jika head yang join (misal bug/owner)
+        if (head.profile_id !== userId) {
+          await sendPushNotification(
+            head.profile_id,
+            'Anggota Baru Bergabung',
+            `${joiner.full_name || 'Seseorang'} telah bergabung ke workspace ${org.name}.`,
+            `/org/${org.slug}/members`
+          )
+        }
+      }
+    }
 
     return res.status(200).json({
       success: true,
