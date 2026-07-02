@@ -17,6 +17,12 @@ import notificationRoutes from './routes/notification.routes'
 const app = express()
 const port = process.env.PORT || 5000
 
+// Handle Chrome Private Network Access (PNA) block for Railway IPv6 addresses
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Private-Network', 'true')
+  next()
+})
+
 app.use(cors({
   origin: ['https://kitatur.rinzgroup.web.id', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
