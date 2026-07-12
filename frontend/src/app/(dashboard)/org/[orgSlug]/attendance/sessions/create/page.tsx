@@ -4,8 +4,11 @@ import toast from 'react-hot-toast'
 
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { api } from '@/lib/api'
 import { Calendar, Clock, MapPin, ChevronLeft, Save, Search, MapPinIcon } from 'lucide-react'
+
+const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false })
 
 export default function CreateSessionPage() {
   const params = useParams()
@@ -39,6 +42,28 @@ export default function CreateSessionPage() {
     }
 
     if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    // Cek apakah user mem-paste koordinat langsung (contoh: -6.2088, 106.8456)
+    const coordRegex = /^(-?\d+\.\d+)(?:,|\s+)\s*(-?\d+\.\d+)$/
+    const coordMatch = query.match(coordRegex)
+    if (coordMatch) {
+      const lat = parseFloat(coordMatch[1])
+      const lon = parseFloat(coordMatch[2])
+      setSelectedLocation({ lat, lon, display_name: `Koordinat Manual: ${lat}, ${lon}` })
+      setSearchResults([])
+      return
+    }
+
+    // Cek apakah user mem-paste URL Google Maps (mengandung @lat,lng)
+    const urlRegex = /@(-?\d+\.\d+),(-?\d+\.\d+)/
+    const urlMatch = query.match(urlRegex)
+    if (urlMatch) {
+      const lat = parseFloat(urlMatch[1])
+      const lon = parseFloat(urlMatch[2])
+      setSelectedLocation({ lat, lon, display_name: `Lokasi dari Google Maps` })
       setSearchResults([])
       return
     }
@@ -91,7 +116,7 @@ export default function CreateSessionPage() {
 
     if (locationSource === 'manual') {
       if (!selectedLocation) {
-        toast.error('Pilih lokasi dari hasil pencarian terlebih dahulu.')
+        toast.error('Pilih lokasi pada peta terlebih dahulu.')
         setLoading(false)
         return
       }
@@ -272,10 +297,10 @@ export default function CreateSessionPage() {
             ) : (
               <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 relative">
                 <p className="text-sm text-slate-600 leading-relaxed">
-                  Cari alamat atau nama tempat acara. Kami akan otomatis mengkonversinya menjadi titik koordinat.
+                  Cari alamat lalu geser peta untuk menentukan titik koordinat yang paling akurat.
                 </p>
                 <div>
-                  <div className="relative">
+                  <div className="relative mb-3">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                       <Search className="h-5 w-5 text-slate-400" />
                     </div>
@@ -283,8 +308,7 @@ export default function CreateSessionPage() {
                       type="text" 
                       value={addressSearch}
                       onChange={(e) => handleSearchAddress(e.target.value)}
-                      required={locationSource === 'manual' && !selectedLocation}
-                      placeholder="Contoh: Monumen Nasional, Jakarta"
+                      placeholder="Cari lokasi (contoh: Monas, Jakarta)..."
                       className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-medium text-slate-800 transition-all"
                     />
                     {isSearching && (
@@ -294,14 +318,14 @@ export default function CreateSessionPage() {
                     )}
                   </div>
 
-                  {searchResults.length > 0 && !selectedLocation && (
-                    <div className="absolute z-50 left-4 right-4 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  {searchResults.length > 0 && (
+                    <div className="absolute z-50 left-4 right-4 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto mb-4">
                       {searchResults.map((result) => (
                         <button
                           key={result.place_id}
                           type="button"
                           onClick={() => {
-                            setSelectedLocation({ lat: parseFloat(result.lat), lon: parseFloat(result.lon), display_name: result.display_name })
+                            setSelectedLocation({ lat: parseFloat(result.lat), lon: parseFloat(result.lon), display_name: result.name || result.display_name.split(',')[0] })
                             setAddressSearch(result.name || result.display_name.split(',')[0])
                             setSearchResults([])
                           }}
@@ -317,13 +341,25 @@ export default function CreateSessionPage() {
                     </div>
                   )}
 
+                  <div className="mt-4 relative z-0">
+                    <MapPicker 
+                      initialPosition={selectedLocation ? { lat: selectedLocation.lat, lng: selectedLocation.lon } : undefined}
+                      onLocationSelect={(lat, lng) => {
+                        setSelectedLocation({ lat, lon: lng, display_name: "Titik Pin Peta" })
+                      }}
+                    />
+                    <p className="text-xs text-slate-500 mt-2 text-center">
+                      *Klik dimana saja pada peta untuk meletakkan atau memindahkan pin lokasi.
+                    </p>
+                  </div>
+
                   {selectedLocation && (
                     <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-3">
                       <MapPinIcon className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-bold text-blue-900">Lokasi Terpilih</p>
+                        <p className="text-sm font-bold text-blue-900">Titik Koordinat Terpilih</p>
                         <p className="text-xs text-blue-800 line-clamp-2 mt-0.5">{selectedLocation.display_name}</p>
-                        <p className="text-xs font-mono text-blue-600 mt-1">{selectedLocation.lat}, {selectedLocation.lon}</p>
+                        <p className="text-xs font-mono text-blue-600 mt-1">{selectedLocation.lat.toFixed(6)}, {selectedLocation.lon.toFixed(6)}</p>
                       </div>
                     </div>
                   )}
