@@ -2,10 +2,10 @@
 import toast from 'react-hot-toast'
 
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { Calendar, Clock, MapPin, ChevronLeft, Save } from 'lucide-react'
+import { Calendar, Clock, MapPin, ChevronLeft, Save, Search, MapPinIcon } from 'lucide-react'
 
 export default function CreateSessionPage() {
   const params = useParams()
@@ -20,19 +20,52 @@ export default function CreateSessionPage() {
   const [checkoutStartTime, setCheckoutStartTime] = useState('')
   const [radius, setRadius] = useState(50)
   
+  const [locationSource, setLocationSource] = useState<'device' | 'manual'>('device')
+  const [addressSearch, setAddressSearch] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [selectedLocation, setSelectedLocation] = useState<{lat: number, lon: number, display_name: string} | null>(null)
+
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null)
+
   const [loading, setLoading] = useState(false)
+
+  const handleSearchAddress = (query: string) => {
+    setAddressSearch(query)
+    setSelectedLocation(null)
+    
+    if (searchTimeout.current) {
+      clearTimeout(searchTimeout.current)
+    }
+
+    if (!query.trim()) {
+      setSearchResults([])
+      return
+    }
+
+    searchTimeout.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`, {
+          headers: {
+            'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
+          }
+        })
+        const data = await res.json()
+        setSearchResults(data)
+      } catch (err) {
+        console.error('Error fetching address:', err)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    if (!navigator.geolocation) {
-      toast.error('Browser Anda tidak mendukung GPS.')
-      setLoading(false)
-      return
-    }
-
-    navigator.geolocation.getCurrentPosition(async (position) => {
+    const submitData = async (latitude: number, longitude: number) => {
       try {
         const payload = {
           title,
@@ -41,8 +74,8 @@ export default function CreateSessionPage() {
           end_time: new Date(endTime).toISOString(),
           late_time: lateTime ? new Date(lateTime).toISOString() : null,
           checkout_start_time: (sessionType === 'in_out' && checkoutStartTime) ? new Date(checkoutStartTime).toISOString() : null,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
+          latitude,
+          longitude,
           radius_meters: radius
         }
 
@@ -54,12 +87,32 @@ export default function CreateSessionPage() {
       } finally {
         setLoading(false)
       }
-    }, (error) => {
-      toast.error('Gagal mendapatkan lokasi. Izinkan akses GPS terlebih dahulu.')
+    }
+
+    if (locationSource === 'manual') {
+      if (!selectedLocation) {
+        toast.error('Pilih lokasi dari hasil pencarian terlebih dahulu.')
+        setLoading(false)
+        return
+      }
+      await submitData(selectedLocation.lat, selectedLocation.lon)
+      return
+    }
+
+    if (!navigator.geolocation) {
+      toast.error('Browser Anda tidak mendukung GPS.')
       setLoading(false)
-    }, {
-      enableHighAccuracy: true
-    })
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => submitData(position.coords.latitude, position.coords.longitude),
+      (error) => {
+        toast.error('Gagal mendapatkan lokasi. Izinkan akses GPS terlebih dahulu.')
+        setLoading(false)
+      }, 
+      { enableHighAccuracy: true }
+    )
   }
 
   return (
@@ -181,12 +234,102 @@ export default function CreateSessionPage() {
 
           <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-2">
-              <MapPin className="w-5 h-5 text-blue-600" /> Kordinat Kehadiran
+              <MapPin className="w-5 h-5 text-blue-600" /> Koordinat Kehadiran
             </h3>
-            
-            <p className="text-sm text-slate-600 leading-relaxed">
-              Titik GPS pusat akan otomatis diambil dari lokasi Anda saat Anda menekan tombol "Simpan & Buat Sesi". Pastikan Anda berada di lokasi acara saat membuat sesi ini.
-            </p>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2">Sumber Lokasi</label>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setLocationSource('device')}
+                  className={`py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${
+                    locationSource === 'device' 
+                    ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  GPS Perangkat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationSource('manual')}
+                  className={`py-3 px-4 rounded-xl border font-semibold text-sm transition-all ${
+                    locationSource === 'manual' 
+                    ? 'border-blue-600 bg-blue-50 text-blue-700' 
+                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  }`}
+                >
+                  Input Manual (Maps)
+                </button>
+              </div>
+            </div>
+
+            {locationSource === 'device' ? (
+              <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-200">
+                Titik GPS pusat akan otomatis diambil dari lokasi perangkat Anda saat Anda menekan tombol "Simpan & Buat Sesi". Pastikan Anda berada di lokasi acara saat membuat sesi ini dan mengizinkan akses lokasi.
+              </p>
+            ) : (
+              <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-200 relative">
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Cari alamat atau nama tempat acara. Kami akan otomatis mengkonversinya menjadi titik koordinat.
+                </p>
+                <div>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input 
+                      type="text" 
+                      value={addressSearch}
+                      onChange={(e) => handleSearchAddress(e.target.value)}
+                      required={locationSource === 'manual' && !selectedLocation}
+                      placeholder="Contoh: Monumen Nasional, Jakarta"
+                      className="w-full bg-white border border-slate-300 rounded-xl pl-10 pr-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 text-sm font-medium text-slate-800 transition-all"
+                    />
+                    {isSearching && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                  </div>
+
+                  {searchResults.length > 0 && !selectedLocation && (
+                    <div className="absolute z-50 left-4 right-4 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {searchResults.map((result) => (
+                        <button
+                          key={result.place_id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedLocation({ lat: parseFloat(result.lat), lon: parseFloat(result.lon), display_name: result.display_name })
+                            setAddressSearch(result.name || result.display_name.split(',')[0])
+                            setSearchResults([])
+                          }}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors flex items-start gap-3"
+                        >
+                          <MapPinIcon className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-sm font-bold text-slate-800 line-clamp-1">{result.name || result.display_name.split(',')[0]}</p>
+                            <p className="text-xs text-slate-500 line-clamp-1">{result.display_name}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedLocation && (
+                    <div className="mt-3 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-3">
+                      <MapPinIcon className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-bold text-blue-900">Lokasi Terpilih</p>
+                        <p className="text-xs text-blue-800 line-clamp-2 mt-0.5">{selectedLocation.display_name}</p>
+                        <p className="text-xs font-mono text-blue-600 mt-1">{selectedLocation.lat}, {selectedLocation.lon}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">Radius Maksimal (Meter)</label>
