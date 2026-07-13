@@ -141,6 +141,24 @@ export default function OrganizationMembersPage() {
     }
   }
 
+  const handleToggleDelegation = async (member: Member) => {
+    const currentData = member.custom_data || {}
+    const newDelegationStatus = !currentData.can_take_attendance
+    
+    try {
+      await api.put(`/org/${orgSlug}/members/${member.profile_id}/custom-data`, {
+        custom_data: {
+          ...currentData,
+          can_take_attendance: newDelegationStatus
+        }
+      })
+      toast.success(newDelegationStatus ? 'Hak delegasi absen diberikan' : 'Hak delegasi absen dicabut')
+      await fetchMembers()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal mengubah hak delegasi')
+    }
+  }
+
   const openInviteModal = async () => {
     setInviteModalOpen(true)
     if (!inviteCode) {
@@ -344,6 +362,16 @@ export default function OrganizationMembersPage() {
                           <span>{new Date(member.joined_at).toLocaleDateString('id-ID')}</span>
                         </div>
                         
+                        {(isHead || currentUserRole === 'sekretaris') && member.profile_id !== currentUserId && (
+                          <div className="flex justify-between items-center text-xs mt-3 pt-3 border-t border-slate-100 text-slate-500">
+                            <span className="font-medium text-[11px] uppercase tracking-wider text-slate-400">Delegasi Absen</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" className="sr-only peer" checked={!!member.custom_data?.can_take_attendance} onChange={() => handleToggleDelegation(member)} />
+                              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                            </label>
+                          </div>
+                        )}
+                        
                         {customFieldsSchema.length > 0 && member.custom_data && (
                           <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap gap-2 text-xs">
                             {customFieldsSchema.map(field => (
@@ -366,6 +394,7 @@ export default function OrganizationMembersPage() {
                           <th className="py-3 px-2">Nama</th>
                           <th className="py-3 px-2">Email</th>
                           <th className="py-3 px-2">Role</th>
+                          {(isHead || currentUserRole === 'sekretaris') && <th className="py-3 px-2 text-center">Delegasi Absen</th>}
                           {customFieldsSchema.map(field => (
                             <th key={field.id} className="py-3 px-2">{field.label}</th>
                           ))}
@@ -422,6 +451,18 @@ export default function OrganizationMembersPage() {
                                 </span>
                               )}
                             </td>
+                            {(isHead || currentUserRole === 'sekretaris') && (
+                              <td className="py-3.5 px-2 text-center">
+                                {member.profile_id !== currentUserId ? (
+                                  <label className="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" className="sr-only peer" checked={!!member.custom_data?.can_take_attendance} onChange={() => handleToggleDelegation(member)} />
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                  </label>
+                                ) : (
+                                  <span className="text-xs text-slate-400">-</span>
+                                )}
+                              </td>
+                            )}
                             {customFieldsSchema.map(field => (
                               <td key={field.id} className="py-3.5 px-2 text-slate-600 whitespace-nowrap">
                                 {member.custom_data ? member.custom_data[field.id] || '-' : '-'}

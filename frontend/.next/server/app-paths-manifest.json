@@ -1,3 +1,7 @@
 {
-  "/(dashboard)/personal/dashboard/page": "app/(dashboard)/personal/dashboard/page.js"
+  "/(public)/login/page": "app/(public)/login/page.js",
+  "/page": "app/page.js",
+  "/(dashboard)/org/[orgSlug]/settings/page": "app/(dashboard)/org/[orgSlug]/settings/page.js",
+  "/(dashboard)/personal/dashboard/page": "app/(dashboard)/personal/dashboard/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js"
 }

@@ -100,7 +100,16 @@ self.addEventListener('push', function (event) {
         url: data.url || '/'
       }
     }
-    event.waitUntil(self.registration.showNotification(data.title, options))
+    const notificationPromise = self.registration.showNotification(data.title, options)
+
+    // Kirim sinyal ke semua tab frontend yang terbuka agar memutar suara
+    const broadcastPromise = self.clients.matchAll().then((clients) => {
+      clients.forEach((client) => {
+        client.postMessage({ type: 'PUSH_RECEIVED', data: data })
+      })
+    })
+
+    event.waitUntil(Promise.all([notificationPromise, broadcastPromise]))
   }
 })
 

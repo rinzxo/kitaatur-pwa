@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, QrCode, CheckCircle, FileText, History, BarChart2 } from 'lucide-react'
+import { ArrowLeft, Clock, QrCode, CheckCircle, FileText, History, BarChart2, Users } from 'lucide-react'
 
 export default function AttendanceDashboardPage() {
   const params = useParams()
@@ -14,7 +14,9 @@ export default function AttendanceDashboardPage() {
   const orgSlug = params.orgSlug as string
 
   const [currentUserRole, setCurrentUserRole] = useState<string>('member')
+  const [canDelegate, setCanDelegate] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [pendingCollabs, setPendingCollabs] = useState<any[]>([])
 
   const initRoleAndData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -28,8 +30,12 @@ export default function AttendanceDashboardPage() {
       const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
       if (currentMember) {
         setCurrentUserRole(currentMember.role)
-        
+        setCanDelegate(!!currentMember.custom_data?.can_take_attendance)
 
+        if (currentMember.role === 'head' || currentMember.role === 'sekretaris') {
+          const collabRes = await api.get(`/org-attendance/${orgSlug}/pending-collaborations`)
+          setPendingCollabs(collabRes.data || [])
+        }
       } else {
         router.push('/personal/dashboard')
       }
@@ -64,6 +70,26 @@ export default function AttendanceDashboardPage() {
 
   const isEditor = currentUserRole === 'head' || currentUserRole === 'sekretaris'
 
+  const handleAcceptCollab = async (sessionId: string) => {
+    try {
+      await api.post(`/org-attendance/${orgSlug}/sessions/${sessionId}/collaborate/accept`)
+      toast.success('Kolaborasi diterima!')
+      setPendingCollabs(pendingCollabs.filter(c => c.id !== sessionId))
+    } catch (err: any) {
+      toast.error('Gagal menerima kolaborasi')
+    }
+  }
+
+  const handleRejectCollab = async (sessionId: string) => {
+    try {
+      await api.post(`/org-attendance/${orgSlug}/sessions/${sessionId}/collaborate/reject`)
+      toast.success('Kolaborasi ditolak')
+      setPendingCollabs(pendingCollabs.filter(c => c.id !== sessionId))
+    } catch (err: any) {
+      toast.error('Gagal menolak kolaborasi')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-4 md:p-10 pb-28 md:pb-10 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[120px] pointer-events-none" />
@@ -84,6 +110,37 @@ export default function AttendanceDashboardPage() {
           <p className="text-slate-500 font-medium text-sm mt-1">Kelola dan pantau kehadiran serta notulensi.</p>
         </div>
       </header>
+
+      {pendingCollabs.length > 0 && (
+        <div className="relative z-10 max-w-7xl mx-auto mb-8">
+          <div className="bg-white rounded-3xl p-6 border-l-4 border-blue-500 shadow-md">
+            <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Users className="w-6 h-6 text-blue-500" /> Undangan Kolaborasi Agenda
+            </h2>
+            <div className="space-y-4">
+              {pendingCollabs.map(session => (
+                <div key={session.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div>
+                    <h3 className="font-bold text-slate-800">{session.title}</h3>
+                    <p className="text-sm text-slate-500">Oleh: {session.organization?.name}</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Waktu: {new Date(session.start_time).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => handleAcceptCollab(session.id)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-sm transition-colors">
+                      Terima
+                    </button>
+                    <button onClick={() => handleRejectCollab(session.id)} className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold text-sm transition-colors">
+                      Tolak
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
@@ -139,6 +196,25 @@ export default function AttendanceDashboardPage() {
             Lihat Riwayat
           </Link>
         </div>
+
+        {/* Bantu Absen Action (For Delegasi/Editor) */}
+        {(isEditor || canDelegate) && (
+          <div className="bg-white border border-slate-200 shadow-sm rounded-3xl p-6 text-center flex flex-col h-full">
+            <div className="w-16 h-16 bg-fuchsia-50 text-fuchsia-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shrink-0">
+              <Users className="w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 mb-2">Bantu Absen</h3>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed flex-grow">
+              Lakukan absensi untuk anggota lain tanpa PIN dan GPS.
+            </p>
+            <Link 
+              href={`/org/${orgSlug}/attendance/bantu-absen`}
+              className="block w-full py-3.5 bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-700 font-bold rounded-xl transition-all active:scale-[0.98] mt-auto"
+            >
+              Mulai Bantu Absen
+            </Link>
+          </div>
+        )}
 
         {/* Notulensi Action (Pisah) */}
         {isEditor && (

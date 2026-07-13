@@ -103,9 +103,23 @@ export default function OrgSettingsPage() {
       toast.success('Profil organisasi berhasil disimpan.')
       window.location.reload()
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Terjadi kesalahan saat menyimpan pengaturan.')
+      toast.error(err.response?.data?.error || 'Gagal menyimpan profil organisasi')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleLeaveWorkspace = async () => {
+    if (!window.confirm(`Apakah Anda yakin ingin keluar dari workspace ${orgData?.name}? Anda akan kehilangan akses ke workspace ini.`)) {
+      return
+    }
+
+    try {
+      await api.delete(`/org/${orgSlug}/leave`)
+      toast.success('Berhasil keluar dari workspace')
+      router.push('/personal/dashboard')
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal keluar dari workspace')
     }
   }
 
@@ -276,7 +290,7 @@ export default function OrgSettingsPage() {
                     {userAvatar ? (
                       <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-slate-500 font-bold text-3xl">{userName.charAt(0).toUpperCase()}</span>
+                      <span className="text-slate-500 font-bold text-3xl">{(userName || '?').charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   
@@ -547,7 +561,7 @@ export default function OrgSettingsPage() {
               {userAvatar ? (
                 <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-2xl font-semibold text-slate-500">{userName.charAt(0).toUpperCase()}</span>
+                <span className="text-2xl font-semibold text-slate-500">{(userName || '?').charAt(0).toUpperCase()}</span>
               )}
             </div>
             <div>
@@ -657,10 +671,17 @@ export default function OrgSettingsPage() {
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
+            <button onClick={handleLeaveWorkspace} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+              <div className="flex items-center gap-4">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-door-open w-6 h-6 text-rose-500"><path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.562v16.157a1 1 0 0 1-1.242.97L5 20V5.562a2 2 0 0 1 1.515-1.94l4-1A2 2 0 0 1 13 4.561Z"/></svg>
+                <span className="text-lg text-rose-500 font-medium">Keluar Workspace</span>
+              </div>
+            </button>
+
             <button onClick={async () => { await supabase.auth.signOut(); window.location.href='/login' }} className="flex items-center justify-between py-5 group mt-8">
               <div className="flex items-center gap-4">
-                <LogOut className="w-6 h-6 text-rose-500" />
-                <span className="text-lg text-rose-500 font-medium">Keluar Akun</span>
+                <LogOut className="w-6 h-6 text-slate-400" />
+                <span className="text-lg text-slate-500 font-medium">Keluar Akun</span>
               </div>
             </button>
 

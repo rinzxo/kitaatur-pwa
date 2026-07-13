@@ -177,6 +177,8 @@ model attendance_sessions {
   is_active       Boolean       @default(true)
   created_at      DateTime      @default(now()) @db.Timestamptz
   closed_at       DateTime?     @db.Timestamptz
+  shared_with_orgs String[]     @default([]) // Array of organization IDs that have accepted the collaboration
+  pending_shared_orgs String[]  @default([]) // Array of organization IDs that are invited but haven't accepted
   
   organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
   creator         profiles      @relation(fields: [created_by], references: [id])

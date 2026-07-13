@@ -3,6 +3,43 @@ import { AuthenticatedRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { Prisma } from '@prisma/client'
 
+// 0. Ambil profil user
+export async function getProfile(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized user' })
+
+  try {
+    const profile = await prisma.profiles.findUnique({ where: { id: userId } })
+    if (!profile) return res.status(404).json({ error: 'Profile not found' })
+    return res.status(200).json(profile)
+  } catch (error) {
+    console.error('Error fetching profile:', error)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+export async function updateProfile(req: AuthenticatedRequest, res: Response) {
+  const userId = req.user?.id
+  const { full_name, avatar_url } = req.body
+
+  if (!userId) return res.status(401).json({ error: 'Unauthorized user' })
+
+  try {
+    const updated = await prisma.profiles.update({
+      where: { id: userId },
+      data: {
+        full_name,
+        avatar_url,
+        updated_at: new Date()
+      }
+    })
+    return res.status(200).json({ message: 'Profile updated', profile: updated })
+  } catch (error) {
+    console.error('Error updating profile:', error)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
 // 1. Ambil ringkasan keuangan personal (pemasukan/pengeluaran)
 export async function getPersonalSummary(req: AuthenticatedRequest, res: Response) {
   const userId = req.user?.id

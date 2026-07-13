@@ -6,6 +6,16 @@ import { QrCode, Wallet, ShieldCheck } from "lucide-react";
 export default function Home() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  // Fallback for auth redirect
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search)
+      if (searchParams.has('code')) {
+        window.location.href = `/auth/callback${window.location.search}`
+      }
+    }
+  }, [])
+
   const slides = [
     {
       id: 0,

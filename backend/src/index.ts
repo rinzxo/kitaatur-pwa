@@ -14,8 +14,13 @@ import paymentRoutes from './routes/payment.routes'
 import meetingRoutes from './routes/meeting.routes'
 import notificationRoutes from './routes/notification.routes'
 
+import { initJobs } from './jobs/reminder.job'
+
 const app = express()
 const port = process.env.PORT || 5000
+
+// Initialize background jobs
+initJobs()
 
 // Handle Chrome Private Network Access (PNA) block for Railway IPv6 addresses
 app.use((req, res, next) => {

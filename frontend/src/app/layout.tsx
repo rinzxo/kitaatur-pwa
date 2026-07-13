@@ -30,11 +30,17 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
+import { SplashScreen } from '@/components/ui/SplashScreen';
+import { cookies } from 'next/headers';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = cookies();
+  const splashShown = cookieStore.get('kitaatur_splash_shown');
+
   return (
     <html lang="id">
       <head>
@@ -48,10 +54,19 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body>
-        <ConfirmProvider>
-          {children}
-          <Toaster position="top-center" />
-        </ConfirmProvider>
+        {!splashShown ? (
+          <SplashScreen>
+            <ConfirmProvider>
+              {children}
+              <Toaster position="top-center" />
+            </ConfirmProvider>
+          </SplashScreen>
+        ) : (
+          <ConfirmProvider>
+            {children}
+            <Toaster position="top-center" />
+          </ConfirmProvider>
+        )}
         <ServiceWorkerRegistration />
         <script
           dangerouslySetInnerHTML={{

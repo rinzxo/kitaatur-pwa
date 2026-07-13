@@ -18,11 +18,10 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-// 1. Create a new Attendance Session (Head & Sekretaris)
 export async function createSession(req: any, res: Response) {
   const orgMemberContext = req.orgMember;
   const userId = req.user?.id;
-  const { title, session_type, start_time, end_time, late_time, checkout_start_time, latitude, longitude, radius_meters } = req.body;
+  const { title, session_type, start_time, end_time, late_time, checkout_start_time, latitude, longitude, radius_meters, invitedOrgs } = req.body;
 
   if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
     return res.status(403).json({ error: 'Hanya Ketua dan Sekretaris yang bisa membuka sesi absensi' });
@@ -41,6 +40,11 @@ export async function createSession(req: any, res: Response) {
     const pin_code = Math.floor(1000 + Math.random() * 9000).toString();
     const checkout_pin_code = session_type === 'in_out' ? Math.floor(1000 + Math.random() * 9000).toString() : null;
 
+    let pending_shared_orgs: string[] = [];
+    if (Array.isArray(invitedOrgs)) {
+      pending_shared_orgs = invitedOrgs.filter(id => typeof id === 'string');
+    }
+
     const newSession = await prisma.attendance_sessions.create({
       data: {
         organization_id: orgMemberContext.organizationId,
@@ -56,7 +60,8 @@ export async function createSession(req: any, res: Response) {
         latitude,
         longitude,
         radius_meters: radius_meters || 50,
-        is_active: true
+        is_active: true,
+        pending_shared_orgs
       } as any
     });
 
@@ -67,6 +72,24 @@ export async function createSession(req: any, res: Response) {
       for (const m of members) {
         if (m.profile_id !== userId) {
           sendPushNotification(m.profile_id, 'Sesi Absensi Dibuka!', `Sesi "${newSession.title}" di ${org.name} telah dibuka. Segera lakukan presensi!`, `/org/${org.slug}/attendance/scan`);
+        }
+      }
+
+      // Notify invited orgs
+      if (pending_shared_orgs.length > 0) {
+        for (const invitedOrgId of pending_shared_orgs) {
+          const invitedOrg = await prisma.organizations.findUnique({ where: { id: invitedOrgId } });
+          if (invitedOrg) {
+            const heads = await prisma.organization_members.findMany({
+              where: {
+                organization_id: invitedOrgId,
+                role: { in: ['head', 'sekretaris'] }
+              }
+            });
+            for (const h of heads) {
+              sendPushNotification(h.profile_id, 'Undangan Kolaborasi Agenda', `${org.name} mengundang ${invitedOrg.name} untuk berkolaborasi di agenda "${newSession.title}".`, `/org/${invitedOrg.slug}/attendance`);
+            }
+          }
         }
       }
     }
@@ -88,7 +111,10 @@ export async function getSessions(req: any, res: Response) {
   try {
     const sessions = await prisma.attendance_sessions.findMany({
       where: {
-        organization_id: orgMemberContext.organizationId
+        OR: [
+          { organization_id: orgMemberContext.organizationId },
+          { shared_with_orgs: { has: orgMemberContext.organizationId } }
+        ]
       },
       orderBy: {
         start_time: 'desc'
@@ -98,6 +124,105 @@ export async function getSessions(req: any, res: Response) {
     return res.status(200).json(sessions);
   } catch (err) {
     console.error('Error getting sessions:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 1C. Get Pending Collaborations
+export async function getPendingCollaborations(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  if (!orgMemberContext) return res.status(403).json({ error: 'Akses ditolak' });
+
+  try {
+    const pendingSessions = await prisma.attendance_sessions.findMany({
+      where: {
+        pending_shared_orgs: { has: orgMemberContext.organizationId }
+      },
+      include: {
+        organization: { select: { id: true, name: true, logo_url: true } }
+      }
+    });
+    return res.status(200).json(pendingSessions);
+  } catch (err) {
+    console.error('Error getting pending collabs:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 1D. Accept Collaboration
+export async function acceptCollaboration(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const { sessionId } = req.params;
+
+  try {
+    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+
+    if (!session.pending_shared_orgs.includes(orgMemberContext.organizationId)) {
+      return res.status(400).json({ error: 'Tidak ada undangan kolaborasi untuk organisasi ini' });
+    }
+
+    const updatedSession = await prisma.attendance_sessions.update({
+      where: { id: sessionId },
+      data: {
+        pending_shared_orgs: session.pending_shared_orgs.filter(id => id !== orgMemberContext.organizationId),
+        shared_with_orgs: { push: orgMemberContext.organizationId }
+      }
+    });
+    return res.status(200).json({ success: true, session: updatedSession });
+  } catch (err) {
+    console.error('Error accepting collab:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 1E. Reject Collaboration
+export async function rejectCollaboration(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const { sessionId } = req.params;
+
+  try {
+    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+
+    if (!session.pending_shared_orgs.includes(orgMemberContext.organizationId)) {
+      return res.status(400).json({ error: 'Tidak ada undangan kolaborasi untuk organisasi ini' });
+    }
+
+    const updatedSession = await prisma.attendance_sessions.update({
+      where: { id: sessionId },
+      data: {
+        pending_shared_orgs: session.pending_shared_orgs.filter(id => id !== orgMemberContext.organizationId)
+      }
+    });
+    return res.status(200).json({ success: true, session: updatedSession });
+  } catch (err) {
+    console.error('Error rejecting collab:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 1F. Get Session Members (For Bantu Absen Collab)
+export async function getSessionMembers(req: any, res: Response) {
+  const { sessionId } = req.params;
+
+  try {
+    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+
+    const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
+
+    const members = await prisma.organization_members.findMany({
+      where: { organization_id: { in: validOrgs } },
+      include: {
+        profile: { select: { full_name: true, email: true, avatar_url: true } },
+        organization: { select: { name: true } }
+      }
+    });
+
+    return res.status(200).json(members);
+  } catch (err) {
+    console.error('Error fetching session members:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
@@ -251,7 +376,7 @@ export async function closeSession(req: any, res: Response) {
 export async function checkIn(req: any, res: Response) {
   const orgMemberContext = req.orgMember;
   const userId = req.user?.id;
-  const { pin, latitude, longitude, status, proof_url, notes } = req.body;
+  const { pin, latitude, longitude, accuracy, status, proof_url, notes } = req.body;
 
   if (!orgMemberContext) {
     return res.status(403).json({ error: 'Akses ditolak' });
@@ -263,12 +388,21 @@ export async function checkIn(req: any, res: Response) {
     if (status === 'present') {
       activeSession = await prisma.attendance_sessions.findFirst({
         where: {
-          organization_id: orgMemberContext.organizationId,
-          is_active: true,
-          OR: [
-            { pin_code: pin },
-            { checkout_pin_code: pin }
-          ]
+          AND: [
+            {
+              OR: [
+                { organization_id: orgMemberContext.organizationId },
+                { shared_with_orgs: { has: orgMemberContext.organizationId } }
+              ]
+            },
+            {
+              OR: [
+                { pin_code: pin },
+                { checkout_pin_code: pin }
+              ]
+            }
+          ],
+          is_active: true
         }
       });
       if (!activeSession) {
@@ -328,17 +462,9 @@ export async function checkIn(req: any, res: Response) {
         return res.status(400).json({ error: 'Anda sudah melakukan absen pulang.' });
       }
 
-      // Validasi GPS untuk Pulang
-      if (latitude == null || longitude == null) {
-        return res.status(400).json({ error: 'Gagal mendapatkan lokasi GPS untuk absen pulang' });
-      }
-
-      distance_meters = calculateDistance(activeSession.latitude, activeSession.longitude, latitude, longitude);
-
-      if (distance_meters > activeSession.radius_meters) {
-        return res.status(400).json({ 
-          error: `Lokasi pulang Anda terlalu jauh (${Math.round(distance_meters)}m). Maksimal radius: ${activeSession.radius_meters}m` 
-        });
+      // Validasi GPS untuk Pulang (Sekarang Opsional)
+      if (latitude != null && longitude != null) {
+        distance_meters = calculateDistance(activeSession.latitude, activeSession.longitude, latitude, longitude);
       }
 
       const updatedRecord = await prisma.attendance.update({
@@ -356,16 +482,9 @@ export async function checkIn(req: any, res: Response) {
       }
 
       if (finalStatus === 'present') {
-        if (latitude == null || longitude == null) {
-          return res.status(400).json({ error: 'Gagal mendapatkan lokasi GPS' });
-        }
-
-        distance_meters = calculateDistance(activeSession.latitude, activeSession.longitude, latitude, longitude);
-
-        if (distance_meters > activeSession.radius_meters) {
-          return res.status(400).json({ 
-            error: `Lokasi kedatangan terlalu jauh (${Math.round(distance_meters)}m). Maksimal radius: ${activeSession.radius_meters}m` 
-          });
+        // Validasi GPS untuk Datang (Sekarang Opsional)
+        if (latitude != null && longitude != null) {
+          distance_meters = calculateDistance(activeSession.latitude, activeSession.longitude, latitude, longitude);
         }
         
         if (activeSession.late_time && now > activeSession.late_time) {
@@ -517,7 +636,10 @@ export async function getAgenda(req: any, res: Response) {
     // Get ongoing or upcoming sessions (end_time is in the future)
     const sessions = await prisma.attendance_sessions.findMany({
       where: {
-        organization_id: orgMemberContext.organizationId,
+        OR: [
+          { organization_id: orgMemberContext.organizationId },
+          { shared_with_orgs: { has: orgMemberContext.organizationId } }
+        ],
         end_time: { gte: now }
       },
       orderBy: { start_time: 'asc' }
@@ -583,3 +705,124 @@ export async function getMyAttendanceHistory(req: any, res: Response) {
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
+
+// 11. Manual Bulk Check-In (Bantu Absen oleh Head/Sekretaris/Delegasi)
+export async function manualBulkCheckIn(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const { sessionId } = req.params;
+  const { profileIds, pin } = req.body;
+
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses ditolak' });
+  }
+
+  try {
+    // Cek authorization: harus head, sekretaris, atau memiliki custom_data.can_take_attendance = true
+    const callerMembership = await prisma.organization_members.findUnique({
+      where: {
+        organization_id_profile_id: {
+          organization_id: orgMemberContext.organizationId,
+          profile_id: req.user.id
+        }
+      }
+    });
+
+    const customData = callerMembership?.custom_data as any;
+    const canDelegate = customData?.can_take_attendance === true;
+
+    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil absensi' });
+    }
+
+    if (!profileIds || !Array.isArray(profileIds) || profileIds.length === 0) {
+      return res.status(400).json({ error: 'Daftar anggota yang akan diabsenkan kosong' });
+    }
+
+    if (!pin) {
+      return res.status(400).json({ error: 'PIN wajib diisi untuk keamanan' });
+    }
+
+    const session = await prisma.attendance_sessions.findUnique({
+      where: { id: sessionId }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Sesi absensi tidak ditemukan' });
+    }
+
+    const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
+    if (!validOrgs.includes(orgMemberContext.organizationId)) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda bukan bagian dari sesi absensi ini' });
+    }
+
+    let isCheckOut = false;
+
+    if (session.session_type === 'in_out' && session.checkout_pin_code === pin) {
+      isCheckOut = true;
+    } else if (session.pin_code !== pin) {
+      return res.status(400).json({ error: 'PIN tidak valid' });
+    }
+
+    const now = new Date();
+      
+    const results = [];
+    let failedCount = 0;
+
+    for (const pid of profileIds) {
+      // Cari asal organisasi member ini (di antara validOrgs)
+      const memberOrg = await prisma.organization_members.findFirst({
+        where: {
+          profile_id: pid,
+          organization_id: { in: validOrgs }
+        }
+      });
+      const memberOrgId = memberOrg ? memberOrg.organization_id : orgMemberContext.organizationId;
+
+      const existing = await prisma.attendance.findFirst({
+        where: { session_id: session.id, profile_id: pid }
+      });
+
+      if (isCheckOut) {
+        // Harus sudah absen datang dulu
+        if (!existing) {
+          failedCount++;
+          continue;
+        }
+        // Kalau sudah absen pulang, lewati
+        if (existing.check_out_time) {
+          continue;
+        }
+        const updated = await prisma.attendance.update({
+          where: { id: existing.id },
+          data: { check_out_time: now, notes: existing.notes ? existing.notes + ' [PULANG BY DELEGATE]' : '[PULANG BY DELEGATE]' } as any
+        });
+        results.push(updated);
+      } else {
+        // Absen Datang
+        if (!existing) {
+          const record = await prisma.attendance.create({
+            data: {
+              organization_id: memberOrgId,
+              profile_id: pid,
+              session_id: session.id,
+              status: 'present',
+              notes: '[MANUAL CHECK-IN BY DELEGATE]',
+              check_in_time: now
+            } as any
+          });
+          results.push(record);
+        }
+      }
+    }
+
+    const msg = failedCount > 0 
+      ? `Berhasil mengabsenkan ${results.length} anggota (${failedCount} gagal karena belum absen datang).`
+      : `Berhasil mengabsenkan ${results.length} anggota.`;
+
+    return res.status(200).json({ message: msg, records: results });
+  } catch (err) {
+    console.error('Error manual bulk check-in:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+

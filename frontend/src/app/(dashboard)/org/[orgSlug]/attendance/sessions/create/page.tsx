@@ -6,7 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import { api } from '@/lib/api'
-import { Calendar, Clock, MapPin, ChevronLeft, Save, Search, MapPinIcon } from 'lucide-react'
+import { Calendar, Clock, MapPin, ChevronLeft, Save, Search, MapPinIcon, Users, X } from 'lucide-react'
 
 const MapPicker = dynamic(() => import('@/components/MapPicker'), { ssr: false })
 
@@ -30,8 +30,57 @@ export default function CreateSessionPage() {
   const [selectedLocation, setSelectedLocation] = useState<{lat: number, lon: number, display_name: string} | null>(null)
 
   const searchTimeout = useRef<NodeJS.Timeout | null>(null)
+  const orgSearchTimeout = useRef<NodeJS.Timeout | null>(null)
 
   const [loading, setLoading] = useState(false)
+
+  const [invitedOrgs, setInvitedOrgs] = useState<{id: string, name: string}[]>([])
+  const [orgSearch, setOrgSearch] = useState('')
+  const [orgResults, setOrgResults] = useState<any[]>([])
+  const [isSearchingOrg, setIsSearchingOrg] = useState(false)
+
+  const handleSearchOrg = (query: string) => {
+    setOrgSearch(query)
+    
+    if (orgSearchTimeout.current) {
+      clearTimeout(orgSearchTimeout.current)
+    }
+
+    if (!query.trim() || query.length < 2) {
+      setOrgResults([])
+      return
+    }
+
+    orgSearchTimeout.current = setTimeout(async () => {
+      setIsSearchingOrg(true)
+      try {
+        const res = await api.get(`/org/search?q=${encodeURIComponent(query)}`)
+        setOrgResults(res.data)
+      } catch (err) {
+        console.error('Error fetching orgs:', err)
+      } finally {
+        setIsSearchingOrg(false)
+      }
+    }, 500)
+  }
+
+  const addInvitedOrg = (org: any) => {
+    if (org.slug === orgSlug) {
+      toast.error('Tidak bisa mengundang organisasi sendiri')
+      return
+    }
+    if (invitedOrgs.find(o => o.id === org.id)) {
+      toast.error('Organisasi sudah ditambahkan')
+      return
+    }
+    setInvitedOrgs([...invitedOrgs, { id: org.id, name: org.name }])
+    setOrgSearch('')
+    setOrgResults([])
+  }
+
+  const removeInvitedOrg = (id: string) => {
+    setInvitedOrgs(invitedOrgs.filter(o => o.id !== id))
+  }
 
   const handleSearchAddress = (query: string) => {
     setAddressSearch(query)
@@ -101,7 +150,8 @@ export default function CreateSessionPage() {
           checkout_start_time: (sessionType === 'in_out' && checkoutStartTime) ? new Date(checkoutStartTime).toISOString() : null,
           latitude,
           longitude,
-          radius_meters: radius
+          radius_meters: radius,
+          invitedOrgs: invitedOrgs.map(o => o.id)
         }
 
         await api.post(`/org-attendance/${orgSlug}/sessions`, payload)
@@ -377,6 +427,62 @@ export default function CreateSessionPage() {
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:border-blue-500 font-medium text-slate-800"
               />
             </div>
+          </div>
+
+          <div className="bg-white rounded-3xl p-5 border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-bold text-slate-800 flex items-center gap-2 mb-2">
+              <Users className="w-5 h-5 text-blue-600" /> Kolaborasi Agenda (Opsional)
+            </h3>
+            <p className="text-sm text-slate-600 mb-2">
+              Undang organisasi lain untuk bergabung di sesi absensi ini secara bersamaan.
+            </p>
+
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-slate-400" />
+              </div>
+              <input 
+                type="text" 
+                value={orgSearch}
+                onChange={(e) => handleSearchOrg(e.target.value)}
+                placeholder="Cari nama organisasi..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 outline-none focus:border-blue-500 text-sm font-medium text-slate-800 transition-all"
+              />
+              {isSearchingOrg && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                  <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-600 rounded-full animate-spin"></div>
+                </div>
+              )}
+            </div>
+
+            {orgResults.length > 0 && (
+              <div className="bg-white border border-slate-200 rounded-xl shadow-sm max-h-60 overflow-y-auto mt-2">
+                {orgResults.map((result) => (
+                  <button
+                    key={result.id}
+                    type="button"
+                    onClick={() => addInvitedOrg(result)}
+                    className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                  >
+                    <p className="text-sm font-bold text-slate-800">{result.name}</p>
+                    <p className="text-xs text-slate-500">@{result.slug}</p>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {invitedOrgs.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {invitedOrgs.map((org) => (
+                  <div key={org.id} className="bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-2">
+                    {org.name}
+                    <button type="button" onClick={() => removeInvitedOrg(org.id)} className="text-blue-500 hover:text-blue-700">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <button 

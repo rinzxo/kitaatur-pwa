@@ -12,7 +12,12 @@ import {
   updateAttendanceStatus,
   getAgenda,
   validateAttendance,
-  getMyAttendanceHistory
+  getMyAttendanceHistory,
+  manualBulkCheckIn,
+  getPendingCollaborations,
+  acceptCollaboration,
+  rejectCollaboration,
+  getSessionMembers
 } from '../controllers/attendance.controller'
 
 import {
@@ -28,6 +33,13 @@ router.use(requireAuth)
 // Attendance Sessions
 // ========================
 
+// Pending collaborations
+router.get('/:orgIdOrSlug/pending-collaborations', requireOrgRole(['head', 'sekretaris']), getPendingCollaborations)
+
+// Merespons kolaborasi
+router.post('/:orgIdOrSlug/sessions/:sessionId/collaborate/accept', requireOrgRole(['head', 'sekretaris']), acceptCollaboration)
+router.post('/:orgIdOrSlug/sessions/:sessionId/collaborate/reject', requireOrgRole(['head', 'sekretaris']), rejectCollaboration)
+
 // Buka sesi absensi baru terjadwal (Head & Sekretaris)
 router.post('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'sekretaris']), createSession)
 
@@ -37,6 +49,10 @@ router.get('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'bendahara', 'sekre
 // Ambil sesi absensi yang sedang aktif (Semua Anggota)
 router.get('/:orgIdOrSlug/sessions/active', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getActiveSession)
 
+// Ambil anggota yang valid untuk suatu sesi (Bantu Absen)
+router.get('/:orgIdOrSlug/sessions/:sessionId/members', requireOrgRole(['head', 'sekretaris']), getSessionMembers)
+
+
 // Ambil active/upcoming agenda untuk Member
 router.get('/:orgIdOrSlug/agenda', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getAgenda)
 
@@ -45,6 +61,9 @@ router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', '
 
 // Tutup sesi absensi (Head & Sekretaris)
 router.put('/:orgIdOrSlug/sessions/:sessionId/close', requireOrgRole(['head', 'sekretaris']), closeSession)
+
+// Manual Bulk Check-in (Untuk Head/Sekretaris/Delegasi)
+router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), manualBulkCheckIn)
 
 
 // ========================

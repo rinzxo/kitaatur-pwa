@@ -63,21 +63,22 @@ export default function ScanAttendancePage() {
     if (status === 'present') {
       setLocationStatus('Mendapatkan lokasi GPS...')
       if (!navigator.geolocation) {
-        toast.error('Browser Anda tidak mendukung Geolocation.')
-        setLoading(false)
+        toast.error('Browser Anda tidak mendukung Geolocation. Mengirim data tanpa GPS...')
+        await submitData(null, null, null)
         return
       }
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           setLocationStatus('Mengirim data kehadiran...')
-          await submitData(position.coords.latitude, position.coords.longitude)
+          await submitData(position.coords.latitude, position.coords.longitude, position.coords.accuracy)
         },
-        (error) => {
-          toast.error('Gagal mendapatkan lokasi. Pastikan GPS aktif dan Anda mengizinkan akses lokasi.')
-          setLoading(false)
+        async (error) => {
+          toast.error('Gagal mendapatkan lokasi. Absen dikirim tanpa data GPS.')
+          setLocationStatus('Mengirim data kehadiran (Tanpa GPS)...')
+          await submitData(null, null, null)
         },
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true, timeout: 5000 }
       )
     } else {
       setLocationStatus('Mengirim data izin/sakit...')
@@ -85,7 +86,7 @@ export default function ScanAttendancePage() {
     }
   }
 
-  const submitData = async (lat: number | null, lng: number | null) => {
+  const submitData = async (lat: number | null, lng: number | null, accuracy: number | null = null) => {
     try {
       const payload = {
         session_id: selectedAgendaId,
@@ -94,7 +95,8 @@ export default function ScanAttendancePage() {
         notes,
         proof_url: proofUrl,
         latitude: lat,
-        longitude: lng
+        longitude: lng,
+        accuracy: accuracy
       }
       const res = await api.post(`/org-attendance/${orgSlug}/scan`, payload)
       

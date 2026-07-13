@@ -257,7 +257,12 @@ export async function updateMemberRole(req: Request, res: Response) {
     if (selectedRole === 'head') {
       // Logika Transfer Kepemilikan
       const transaction = await prisma.$transaction([
-        // 1. Turunkan Head saat ini menjadi Member biasa
+        // 1. Update owner_id di tabel organizations
+        prisma.organizations.update({
+          where: { id: orgMemberContext.organizationId },
+          data: { owner_id: memberProfileId }
+        }),
+        // 2. Turunkan Head saat ini menjadi Member biasa
         prisma.organization_members.update({
           where: {
             organization_id_profile_id: {
@@ -267,7 +272,7 @@ export async function updateMemberRole(req: Request, res: Response) {
           },
           data: { role: 'member' }
         }),
-        // 2. Naikkan anggota yang dipilih menjadi Head
+        // 3. Naikkan anggota yang dipilih menjadi Head
         prisma.organization_members.update({
           where: {
             organization_id_profile_id: {
@@ -839,8 +844,8 @@ export async function updateMemberCustomData(req: Request, res: Response) {
 
   if (!orgMemberContext) return res.status(401).json({ error: 'Unauthorized' })
 
-  // Hanya bisa diedit oleh Head atau pemilik data itu sendiri
-  if (orgMemberContext.role !== 'head' && currentUserId !== memberProfileId) {
+  // Bisa diedit oleh Head, Sekretaris, atau pemilik data itu sendiri
+  if (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris' && currentUserId !== memberProfileId) {
     return res.status(403).json({ error: 'Akses ditolak: Anda hanya dapat mengubah data Anda sendiri' })
   }
 
@@ -862,6 +867,81 @@ export async function updateMemberCustomData(req: Request, res: Response) {
   }
 }
 
+// 6. Keluar dari Organisasi (Meninggalkan Workspace Mandiri)
+export async function leaveOrganization(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember;
+
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses ditolak' });
+  }
+
+  try {
+    const orgId = orgMemberContext.organizationId;
+    const profileId = (req as any).user?.id;
+
+    if (!profileId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    // Cek apakah user adalah owner
+    const org = await prisma.organizations.findUnique({
+      where: { id: orgId }
+    });
+
+    if (org?.owner_id === profileId) {
+      return res.status(400).json({ error: 'Anda adalah Pemilik (Owner) workspace ini. Anda tidak dapat keluar begitu saja. Silakan transfer kepemilikan atau hapus workspace ini.' });
+    }
+
+    // Jika bukan owner, hapus dari organization_members
+    await prisma.organization_members.delete({
+      where: {
+        organization_id_profile_id: {
+          organization_id: orgId,
+          profile_id: profileId
+        }
+      }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Anda berhasil keluar dari organisasi.'
+    });
+  } catch (err) {
+    console.error('Error leaving organization:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 7. Cari Organisasi (Untuk Kolaborasi Agenda dll)
+export async function searchOrgs(req: Request, res: Response) {
+  const q = req.query.q as string
+  if (!q || q.length < 2) {
+    return res.status(200).json([])
+  }
+
+  try {
+    const orgs = await prisma.organizations.findMany({
+      where: {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { slug: { contains: q, mode: 'insensitive' } }
+        ]
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo_url: true
+      },
+      take: 10
+    })
+
+    return res.status(200).json(orgs)
+  } catch (err) {
+    console.error('Error searching orgs:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
 
 
 // 7. Invite Link Features
@@ -995,19 +1075,22 @@ export async function joinOrganization(req: any, res: Response) {
       req.body.custom_data ? JSON.stringify(req.body.custom_data) : null
     )
 
-    // Kirim notifikasi ke Head(s)
+    // Kirim notifikasi ke Head(s) dan Sekretaris
     const joiner = await prisma.profiles.findUnique({ where: { id: userId } })
-    const heads = await prisma.organization_members.findMany({
-      where: { organization_id: org.id, role: 'head' },
+    const admins = await prisma.organization_members.findMany({
+      where: { 
+        organization_id: org.id, 
+        role: { in: ['head', 'sekretaris'] } 
+      },
       select: { profile_id: true }
     })
     
-    if (joiner && heads.length > 0) {
-      for (const head of heads) {
-        // Jangan kirim notifikasi jika head yang join (misal bug/owner)
-        if (head.profile_id !== userId) {
+    if (joiner && admins.length > 0) {
+      for (const admin of admins) {
+        // Jangan kirim notifikasi jika admin yang join (misal bug/owner)
+        if (admin.profile_id !== userId) {
           await sendPushNotification(
-            head.profile_id,
+            admin.profile_id,
             'Anggota Baru Bergabung',
             `${joiner.full_name || 'Seseorang'} telah bergabung ke workspace ${org.name}.`,
             `/org/${org.slug}/members`

@@ -119,3 +119,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .modal-animate-enter {
   animation: modal-enter 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes shimmer {
+  0% { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+.animate-shimmer {
+  animation: shimmer 2s linear infinite;
+}
+
+.hide-splash #splash-screen {
+  display: none !important;
+}

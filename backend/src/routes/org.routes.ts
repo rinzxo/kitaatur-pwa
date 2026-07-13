@@ -22,7 +22,9 @@ import {
   getOrgByInviteCode,
   joinOrganization,
   updateOrgCustomFields,
-  updateMemberCustomData
+  updateMemberCustomData,
+  leaveOrganization,
+  searchOrgs
 } from '../controllers/org.controller'
 
 const router = Router()
@@ -32,6 +34,9 @@ router.get('/invite/:code', getOrgByInviteCode)
 
 // Seluruh rute organisasi wajib melalui otentikasi JWT
 router.use(requireAuth)
+
+// Route pencarian organisasi (untuk kolaborasi, dll)
+router.get('/search', searchOrgs)
 
 // Route bergabung via invite code
 router.post('/join', joinOrganization)
@@ -95,5 +100,8 @@ router.put('/:orgIdOrSlug/custom-fields', requireOrgRole(['head']), updateOrgCus
 
 // F4. Update Data Tambahan Anggota (Diri Sendiri atau Head)
 router.put('/:orgIdOrSlug/members/:memberProfileId/custom-data', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), updateMemberCustomData)
+
+// F5. Keluar dari Organisasi (Meninggalkan Workspace Mandiri)
+router.delete('/:orgIdOrSlug/leave', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), leaveOrganization)
 
 export default router

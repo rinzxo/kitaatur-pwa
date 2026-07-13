@@ -69,10 +69,15 @@ export default function RegisterPage() {
   async function handleGoogleLogin() {
     setPending(true)
     setError(null)
+
+    // Ambil redirect URL jika ada, lalu hapus agar tidak tersangkut
+    const redirectUrl = localStorage.getItem('redirect_after_login') || '/personal/dashboard'
+    localStorage.removeItem('redirect_after_login')
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/personal/dashboard`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectUrl)}`,
       },
     })
     

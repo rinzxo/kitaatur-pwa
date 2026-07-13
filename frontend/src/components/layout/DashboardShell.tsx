@@ -34,10 +34,18 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       try {
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
+          let profile = null;
+          try {
+            const res = await api.get('/personal/profile');
+            profile = res.data;
+          } catch (e) {
+            console.error('API profile fetch error in shell:', e);
+          }
+
           setCurrentUserInfo({
-            name: user.user_metadata?.full_name || user.user_metadata?.name || 'Tanpa Nama',
+            name: profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Tanpa Nama',
             email: user.email || '',
-            avatar_url: user.user_metadata?.avatar_url || null
+            avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null
           })
 
           if (currentOrgSlug) {

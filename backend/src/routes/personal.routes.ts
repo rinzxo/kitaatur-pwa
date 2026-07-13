@@ -5,13 +5,18 @@ import {
   getPersonalGoals,
   createPersonalTransaction,
   createPersonalGoal,
-  updatePersonalGoalProgress
+  updatePersonalGoalProgress,
+  getProfile,
+  updateProfile
 } from '../controllers/personal.controller'
 
 const router = Router()
 
 // Seluruh route di file ini memerlukan otentikasi
 router.use(requireAuth)
+
+router.get('/profile', getProfile)
+router.patch('/profile', updateProfile)
 
 router.get('/summary', getPersonalSummary)
 router.get('/goals', getPersonalGoals)

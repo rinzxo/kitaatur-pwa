@@ -28,19 +28,32 @@ export default function SettingsPage() {
   }, [])
 
   const fetchUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      setUserEmail(user.email || '')
-      setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
-      setUserAvatar(user.user_metadata?.avatar_url || null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // Coba fetch dari profiles via API
+        let profile = null;
+        try {
+          const res = await api.get('/personal/profile');
+          profile = res.data;
+        } catch (e) {
+          console.error('API profile fetch error:', e);
+        }
+        
+        setUserEmail(user.email || '')
+        setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+        setUserAvatar(profile?.avatar_url || user.user_metadata?.avatar_url || null)
 
-      try {
-        const res = await api.get('/subscription/me')
-        const hasActiveSub = res.data.some((s: any) => s.status === 'active')
-        setIsVerified(hasActiveSub)
-      } catch (e) {
-        console.error('Failed to fetch subs for verification', e)
+        try {
+          const res = await api.get('/subscription/me')
+          const hasActiveSub = res.data.some((s: any) => s.status === 'active')
+          setIsVerified(hasActiveSub)
+        } catch (e) {
+          console.error('Failed to fetch subs for verification', e)
+        }
       }
+    } catch (e) {
+      console.error('Failed to fetch user', e)
     }
   }
 
@@ -60,6 +73,20 @@ export default function SettingsPage() {
     e.preventDefault()
     setSaving(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        // Simpan ke tabel profiles via API
+        try {
+          await api.patch('/personal/profile', {
+            full_name: userName,
+            avatar_url: userAvatar
+          });
+        } catch (dbError) {
+          console.error('Gagal update profiles:', dbError);
+        }
+      }
+
+      // Update auth meta
       const { error } = await supabase.auth.updateUser({
         data: { full_name: userName, avatar_url: userAvatar }
       })
@@ -110,7 +137,7 @@ export default function SettingsPage() {
                     {userAvatar ? (
                       <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-slate-500 font-bold text-3xl">{userName.charAt(0).toUpperCase()}</span>
+                      <span className="text-slate-500 font-bold text-3xl">{(userName || '?').charAt(0).toUpperCase()}</span>
                     )}
                   </div>
                   
@@ -319,7 +346,7 @@ export default function SettingsPage() {
               {userAvatar ? (
                 <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-2xl font-semibold text-slate-500">{userName.charAt(0).toUpperCase()}</span>
+                <span className="text-2xl font-semibold text-slate-500">{(userName || '?').charAt(0).toUpperCase()}</span>
               )}
             </div>
             <div>
