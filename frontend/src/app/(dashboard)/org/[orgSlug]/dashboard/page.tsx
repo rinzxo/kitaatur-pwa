@@ -84,7 +84,13 @@ export default function OrgDashboardPage() {
         setTargetAmount(targetAmt)
 
         if (user) {
-          setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+          try {
+            const profileRes = await api.get('/personal/profile')
+            const profile = profileRes.data
+            setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+          } catch (e) {
+            setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+          }
           
           const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
           if (currentMember && currentMember.joined_at && targetAmt > 0) {

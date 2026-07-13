@@ -83,8 +83,15 @@ export default function PersonalDashboard() {
       setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
-        setUserAvatar(user.user_metadata?.avatar_url || null)
+        try {
+          const profileRes = await api.get('/personal/profile')
+          const profile = profileRes.data
+          setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+          setUserAvatar(profile?.avatar_url || user.user_metadata?.avatar_url || null)
+        } catch (e) {
+          setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+          setUserAvatar(user.user_metadata?.avatar_url || null)
+        }
       }
       await fetchData()
       setLoading(false)
