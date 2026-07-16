@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, Wallet, QrCode, Target, 
-  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2
+  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2, Calendar, Clock
 } from 'lucide-react'
 
 interface Goal {
@@ -44,6 +44,9 @@ export default function OrgDashboardPage() {
   const [orgData, setOrgData] = useState<any>(null)
   const [myTunggakan, setMyTunggakan] = useState<number>(0)
   const [targetAmount, setTargetAmount] = useState<number>(0)
+  const [agendas, setAgendas] = useState<any[]>([])
+  const [activeHero, setActiveHero] = useState<number>(0)
+  const [currentAgendaIndex, setCurrentAgendaIndex] = useState<number>(0)
 
   const formatRupiah = (value: number | string) => {
     const num = typeof value === 'string' ? parseFloat(value) : value
@@ -71,6 +74,29 @@ export default function OrgDashboardPage() {
         setGoals(goalsRes.data)
         setFinancialSummary(finRes.data.summary)
         setRecords(recordsRes.data)
+        
+        const orgsList = orgsRes.data || [];
+        
+        // Fetch agendas from all joined orgs
+        const agendaPromises = orgsList.map((org: any) => 
+          api.get(`/org-attendance/${org.slug}/agenda`).catch(() => ({ data: [] }))
+        );
+        const agendaResponses = await Promise.all(agendaPromises);
+        
+        let allAgendas: any[] = [];
+        agendaResponses.forEach((res, index) => {
+          if (res.data && res.data.length > 0) {
+            const orgAgendas = res.data.map((a: any) => ({
+              ...a,
+              orgSlug: orgsList[index].slug,
+              orgName: orgsList[index].name
+            }));
+            allAgendas = allAgendas.concat(orgAgendas);
+          }
+        });
+        
+        allAgendas.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        setAgendas(allAgendas); // Store all agendas
         
         const unread = notifRes.data.filter((n: any) => !n.is_read)
         setUnreadNotifs(unread.length)
@@ -122,6 +148,22 @@ export default function OrgDashboardPage() {
       fetchData()
     }
   }, [orgSlug])
+
+  useEffect(() => {
+    if (agendas.length > 0) {
+      const interval = setInterval(() => {
+        setActiveHero(prev => {
+          const next = prev === 0 ? 1 : 0;
+          if (next === 1 && agendas.length > 1) {
+            // Cycle agenda in the background while Kas is showing
+            setCurrentAgendaIndex(a => (a + 1) % agendas.length);
+          }
+          return next;
+        });
+      }, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [agendas.length])
 
   if (loading) {
     return (
@@ -175,31 +217,101 @@ export default function OrgDashboardPage() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto p-4 md:px-8 pb-32">
         
-        {/* Hero Card (Blue) */}
-        <div className="bg-blue-600 rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-blue-600/20 relative overflow-hidden mb-6">
-          <div className="flex justify-between items-start mb-2 relative z-10">
-            <div className="flex items-center gap-2 opacity-90">
-              <span className="font-semibold text-lg">Kas Organisasi</span>
-              <Info className="w-4 h-4 opacity-70" />
+        {/* Unified Hero Section (Slider) */}
+        <div className="relative mb-8">
+          <div className="relative overflow-hidden rounded-3xl shadow-xl shadow-blue-600/20 bg-blue-600">
+            <div className="flex transition-transform duration-700 ease-[cubic-bezier(0.87,0,0.13,1)]" style={{ transform: `translateX(-${activeHero * 100}%)` }}>
+              
+              {/* Slide 1: Agenda (satu slide, ganti-gantian isinya) */}
+              {agendas.length > 0 && (
+                <div className="w-full shrink-0">
+                  <Link href={`/org/${agendas[currentAgendaIndex].orgSlug}/attendance`} className="block bg-blue-600 p-6 md:p-8 text-white relative overflow-hidden h-full group cursor-pointer">
+                    <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none transition-transform duration-1000 group-hover:scale-110"></div>
+
+                    <div className="flex justify-between items-start mb-2 relative z-10">
+                      <div className="flex items-center gap-2 opacity-90">
+                        <Calendar className="w-4 h-4" />
+                        <span className="font-semibold text-lg tracking-wide">Agenda • {agendas[currentAgendaIndex].orgName}</span>
+                      </div>
+                      {new Date() >= new Date(agendas[currentAgendaIndex].start_time) ? (
+                        <span className="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-rose-500/20">Sedang Berjalan</span>
+                      ) : (
+                        <span className="bg-white text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Mendatang</span>
+                      )}
+                    </div>
+                    
+                    <div className="relative z-10 mt-5">
+                      <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-4 leading-tight group-hover:text-blue-100 transition-colors duration-300 pr-12">{agendas[currentAgendaIndex].title}</h1>
+                      
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 font-semibold text-sm bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md">
+                          <Clock className="w-4 h-4 text-blue-100" />
+                          <span className="text-white">{new Date(agendas[currentAgendaIndex].start_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</span>
+                        </div>
+                        {agendas.length > 1 && (
+                          <div className="flex items-center gap-2 font-semibold text-sm bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-blue-100 border border-white/10">
+                            1 dari {agendas.length}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="absolute bottom-0 right-0 p-6 md:p-8 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
+                       <div className="bg-white/20 backdrop-blur-md p-3 rounded-full shadow-sm hover:bg-white/30 transition-colors">
+                         <ChevronRight className="w-5 h-5 text-white" />
+                       </div>
+                    </div>
+                  </Link>
+                </div>
+              )}
+
+              {/* Slide 2: Kas Organisasi */}
+              <div className="w-full shrink-0">
+                <div className="bg-blue-600 p-6 md:p-8 text-white relative overflow-hidden h-full">
+                  <div className="flex justify-between items-start mb-2 relative z-10">
+                    <div className="flex items-center gap-2 opacity-90">
+                      <span className="font-semibold text-lg">Kas Organisasi</span>
+                      <Info className="w-4 h-4 opacity-70" />
+                    </div>
+                    <Link 
+                      href={`/org/${orgSlug}/financial`}
+                      className="bg-white text-blue-600 hover:bg-blue-50 text-sm font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                    >
+                      <Wallet className="w-4 h-4" />
+                      Kelola
+                    </Link>
+                  </div>
+                  
+                  <div className="relative z-10 mt-1">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tight">{formatRupiah(financialSummary.balance)}</h1>
+                    <div className="flex items-center gap-1 mt-3 font-semibold text-sm bg-white/20 w-fit px-3 py-1 rounded-lg backdrop-blur-sm">
+                      {financialSummary.balance > 0 ? <ChevronUp className="w-4 h-4" /> : financialSummary.balance < 0 ? <ChevronDown className="w-4 h-4" /> : null}
+                      <span>{financialSummary.balance > 0 ? 'Surplus / Aman' : financialSummary.balance < 0 ? 'Defisit / Minus' : 'Saldo Kosong'}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute -bottom-24 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
+                </div>
+              </div>
+
             </div>
-            <Link 
-              href={`/org/${orgSlug}/financial`}
-              className="bg-white text-blue-600 hover:bg-blue-50 text-sm font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
-            >
-              <Wallet className="w-4 h-4" />
-              Kelola
-            </Link>
           </div>
-          
-          <div className="relative z-10 mt-1">
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight">{formatRupiah(financialSummary.balance)}</h1>
-            <div className="flex items-center gap-1 mt-3 font-semibold text-sm bg-white/20 w-fit px-3 py-1 rounded-lg backdrop-blur-sm">
-              {financialSummary.balance > 0 ? <ChevronUp className="w-4 h-4" /> : financialSummary.balance < 0 ? <ChevronDown className="w-4 h-4" /> : null}
-              <span>{financialSummary.balance > 0 ? 'Surplus / Aman' : financialSummary.balance < 0 ? 'Defisit / Minus' : 'Saldo Kosong'}</span>
+
+          {/* Slider Dots */}
+          {agendas.length > 0 && (
+            <div className="absolute -bottom-5 left-0 right-0 flex justify-center gap-2 z-20">
+              <button 
+                onClick={() => setActiveHero(0)} 
+                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 0 ? 'bg-blue-600 w-6' : 'bg-slate-300 w-1.5'}`}
+                aria-label="Agenda"
+              />
+              <button 
+                onClick={() => setActiveHero(1)} 
+                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 1 ? 'bg-blue-600 w-6' : 'bg-slate-300 w-1.5'}`}
+                aria-label="Kas Organisasi"
+              />
             </div>
-          </div>
-          
-          <div className="absolute -bottom-24 -right-10 w-64 h-64 bg-white/10 rounded-full blur-2xl"></div>
+          )}
         </div>
 
         {/* Status Kas Pribadi */}
@@ -226,8 +338,10 @@ export default function OrgDashboardPage() {
           </div>
         )}
 
+
+
         {/* 2x2 Grid System */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
           <Link href={`/org/${orgSlug}/members`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-purple-200 transition-colors group">
             <div className="flex items-center gap-2 mb-2 text-purple-600 font-bold">
               <Users className="w-5 h-5" />
@@ -260,6 +374,8 @@ export default function OrgDashboardPage() {
             <span className="text-slate-500 font-semibold text-sm group-hover:text-rose-600 transition-colors">{formatRupiah(financialSummary.expense)}</span>
           </Link>
         </div>
+
+
 
         {/* List Section (Goals) */}
         <div className="bg-white mt-6 rounded-3xl shadow-sm border border-slate-100 p-6 md:p-8">

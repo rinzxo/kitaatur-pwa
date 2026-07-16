@@ -35,6 +35,29 @@ export default function OrgSettingsPage() {
   const [currentMemberId, setCurrentMemberId] = useState<string>('')
   const [isVerified, setIsVerified] = useState(false)
   
+  const navigateToView = (view: ViewType) => {
+    if (view !== 'main') {
+      window.history.pushState({ subView: view }, '', '')
+      setActiveView(view)
+    } else {
+      if (activeView !== 'main') {
+        window.history.back()
+      }
+    }
+  }
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (e.state && e.state.subView) {
+        setActiveView(e.state.subView)
+      } else {
+        setActiveView('main')
+      }
+    }
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+  
   useEffect(() => {
     const init = async () => {
       try {
@@ -190,7 +213,7 @@ export default function OrgSettingsPage() {
     return (
       <div className="min-h-screen bg-white text-slate-900 pb-24 animate-in slide-in-from-right-8 duration-300">
         <header className="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-slate-100 px-6 py-4 flex items-center gap-4">
-          <button onClick={() => setActiveView('main')} className="p-2 hover:bg-slate-100 rounded-full transition-colors -ml-2">
+          <button onClick={() => navigateToView('main')} className="p-2 hover:bg-slate-100 rounded-full transition-colors -ml-2">
             <ArrowLeft className="w-6 h-6 text-slate-900" />
           </button>
           <h1 className="text-xl font-bold">
@@ -266,17 +289,32 @@ export default function OrgSettingsPage() {
                 <div className="w-24 h-24 rounded-3xl bg-white shadow-xl shadow-slate-200/50 mx-auto mb-4 flex items-center justify-center p-3 border border-slate-100">
                   <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
                 </div>
-                <h2 className="text-[22px] font-normal text-indigo-500 mb-6 tracking-wide">KitaAtur</h2>
+                <h2 className="text-[24px] font-black text-slate-900 mb-1 tracking-tight">KitaAtur</h2>
+                <p className="text-sm text-slate-500 font-medium mb-8 px-4">Sistem Manajemen Kehadiran & Keuangan Modern untuk Segala Organisasi.</p>
                 
-                <div className="space-y-1 text-[15px] text-slate-900 font-bold mb-4">
-                  <p>Version : 1.0.0-beta</p>
-                  <p>Build : 1.0.0.20260625 (general)</p>
-                  <p>Release Branch : main</p>
+                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-8 text-left space-y-4 shadow-sm">
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
+                    <span className="text-sm font-semibold text-slate-500">Versi Aplikasi</span>
+                    <span className="text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">1.0.0-beta.2</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
+                    <span className="text-sm font-semibold text-slate-500">Build Number</span>
+                    <span className="text-sm font-mono font-medium text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-md">20260717.dev</span>
+                  </div>
+                  <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
+                    <span className="text-sm font-semibold text-slate-500">Lingkungan</span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md uppercase tracking-wider">Production (Beta)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-semibold text-slate-500">Lisensi Pengguna</span>
+                    <span className="text-sm font-bold text-slate-700">Organisasi Terdaftar</span>
+                  </div>
                 </div>
                 
-                <div className="text-[14px] text-slate-500">
-                  <p>KitaAtur Corporation</p>
-                  <p>Copyright © 2026</p>
+                <div className="text-[13px] font-medium text-slate-400 flex flex-col items-center">
+                  <p className="mb-2">Dikembangkan secara eksklusif oleh</p>
+                  <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group Inovasi" className="h-8 object-contain my-1 opacity-90 hover:opacity-100 transition-opacity" />
+                  <p className="mt-3">Copyright © 2026. Hak Cipta Dilindungi.</p>
                 </div>
               </div>
             </div>
@@ -553,7 +591,7 @@ export default function OrgSettingsPage() {
 
         {/* User Card */}
         <button 
-          onClick={() => setActiveView('profile')}
+          onClick={() => navigateToView('profile')}
           className="w-full flex items-center justify-between py-2 mb-8 group text-left"
         >
           <div className="flex items-center gap-4">
@@ -597,7 +635,7 @@ export default function OrgSettingsPage() {
           <h2 className="text-2xl font-semibold mb-4">Pengaturan</h2>
           <div className="flex flex-col">
             
-            <button onClick={() => setActiveView('switcher')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+            <button onClick={() => navigateToView('switcher')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
                 <Building2 className="w-6 h-6 text-slate-700" />
                 <span className="text-lg text-slate-700">Workspace & Organisasi</span>
@@ -605,7 +643,7 @@ export default function OrgSettingsPage() {
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
-            <button onClick={() => setActiveView('profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+            <button onClick={() => navigateToView('profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
                 <User className="w-6 h-6 text-slate-700" />
                 <span className="text-lg text-slate-700">Informasi personal</span>
@@ -613,7 +651,7 @@ export default function OrgSettingsPage() {
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
-            <button onClick={() => setActiveView('security')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+            <button onClick={() => navigateToView('security')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
                 <Shield className="w-6 h-6 text-slate-700" />
                 <span className="text-lg text-slate-700">Login & keamanan</span>
@@ -636,7 +674,7 @@ export default function OrgSettingsPage() {
             )}
 
             {isHead && (
-              <button onClick={() => setActiveView('org_custom_fields')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+              <button onClick={() => navigateToView('org_custom_fields')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
                 <div className="flex items-center gap-4">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-form-input text-blue-600 w-6 h-6"><rect width="20" height="12" x="2" y="6" rx="2"/><path d="M12 10.5h5"/><path d="M12 14v-3.5"/><path d="M7 10.5h.01"/><path d="M7 14h.01"/></svg>
                   <span className="text-lg text-slate-700 font-medium">Data Tambahan Anggota</span>
@@ -646,7 +684,7 @@ export default function OrgSettingsPage() {
             )}
 
             {customFieldsSchema.length > 0 && (
-              <button onClick={() => setActiveView('member_custom_data')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+              <button onClick={() => navigateToView('member_custom_data')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
                 <div className="flex items-center gap-4">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-contact text-slate-700 w-6 h-6"><path d="M17 18a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2"/><rect width="18" height="18" x="3" y="4" rx="2"/><circle cx="12" cy="10" r="2"/><line x1="8" x2="8" y1="2" y2="4"/><line x1="16" x2="16" y1="2" y2="4"/></svg>
                   <span className="text-lg text-slate-700">Data Profil Organisasi Anda</span>
@@ -655,7 +693,7 @@ export default function OrgSettingsPage() {
               </button>
             )}
 
-            <button onClick={() => setActiveView('org_profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+            <button onClick={() => navigateToView('org_profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
                 <Settings className="w-6 h-6 text-slate-700" />
                 <span className="text-lg text-slate-700 font-medium">Profil Organisasi</span>
@@ -663,7 +701,7 @@ export default function OrgSettingsPage() {
               <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
-            <button onClick={() => setActiveView('about')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+            <button onClick={() => navigateToView('about')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
                 <Info className="w-6 h-6 text-slate-700" />
                 <span className="text-lg text-slate-700">Tentang Aplikasi</span>

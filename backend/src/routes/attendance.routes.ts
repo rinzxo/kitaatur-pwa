@@ -50,7 +50,7 @@ router.get('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'bendahara', 'sekre
 router.get('/:orgIdOrSlug/sessions/active', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getActiveSession)
 
 // Ambil anggota yang valid untuk suatu sesi (Bantu Absen)
-router.get('/:orgIdOrSlug/sessions/:sessionId/members', requireOrgRole(['head', 'sekretaris']), getSessionMembers)
+router.get('/:orgIdOrSlug/sessions/:sessionId/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getSessionMembers)
 
 
 // Ambil active/upcoming agenda untuk Member

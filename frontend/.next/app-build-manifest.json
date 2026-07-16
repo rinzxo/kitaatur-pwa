@@ -1,9 +1,25 @@
 {
   "pages": {
-    "/(dashboard)/org/[orgSlug]/dashboard/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/org/[orgSlug]/dashboard/page.js"
+      "static/chunks/app/page.js"
+    ],
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
+    "/(public)/login/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(public)/login/page.js"
+    ],
+    "/(dashboard)/personal/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(dashboard)/personal/dashboard/page.js"
     ],
     "/(dashboard)/layout": [
       "static/chunks/webpack.js",
@@ -15,41 +31,40 @@
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/loading.js"
     ],
-    "/layout": [
+    "/(dashboard)/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/css/app/layout.css",
-      "static/chunks/app/layout.js"
+      "static/chunks/app/(dashboard)/settings/page.js"
+    ],
+    "/(dashboard)/org/[orgSlug]/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(dashboard)/org/[orgSlug]/dashboard/page.js"
     ],
     "/(dashboard)/org/[orgSlug]/attendance/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/org/[orgSlug]/attendance/page.js"
     ],
-    "/(dashboard)/personal/dashboard/page": [
+    "/(dashboard)/org/[orgSlug]/attendance/sessions/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/personal/dashboard/page.js"
+      "static/chunks/app/(dashboard)/org/[orgSlug]/attendance/sessions/page.js"
+    ],
+    "/(dashboard)/org/[orgSlug]/attendance/sessions/create/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/(dashboard)/org/[orgSlug]/attendance/sessions/create/page.js"
     ],
     "/(dashboard)/org/[orgSlug]/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/(dashboard)/org/[orgSlug]/settings/page.js"
     ],
-    "/(public)/login/page": [
+    "/(dashboard)/org/[orgSlug]/members/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/(public)/login/page.js"
-    ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
-    "/(dashboard)/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/(dashboard)/settings/page.js"
+      "static/chunks/app/(dashboard)/org/[orgSlug]/members/page.js"
     ]
   }
 }

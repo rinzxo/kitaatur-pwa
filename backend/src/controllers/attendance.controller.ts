@@ -210,6 +210,23 @@ export async function getSessionMembers(req: any, res: Response) {
     const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
     if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
 
+    // Cek authorization: harus head, sekretaris, atau memiliki custom_data.can_take_attendance = true
+    const callerMembership = await prisma.organization_members.findUnique({
+      where: {
+        organization_id_profile_id: {
+          organization_id: req.orgMember.organizationId,
+          profile_id: req.user.id
+        }
+      }
+    });
+
+    const customData = callerMembership?.custom_data as any;
+    const canDelegate = customData?.can_take_attendance === true;
+
+    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil absensi' });
+    }
+
     const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
 
     const members = await prisma.organization_members.findMany({
@@ -220,7 +237,26 @@ export async function getSessionMembers(req: any, res: Response) {
       }
     });
 
-    return res.status(200).json(members);
+    // Ambil data absensi untuk sesi ini
+    const attendances = await prisma.attendance.findMany({
+      where: { session_id: sessionId }
+    });
+
+    // Filter member yang sudah selesai absen
+    const filteredMembers = members.filter(member => {
+      const attendance = attendances.find(a => a.profile_id === member.profile_id);
+      if (!attendance) return true; // Belum absen sama sekali, tampilkan
+
+      if (session.session_type === 'in_out') {
+        // Jika in_out, dia baru "selesai" kalau sudah absen pulang (check_out_time tidak null)
+        return attendance.check_out_time === null;
+      } else {
+        // Jika in_only, kalau sudah ada attendance (absen datang), berarti selesai
+        return false;
+      }
+    });
+
+    return res.status(200).json(filteredMembers);
   } catch (err) {
     console.error('Error fetching session members:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
