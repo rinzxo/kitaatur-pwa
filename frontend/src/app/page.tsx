@@ -334,90 +334,78 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto">
-            {/* FREE PLAN */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+            {/* PLUS PLAN */}
+            <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
+              <span className="absolute top-0 right-8 -translate-y-1/2 bg-blue-100 text-blue-700 text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm">
+                POPULER
+              </span>
+
               <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Personal (Free)</h3>
-                <p className="text-slate-500 text-sm mb-6 font-medium">Cocok untuk pencatatan kas pribadi sehari-hari.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-6">KitaAtur Plus</h3>
                 
                 <div className="mb-6">
-                  <span className="text-4xl font-extrabold text-slate-900">Rp 0</span>
-                  <span className="text-slate-500 text-sm font-bold"> / selamanya</span>
+                  <span className="text-4xl font-extrabold text-slate-900">Rp 45.000</span>
+                  <span className="text-slate-500 text-sm font-bold"> / bulan</span>
                 </div>
 
                 <ul className="space-y-4 mb-8 font-medium">
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Pencatatan pemasukan & pengeluaran personal</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Target keuangan pribadi (Personal Goals)</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
-                    <span>Membuat dan mengelola organisasi</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
-                    <span>Sistem absensi dinamis organisasi</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
-                    <span>Ekspor laporan keuangan organisasi</span>
-                  </li>
+                  {[
+                    "Buat dan kelola 1 Organisasi Penuh",
+                    "Anggota organisasi tanpa batas",
+                    "Akses fitur Validasi Bukti dengan AI",
+                    "Laporan Absensi & Keuangan Ekspor ke Excel",
+                    "Prioritas Layanan Support",
+                    "Keamanan Data Tingkat Lanjut"
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-slate-300 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
               <Link
                 href="/register"
-                className="w-full py-3.5 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-center transition-all duration-300 block"
+                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
               >
-                Mulai Gratis
+                Berlangganan Sekarang
               </Link>
             </div>
 
-            {/* PREMIUM PLAN */}
-            <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
-              <span className="absolute top-0 right-8 -translate-y-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-lg">
-                Rekomendasi
-              </span>
-
+            {/* ENTERPRISE PLAN */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Organisasi (Premium)</h3>
-                <p className="text-slate-500 font-medium text-sm mb-6">Solusi lengkap untuk operasional organisasi.</p>
+                <h3 className="text-xl font-bold text-slate-900 mb-6">KitaAtur Enterprise</h3>
                 
                 <div className="mb-6">
-                  <span className="text-4xl font-extrabold text-slate-900">Rp 49.000</span>
-                  <span className="text-slate-500 text-sm font-bold"> / bulan</span>
+                  <span className="text-4xl font-extrabold text-slate-900">Hubungi Kami</span>
                 </div>
 
                 <ul className="space-y-4 mb-8 font-medium">
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Semua fitur paket Personal (Free)</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span><strong>Hak penuh sebagai Head</strong> untuk membuat organisasi baru</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Sistem absensi dinamis & rekapitulasi kehadiran</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Manajemen struktur organisasi & pembagian role staff</span>
-                  </li>
-                  <li className="flex items-start gap-3 text-slate-700 text-sm">
-                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
-                    <span>Ekspor laporan keuangan (Excel/CSV)</span>
-                  </li>
+                  {[
+                    "Buat lebih dari 1 Organisasi",
+                    "White-label & Penyesuaian Fitur (Custom)",
+                    "Dedicated Account Manager",
+                    "Integrasi API Spesifik",
+                    "Pelatihan Penggunaan Platform",
+                    "SLA Uptime 99.9%"
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-slate-300 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
 
               <Link
-                href="/pricing"
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
+                href="https://wa.me/6281234567890?text=Halo%20Tim%20KitaAtur,%20saya%20tertarik%20dengan%20paket%20Enterprise"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-center transition-all duration-300 block"
               >
-                Pilih Paket Premium
+                Hubungi Tim Sales
               </Link>
             </div>
           </div>
