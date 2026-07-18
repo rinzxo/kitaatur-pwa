@@ -386,36 +386,36 @@ export default function OrgDashboardPage() {
 
         {/* 2x2 Grid System */}
         <div className="grid grid-cols-2 gap-3 md:gap-4">
-          <Link href={`/org/${orgSlug}/members`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-purple-200 transition-colors group">
+          <Link href={`/org/${orgSlug}/members`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-purple-200 transition-colors group min-w-0">
             <div className="flex items-center gap-2 mb-2 text-purple-600 font-bold">
-              <Users className="w-5 h-5" />
-              <span className="text-slate-800">Anggota</span>
+              <Users className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Anggota</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm group-hover:text-purple-600 transition-colors">{membersCount} Terdaftar</span>
+            <span className="text-slate-500 font-semibold text-sm group-hover:text-purple-600 transition-colors truncate">{membersCount} Terdaftar</span>
           </Link>
 
-          <Link href={`/org/${orgSlug}/attendance`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-blue-200 transition-colors group">
+          <Link href={`/org/${orgSlug}/attendance`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-blue-200 transition-colors group min-w-0">
             <div className="flex items-center gap-2 mb-2 text-blue-600 font-bold">
-              <QrCode className="w-5 h-5" />
-              <span className="text-slate-800">Absensi</span>
+              <QrCode className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Absensi</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm group-hover:text-blue-600 transition-colors">Buka Scanner QR</span>
+            <span className="text-slate-500 font-semibold text-sm group-hover:text-blue-600 transition-colors truncate">Buka Scanner QR</span>
           </Link>
 
-          <Link href={`/org/${orgSlug}/financial`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-emerald-200 transition-colors cursor-pointer group">
+          <Link href={`/org/${orgSlug}/financial`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-emerald-200 transition-colors cursor-pointer group min-w-0">
             <div className="flex items-center gap-2 mb-2 text-emerald-600 font-bold group-hover:scale-105 transition-transform">
-              <ArrowUpRight className="w-5 h-5" />
-              <span className="text-slate-800">Masuk</span>
+              <ArrowUpRight className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Masuk</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm group-hover:text-emerald-700 transition-colors">{formatRupiah(financialSummary.income)}</span>
+            <span className="text-slate-500 font-semibold text-sm group-hover:text-emerald-700 transition-colors truncate">{formatRupiah(financialSummary.income)}</span>
           </Link>
 
-          <Link href={`/org/${orgSlug}/financial`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-rose-200 transition-colors cursor-pointer group">
+          <Link href={`/org/${orgSlug}/financial`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-rose-200 transition-colors cursor-pointer group min-w-0">
             <div className="flex items-center gap-2 mb-2 text-rose-500 font-bold group-hover:scale-105 transition-transform">
-              <ArrowDownRight className="w-5 h-5" />
-              <span className="text-slate-800">Keluar</span>
+              <ArrowDownRight className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Keluar</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm group-hover:text-rose-600 transition-colors">{formatRupiah(financialSummary.expense)}</span>
+            <span className="text-slate-500 font-semibold text-sm group-hover:text-rose-600 transition-colors truncate">{formatRupiah(financialSummary.expense)}</span>
           </Link>
         </div>
 

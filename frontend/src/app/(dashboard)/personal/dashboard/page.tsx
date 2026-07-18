@@ -328,36 +328,36 @@ export default function PersonalDashboard() {
 
         {/* 2x2 Grid System */}
         <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">
-          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-blue-200 transition-colors">
+          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-blue-200 transition-colors min-w-0">
             <div className="flex items-center gap-2 mb-2 text-blue-600 font-bold">
-              <Wallet className="w-5 h-5" />
-              <span className="text-slate-800">Dompet</span>
+              <Wallet className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Dompet</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm">{formatRupiah(summary.balance)}</span>
+            <span className="text-slate-500 font-semibold text-sm truncate">{formatRupiah(summary.balance)}</span>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-emerald-200 transition-colors">
+          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-emerald-200 transition-colors min-w-0">
             <div className="flex items-center gap-2 mb-2 text-emerald-600 font-bold">
-              <ArrowUpRight className="w-5 h-5" />
-              <span className="text-slate-800">Masuk</span>
+              <ArrowUpRight className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Masuk</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm">{formatRupiah(summary.income)}</span>
+            <span className="text-slate-500 font-semibold text-sm truncate">{formatRupiah(summary.income)}</span>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-rose-200 transition-colors">
+          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-rose-200 transition-colors min-w-0">
             <div className="flex items-center gap-2 mb-2 text-rose-500 font-bold">
-              <ArrowDownRight className="w-5 h-5" />
-              <span className="text-slate-800">Keluar</span>
+              <ArrowDownRight className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Keluar</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm">{formatRupiah(summary.expense)}</span>
+            <span className="text-slate-500 font-semibold text-sm truncate">{formatRupiah(summary.expense)}</span>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-indigo-200 transition-colors">
+          <div className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-indigo-200 transition-colors min-w-0">
             <div className="flex items-center gap-2 mb-2 text-indigo-500 font-bold">
-              <Target className="w-5 h-5" />
-              <span className="text-slate-800">Target</span>
+              <Target className="w-5 h-5 shrink-0" />
+              <span className="text-slate-800 truncate">Target</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm">{goals.length} Aktif</span>
+            <span className="text-slate-500 font-semibold text-sm truncate">{goals.length} Aktif</span>
           </div>
         </div>
 
