@@ -2,8 +2,9 @@
   "id": "/",
   "name": "KitaAtur - Absensi & Keuangan Organisasi",
   "short_name": "KitaAtur",
+  "version": "1.0.0-beta.2",
   "description": "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
-  "start_url": "/personal/dashboard",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -70,18 +71,25 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshots/screenshot-mobile.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
+      "src": "/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp",
+      "sizes": "1080x2340",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Login & Autentikasi KitaAtur"
+    },
+    {
+      "src": "/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (1).webp",
+      "sizes": "1080x2340",
+      "type": "image/webp",
       "form_factor": "narrow",
       "label": "Dashboard Personal KitaAtur"
     },
     {
-      "src": "/screenshots/screenshot-desktop.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Dashboard Organisasi KitaAtur"
+      "src": "/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (5).webp",
+      "sizes": "1080x2340",
+      "type": "image/webp",
+      "form_factor": "narrow",
+      "label": "Manajemen Organisasi & Absensi"
     }
   ],
   "shortcuts": [
