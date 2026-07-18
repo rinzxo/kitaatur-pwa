@@ -476,8 +476,8 @@ export default function Home() {
           {/* Kolom 1: Brand & Kontak */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center p-2 shadow-md shadow-blue-500/20">
-                <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain brightness-0 invert" />
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-sm border border-slate-200">
+                <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
               </div>
               <span className="text-2xl font-extrabold tracking-tight text-slate-900">KitaAtur</span>
             </div>
