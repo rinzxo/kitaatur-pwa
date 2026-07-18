@@ -333,7 +333,47 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mx-auto">
+            {/* FREE PLAN */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Personal (Free)</h3>
+                <p className="text-slate-500 text-sm mb-6 font-medium">Cocok untuk pencatatan kas pribadi sehari-hari.</p>
+                
+                <div className="mb-6">
+                  <span className="text-4xl font-extrabold text-slate-900">Rp 0</span>
+                  <span className="text-slate-500 text-sm font-bold"> / selamanya</span>
+                </div>
+
+                <ul className="space-y-4 mb-8 font-medium">
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-slate-300 shrink-0" />
+                    <span>Pencatatan pemasukan & pengeluaran personal</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-slate-300 shrink-0" />
+                    <span>Target keuangan pribadi (Personal Goals)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Membuat dan mengelola organisasi</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Akses fitur Validasi Bukti dengan AI</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Ekspor laporan keuangan organisasi</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/register"
+                className="w-full py-3.5 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-center transition-all duration-300 block"
+              >
+                Mulai Gratis
+              </Link>
+            </div>
+
             {/* PLUS PLAN */}
             <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
               <span className="absolute top-0 right-8 -translate-y-1/2 bg-blue-100 text-blue-700 text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm">
