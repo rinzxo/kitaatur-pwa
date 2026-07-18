@@ -143,11 +143,11 @@ export default function Home() {
               
               <div className="w-full h-full pt-12 overflow-hidden bg-slate-100 flex items-center justify-center relative">
                 {/* Mobile Mockup overlapping to look cool */}
-                <div className="absolute right-1/2 translate-x-[120%] md:translate-x-32 bottom-[-10%] md:bottom-[-20%] w-48 md:w-64 rotate-[-5deg] hover:rotate-0 transition-transform duration-500 z-20 drop-shadow-2xl">
-                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp" alt="KitaAtur Mobile App" className="w-full h-auto rounded-3xl border-[6px] border-slate-800" />
+                <div className="absolute right-1/2 translate-x-[120%] md:translate-x-32 bottom-[-10%] md:bottom-[-20%] w-48 md:w-64 rotate-[-5deg] hover:rotate-0 transition-transform duration-500 z-20">
+                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp" alt="KitaAtur Mobile App" className="w-full h-auto rounded-[2rem] md:rounded-[2.5rem] shadow-2xl" />
                 </div>
-                <div className="absolute left-1/2 -translate-x-[120%] md:-translate-x-96 bottom-[10%] w-48 md:w-64 rotate-[5deg] hover:rotate-0 transition-transform duration-500 z-10 drop-shadow-2xl">
-                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" alt="KitaAtur Wallet" className="w-full h-auto rounded-3xl border-[6px] border-slate-800" />
+                <div className="absolute left-1/2 -translate-x-[120%] md:-translate-x-96 bottom-[10%] w-48 md:w-64 rotate-[5deg] hover:rotate-0 transition-transform duration-500 z-10">
+                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" alt="KitaAtur Wallet" className="w-full h-auto rounded-[2rem] md:rounded-[2.5rem] shadow-2xl" />
                 </div>
                 
                 {/* Floating UI Elements */}
@@ -210,7 +210,7 @@ export default function Home() {
               <img 
                 src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (1).webp" 
                 alt="Absensi QR" 
-                className="absolute right-[-10%] md:right-4 bottom-[-20%] w-48 md:w-64 rounded-[2rem] border-8 border-white shadow-2xl group-hover:-translate-y-4 transition-transform duration-500 z-10" 
+                className="absolute right-[-10%] md:right-4 bottom-[-20%] w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl group-hover:-translate-y-4 transition-transform duration-500 z-10" 
               />
             </div>
 
@@ -228,7 +228,7 @@ export default function Home() {
               <img 
                 src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" 
                 alt="Keuangan App" 
-                className="absolute right-[-20%] bottom-[-30%] w-48 rounded-[2rem] border-8 border-white shadow-2xl group-hover:-translate-y-4 transition-transform duration-500 opacity-60 mix-blend-multiply" 
+                className="absolute right-[-20%] bottom-[-30%] w-48 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl group-hover:-translate-y-4 transition-transform duration-500" 
               />
             </div>
 
@@ -273,7 +273,7 @@ export default function Home() {
               <img 
                 src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (2).webp" 
                 alt="Dashboard Mockup" 
-                className="rounded-3xl shadow-2xl border-4 border-white w-full h-auto"
+                className="rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full h-auto"
               />
               
               {/* Floating Stat */}
