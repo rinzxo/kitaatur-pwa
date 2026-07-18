@@ -227,7 +227,7 @@ export default function OrgDashboardPage() {
                   src={orgData.logo_url} 
                   alt="Logo" 
                   className="w-full h-full object-cover" 
-                  onError={() => setOrgData(prev => prev ? { ...prev, logo_url: null } : null)}
+                  onError={() => setOrgData((prev: any) => prev ? { ...prev, logo_url: null } : null)}
                 />
               ) : (
                 <Settings className="w-5 h-5" />

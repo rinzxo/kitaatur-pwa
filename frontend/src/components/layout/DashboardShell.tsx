@@ -121,7 +121,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                     src={currentOrgInfo.logo_url} 
                     alt={currentOrgInfo.name} 
                     className="w-full h-full object-cover" 
-                    onError={() => setCurrentOrgInfo(prev => prev ? { ...prev, logo_url: null } : null)}
+                    onError={() => setCurrentOrgInfo((prev: any) => prev ? { ...prev, logo_url: null } : null)}
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg">{currentOrgInfo.name.charAt(0).toUpperCase()}</div>
