@@ -223,7 +223,12 @@ export default function OrgDashboardPage() {
           <div className="flex items-center gap-3">
             <Link href={`/org/${orgSlug}/members`} className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 hover:scale-105 transition-transform overflow-hidden" title="Kelola Anggota & Organisasi">
               {orgData?.logo_url ? (
-                <img src={orgData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                <img 
+                  src={orgData.logo_url} 
+                  alt="Logo" 
+                  className="w-full h-full object-cover" 
+                  onError={() => setOrgData(prev => prev ? { ...prev, logo_url: null } : null)}
+                />
               ) : (
                 <Settings className="w-5 h-5" />
               )}
@@ -238,7 +243,12 @@ export default function OrgDashboardPage() {
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
             {userAvatar ? (
-              <img src={userAvatar} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+              <img 
+                src={userAvatar} 
+                alt="Profile" 
+                className="w-6 h-6 rounded-full object-cover" 
+                onError={() => setUserAvatar(null)}
+              />
             ) : (
               <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
                 {userName.charAt(0).toUpperCase()}

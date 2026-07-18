@@ -205,7 +205,12 @@ export default function PersonalDashboard() {
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
             {userAvatar ? (
-              <img src={userAvatar} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+              <img 
+                src={userAvatar} 
+                alt="Profile" 
+                className="w-6 h-6 rounded-full object-cover" 
+                onError={() => setUserAvatar(null)}
+              />
             ) : (
               <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
                 {userName.charAt(0).toUpperCase()}

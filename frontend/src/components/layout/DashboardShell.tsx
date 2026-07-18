@@ -117,7 +117,12 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             <Link href={`/org/${currentOrgSlug}/dashboard`} className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden">
                 {currentOrgInfo.logo_url ? (
-                  <img src={currentOrgInfo.logo_url} alt={currentOrgInfo.name} className="w-full h-full object-cover" />
+                  <img 
+                    src={currentOrgInfo.logo_url} 
+                    alt={currentOrgInfo.name} 
+                    className="w-full h-full object-cover" 
+                    onError={() => setCurrentOrgInfo(prev => prev ? { ...prev, logo_url: null } : null)}
+                  />
                 ) : (
                   <div className="w-full h-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg">{currentOrgInfo.name.charAt(0).toUpperCase()}</div>
                 )}
