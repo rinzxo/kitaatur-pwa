@@ -86,10 +86,10 @@ export default function OnboardingPage() {
           <div className="flex flex-col items-center">
             <p className="text-sm font-semibold text-slate-700 mb-3">Foto Profil (Opsional)</p>
             <CustomUpload
-              value={avatarUrl}
-              onChange={setAvatarUrl}
-              bucket="avatars"
-              className="w-24 h-24 rounded-full"
+              onUpload={setAvatarUrl}
+              preset="appweb"
+              isCircular={true}
+              className="w-24 h-24"
             />
           </div>
 
