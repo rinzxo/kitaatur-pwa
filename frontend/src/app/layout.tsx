@@ -7,6 +7,30 @@ import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistratio
 export const metadata: Metadata = {
   title: "KitaAtur - Absensi & Keuangan Organisasi",
   description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+  keywords: ["kitaatur", "absensi online", "manajemen keuangan", "organisasi", "sistem kas", "absensi qr"],
+  authors: [{ name: "RinzGroup" }],
+  openGraph: {
+    title: "KitaAtur - Absensi & Keuangan Organisasi",
+    description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+    url: "https://kitatur.rinzgroup.web.id",
+    siteName: "KitaAtur",
+    images: [
+      {
+        url: "/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp",
+        width: 1080,
+        height: 2340,
+        alt: "KitaAtur App Mockup",
+      },
+    ],
+    locale: "id_ID",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KitaAtur - Absensi & Keuangan Organisasi",
+    description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+    images: ["/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp"],
+  },
   manifest: '/manifest.json',
   icons: {
     icon: '/logo.png',
