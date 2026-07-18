@@ -1,9 +1,0 @@
-{
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
-  "/(dashboard)/org/[orgSlug]/dashboard/page": "app/(dashboard)/org/[orgSlug]/dashboard/page.js",
-  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
-  "/(dashboard)/org/[orgSlug]/financial/page": "app/(dashboard)/org/[orgSlug]/financial/page.js",
-  "/(dashboard)/org/[orgSlug]/members/page": "app/(dashboard)/org/[orgSlug]/members/page.js",
-  "/(dashboard)/org/[orgSlug]/attendance/page": "app/(dashboard)/org/[orgSlug]/attendance/page.js"
-}

@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   ChevronRight,
   TrendingUp,
-  Globe2
+  Globe2,
+  ClipboardCheck
 } from "lucide-react";
 
 export default function Home() {
@@ -113,7 +114,7 @@ export default function Home() {
           </h1>
           
           <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Tinggalkan kertas. Mulai dari absensi digital QR, pencatatan uang kas transparan, hingga manajemen anggota dalam satu aplikasi yang ramah lingkungan.
+            Tinggalkan kertas. Mulai dari absensi digital yang terintegrasi, pencatatan uang kas transparan, hingga manajemen anggota dalam satu aplikasi yang ramah lingkungan.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
@@ -127,54 +128,44 @@ export default function Home() {
           </div>
 
           {/* Hero Image/Mockup */}
-          <div className="mt-16 md:mt-24 relative mx-auto max-w-5xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500">
-            <div className="relative rounded-3xl md:rounded-[2.5rem] bg-white border border-slate-200 shadow-2xl overflow-hidden aspect-[16/10] md:aspect-[21/9]">
-              {/* Mockup Navbar */}
-              <div className="absolute top-0 inset-x-0 h-12 bg-slate-50 border-b border-slate-100 flex items-center px-4 gap-2 z-10">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-rose-400" />
-                  <div className="w-3 h-3 rounded-full bg-amber-400" />
-                  <div className="w-3 h-3 rounded-full bg-emerald-400" />
-                </div>
-                <div className="mx-auto bg-white border border-slate-200 rounded-md px-32 py-1 text-xs text-slate-400 font-mono hidden md:block">
-                  app.kitaatur.com
-                </div>
+          <div className="mt-16 md:mt-24 relative mx-auto max-w-6xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 flex justify-center items-center h-[500px] md:h-[700px] mb-12">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center">
+              
+              {/* Wallet Mockup (Back) */}
+              <div className="absolute left-1/2 -translate-x-[65%] md:-translate-x-[60%] top-[10%] md:top-12 z-10 w-48 md:w-[320px] rotate-[-8deg] hover:rotate-[-4deg] transition-transform duration-700">
+                 <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (1).webp" alt="KitaAtur Wallet" className="w-full h-auto drop-shadow-2xl" />
               </div>
               
-              <div className="w-full h-full pt-12 overflow-hidden bg-slate-100 flex items-center justify-center relative">
-                {/* Mobile Mockup overlapping to look cool */}
-                <div className="absolute right-1/2 translate-x-[120%] md:translate-x-32 bottom-[-10%] md:bottom-[-20%] w-48 md:w-64 rotate-[-5deg] hover:rotate-0 transition-transform duration-500 z-20">
-                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp" alt="KitaAtur Mobile App" className="w-full h-auto rounded-[2rem] md:rounded-[2.5rem] shadow-2xl" />
-                </div>
-                <div className="absolute left-1/2 -translate-x-[120%] md:-translate-x-96 bottom-[10%] w-48 md:w-64 rotate-[5deg] hover:rotate-0 transition-transform duration-500 z-10">
-                   <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" alt="KitaAtur Wallet" className="w-full h-auto rounded-[2rem] md:rounded-[2.5rem] shadow-2xl" />
-                </div>
-                
-                {/* Floating UI Elements */}
-                <div className="absolute top-1/4 left-[10%] bg-white p-4 rounded-2xl shadow-xl border border-slate-100 hidden md:block animate-bounce" style={{animationDuration: '3s'}}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                      <QrCode className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase">Absen Berhasil</p>
-                      <p className="font-bold text-slate-900">+1 Kehadiran</p>
-                    </div>
-                  </div>
-                </div>
+              {/* Main App Mockup (Front) */}
+              <div className="absolute left-1/2 -translate-x-[35%] md:-translate-x-[30%] top-[-5%] md:-top-4 z-20 w-56 md:w-[380px] rotate-[6deg] hover:rotate-[3deg] transition-transform duration-700">
+                 <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp" alt="KitaAtur Mobile App" className="w-full h-auto drop-shadow-2xl" />
+              </div>
 
-                <div className="absolute top-1/3 right-[15%] bg-white p-4 rounded-2xl shadow-xl border border-slate-100 hidden md:block animate-bounce" style={{animationDuration: '4s'}}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                      <Wallet className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-slate-500 uppercase">Kas Organisasi</p>
-                      <p className="font-bold text-slate-900">Rp 1.500.000</p>
-                    </div>
+              {/* Floating UI Elements */}
+              <div className="absolute top-1/4 left-[5%] md:left-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-100/50 hidden md:block animate-bounce z-30" style={{animationDuration: '3s'}}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <ClipboardCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Absen Berhasil</p>
+                    <p className="font-bold text-slate-900">+1 Kehadiran</p>
                   </div>
                 </div>
               </div>
+
+              <div className="absolute bottom-1/4 right-[5%] md:right-4 bg-white/95 backdrop-blur-md p-4 rounded-2xl shadow-2xl border border-slate-100/50 hidden md:block animate-bounce z-30" style={{animationDuration: '4s'}}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Kas Organisasi</p>
+                    <p className="font-bold text-slate-900">Rp 1.500.000</p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -193,73 +184,86 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(250px,auto)]">
+          <div className="flex flex-col gap-24 md:gap-32 pb-12">
             
-            {/* Feature 1: Absensi (Large) */}
-            <div className="md:col-span-2 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-3xl p-8 border border-emerald-100 relative overflow-hidden group">
-              <div className="relative z-10 w-full md:w-1/2">
-                <div className="w-12 h-12 rounded-xl bg-emerald-500 text-white flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/30">
-                  <QrCode className="w-6 h-6" />
+            {/* Feature 1: Absensi */}
+            <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
+              <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6 shadow-lg shadow-emerald-100/50">
+                  <ClipboardCheck className="w-8 h-8" />
                 </div>
-                <h4 className="text-2xl font-black text-slate-900 mb-3">Absensi Bebas Kertas</h4>
-                <p className="text-slate-700 font-medium mb-6">
-                  Buat sesi kehadiran, scan QR Code sekilas, dan data langsung tersimpan di cloud. Tanpa rekap manual, tanpa buang kertas percuma.
+                <h4 className="text-3xl font-black text-slate-900 mb-4">Absensi Bebas Kertas</h4>
+                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                  Buat sesi kehadiran dan rekam jejak absensi secara digital. Tersedia fitur delegasi absen (Bantu Absen) tanpa batasan lokasi untuk memudahkan pencatatan, tanpa perlu buang kertas percuma.
                 </p>
               </div>
-              <div className="absolute right-0 bottom-0 translate-x-1/4 translate-y-1/4 w-64 h-64 bg-emerald-200/50 rounded-full blur-3xl -z-0" />
-              <img 
-                src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (1).webp" 
-                alt="Absensi QR" 
-                className="absolute right-[-10%] md:right-4 bottom-[-20%] w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl group-hover:-translate-y-4 transition-transform duration-500 z-10" 
-              />
+              <div className="w-full md:w-1/2 relative flex justify-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-emerald-200/40 rounded-full blur-3xl -z-10" />
+                <img 
+                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" 
+                  alt="Absensi QR" 
+                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                />
+              </div>
             </div>
 
             {/* Feature 2: Keuangan */}
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-3xl p-8 border border-blue-100 relative overflow-hidden group">
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center mb-6 shadow-lg shadow-blue-600/30">
-                  <Wallet className="w-6 h-6" />
+            <div className="flex flex-col md:flex-row-reverse items-center gap-12 md:gap-16">
+              <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
+                <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-100/50">
+                  <Wallet className="w-8 h-8" />
                 </div>
-                <h4 className="text-2xl font-black text-slate-900 mb-3">Manajemen Kas Transparan</h4>
-                <p className="text-slate-700 font-medium">
+                <h4 className="text-3xl font-black text-slate-900 mb-4">Manajemen Kas Transparan</h4>
+                <p className="text-slate-600 text-lg font-medium leading-relaxed">
                   Catat pemasukan dan pengeluaran secara digital. Semua anggota bisa memantau saldo, menghindari prasangka, dan membangun kepercayaan.
                 </p>
               </div>
-              <img 
-                src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" 
-                alt="Keuangan App" 
-                className="absolute right-[-20%] bottom-[-30%] w-48 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl group-hover:-translate-y-4 transition-transform duration-500" 
-              />
-            </div>
-
-            {/* Feature 3: Anggota */}
-            <div className="bg-slate-50 rounded-3xl p-8 border border-slate-200 relative overflow-hidden group">
-              <div className="relative z-10">
-                <div className="w-12 h-12 rounded-xl bg-slate-800 text-white flex items-center justify-center mb-6 shadow-lg">
-                  <Users className="w-6 h-6" />
-                </div>
-                <h4 className="text-2xl font-black text-slate-900 mb-3">Database Anggota</h4>
-                <p className="text-slate-700 font-medium">
-                  Atur peran dari Ketua hingga Anggota biasa dengan sistem multi-role. Data terpusat, akses aman.
-                </p>
+              <div className="w-full md:w-1/2 relative flex justify-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-blue-200/40 rounded-full blur-3xl -z-10" />
+                <img 
+                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (6).webp" 
+                  alt="Keuangan App" 
+                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                />
               </div>
             </div>
 
-            {/* Feature 4: Go Green */}
-            <div className="md:col-span-2 bg-gradient-to-br from-teal-800 to-emerald-900 rounded-3xl p-8 border border-teal-700 relative overflow-hidden text-white flex flex-col justify-center">
-              <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik01NC42MjcgMTEuMzhBNDEuODYgNDEuODYgMCAwIDAgNDEuMzggMjguMjNhNDEuODYgNDEuODYgMCAwIDAgMTMuMjQ3IDE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAgMTMuMjQ3LTE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAtMTMuMjQ3LTE2Ljg1eiIgZmlsbD0iIzEwYjliMSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+Cjwvc3ZnPg==')] opacity-30" />
-              <div className="relative z-10 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/10 border border-white/20 text-emerald-300 text-sm font-bold mb-4">
-                  <Leaf className="w-4 h-4" />
-                  Gerakan Penjagaan Bumi
+            {/* Feature 3: Analisis Kehadiran */}
+            <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
+              <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
+                <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-indigo-100/50">
+                  <TrendingUp className="w-8 h-8" />
                 </div>
-                <h4 className="text-3xl font-black mb-4">Wujudkan Organisasi Bebas Kertas</h4>
-                <p className="text-teal-100 font-medium text-lg">
-                  Dengan beralih ke KitaAtur, Anda berpartisipasi langsung dalam mengurangi limbah kertas (paperless). Satu langkah kecil digitalisasi, berdampak besar untuk masa depan bumi.
+                <h4 className="text-3xl font-black text-slate-900 mb-4">Analisis Cerdas & AI</h4>
+                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                  Dapatkan wawasan mendalam tentang kedisiplinan anggota. Dilengkapi dengan Rapor Kedisiplinan berbasis AI, deteksi dini pola kehadiran, dan klasemen otomatis untuk memotivasi organisasi Anda.
                 </p>
+              </div>
+              <div className="w-full md:w-1/2 relative flex justify-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-indigo-200/40 rounded-full blur-3xl -z-10" />
+                <img 
+                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (4).webp" 
+                  alt="Database Anggota" 
+                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                />
               </div>
             </div>
 
+          </div>
+
+          {/* Feature 4: Go Green Banner (Moved Below Flex Layout) */}
+          <div className="mt-8 bg-gradient-to-br from-teal-800 to-emerald-900 rounded-[2.5rem] p-10 md:p-16 border border-teal-700 relative overflow-hidden text-white flex flex-col justify-center items-center text-center">
+            <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik01NC42MjcgMTEuMzhBNDEuODYgNDEuODYgMCAwIDAgNDEuMzggMjguMjNhNDEuODYgNDEuODYgMCAwIDAgMTMuMjQ3IDE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAgMTMuMjQ3LTE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAtMTMuMjQ3LTE2Ljg1eiIgZmlsbD0iIzEwYjliMSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+Cjwvc3ZnPg==')] opacity-30" />
+            <div className="relative z-10 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-emerald-300 text-sm font-bold mb-6">
+                <Leaf className="w-4 h-4" />
+                Gerakan Penjagaan Bumi
+              </div>
+              <h4 className="text-3xl md:text-4xl font-black mb-4 leading-tight">Organisasi Bebas Kertas</h4>
+              <p className="text-teal-100 font-medium text-lg leading-relaxed max-w-xl mx-auto">
+                Beralih ke digital. Hemat waktu, kurangi limbah kertas, dan lindungi bumi mulai hari ini.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -271,7 +275,7 @@ export default function Home() {
             <div className="order-2 lg:order-1 relative">
               <div className="absolute inset-0 bg-blue-200/50 rounded-3xl transform rotate-3 scale-105 -z-10" />
               <img 
-                src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (2).webp" 
+                src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (5).webp" 
                 alt="Dashboard Mockup" 
                 className="rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full h-auto"
               />
@@ -316,16 +320,119 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section className="py-24 bg-white relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-blue-600 font-bold tracking-wider uppercase text-sm mb-3">Paket Harga</h2>
+            <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">
+              Pilih Paket yang Sesuai untuk Organisasi Anda
+            </h3>
+            <p className="text-slate-600 text-lg">
+              Mulai kelola kas keuangan pribadi secara gratis, atau buka akses fitur organisasi penuh dengan paket premium.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl mx-auto">
+            {/* FREE PLAN */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Personal (Free)</h3>
+                <p className="text-slate-500 text-sm mb-6 font-medium">Cocok untuk pencatatan kas pribadi sehari-hari.</p>
+                
+                <div className="mb-6">
+                  <span className="text-4xl font-extrabold text-slate-900">Rp 0</span>
+                  <span className="text-slate-500 text-sm font-bold"> / selamanya</span>
+                </div>
+
+                <ul className="space-y-4 mb-8 font-medium">
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Pencatatan pemasukan & pengeluaran personal</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Target keuangan pribadi (Personal Goals)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Membuat dan mengelola organisasi</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Sistem absensi dinamis organisasi</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-400 text-sm line-through opacity-70">
+                    <span>Ekspor laporan keuangan organisasi</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/register"
+                className="w-full py-3.5 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-center transition-all duration-300 block"
+              >
+                Mulai Gratis
+              </Link>
+            </div>
+
+            {/* PREMIUM PLAN */}
+            <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
+              <span className="absolute top-0 right-8 -translate-y-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-lg">
+                Rekomendasi
+              </span>
+
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Organisasi (Premium)</h3>
+                <p className="text-slate-500 font-medium text-sm mb-6">Solusi lengkap untuk operasional organisasi.</p>
+                
+                <div className="mb-6">
+                  <span className="text-4xl font-extrabold text-slate-900">Rp 49.000</span>
+                  <span className="text-slate-500 text-sm font-bold"> / bulan</span>
+                </div>
+
+                <ul className="space-y-4 mb-8 font-medium">
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Semua fitur paket Personal (Free)</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span><strong>Hak penuh sebagai Head</strong> untuk membuat organisasi baru</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Sistem absensi dinamis & rekapitulasi kehadiran</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Manajemen struktur organisasi & pembagian role staff</span>
+                  </li>
+                  <li className="flex items-start gap-3 text-slate-700 text-sm">
+                    <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>Ekspor laporan keuangan (Excel/CSV)</span>
+                  </li>
+                </ul>
+              </div>
+
+              <Link
+                href="/pricing"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
+              >
+                Pilih Paket Premium
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-24 relative overflow-hidden">
-        <div className="absolute inset-0 bg-blue-600 -z-20" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 -z-10 opacity-90" />
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 rounded-full blur-3xl -z-0 translate-x-1/3 -translate-y-1/3" />
+      <section className="py-24 relative overflow-hidden bg-blue-600">
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 pointer-events-none opacity-90" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 rounded-full blur-3xl pointer-events-none translate-x-1/3 -translate-y-1/3" />
         
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10 text-white">
           <h2 className="text-4xl md:text-6xl font-black mb-6">Siap Mengubah Cara<br/>Organisasi Anda Bekerja?</h2>
           <p className="text-xl text-blue-100 mb-10 font-medium max-w-2xl mx-auto">
-            Bergabunglah dengan gerakan penjagaan bumi. Tinggalkan cara lama, mulai kelola komunitas Anda secara digital, modern, dan gratis hari ini.
+            Tinggalkan cara manual. Beralih ke sistem digital yang cepat, modern, dan 100% gratis.
           </p>
           <Link href="/register" className="inline-block bg-white text-blue-600 hover:bg-slate-50 text-lg font-bold px-10 py-4 rounded-full shadow-2xl transition-all hover:scale-105 active:scale-95">
             Daftar Sekarang - Gratis
@@ -335,21 +442,51 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center p-1.5">
-              <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain brightness-0 invert opacity-80" />
+      <footer className="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
+          
+          {/* Kolom 1: Brand & Kontak */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-sm">
+                <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
+              </div>
+              <span className="text-2xl font-extrabold tracking-tight text-white">KitaAtur</span>
             </div>
-            <span className="text-xl font-extrabold tracking-tight text-white">KitaAtur</span>
+            <p className="text-sm mt-2 max-w-xs leading-relaxed">
+              Aplikasi manajemen organisasi yang modern, transparan, dan bebas kertas. Fokus pada tujuan, bukan administrasi.
+            </p>
+            <div className="flex flex-col gap-1 mt-4 text-sm">
+              <p className="font-semibold text-slate-500 uppercase tracking-wider text-xs mb-1">Email Bantuan:</p>
+              <a href="mailto:support.kitaatur@gmail.com" className="text-white hover:text-blue-400 font-medium inline-flex items-center transition-colors">
+                support.kitaatur@gmail.com
+              </a>
+            </div>
           </div>
-          <div className="text-sm">
-            &copy; {new Date().getFullYear()} RinzGroup. All rights reserved.
+
+          {/* Kolom 2: Link Penting */}
+          <div className="flex flex-col gap-4 md:pl-10">
+            <h4 className="text-white font-bold mb-2">Tautan Penting</h4>
+            <div className="flex flex-col gap-3 text-sm font-medium">
+              <Link href="/privacy" className="hover:text-white transition-colors">Kebijakan Privasi</Link>
+              <Link href="/terms" className="hover:text-white transition-colors">Syarat & Ketentuan</Link>
+              <Link href="#faq" className="hover:text-white transition-colors">FAQ</Link>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-sm font-medium">
-            <Link href="/privacy" className="hover:text-white transition-colors">Privasi</Link>
-            <Link href="/terms" className="hover:text-white transition-colors">Syarat & Ketentuan</Link>
+
+          {/* Kolom 3: Powered by Rinz Group */}
+          <div className="flex flex-col gap-4">
+            <h4 className="text-white font-bold mb-2">Dipersembahkan oleh</h4>
+            <div className="flex items-center gap-3">
+              <div className="bg-white rounded-lg p-2.5 inline-block shadow-sm">
+                <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-6 object-contain" />
+              </div>
+            </div>
+            <p className="text-xs mt-4">
+              &copy; {new Date().getFullYear()} RinzGroup.<br/>All rights reserved.
+            </p>
           </div>
+
         </div>
       </footer>
     </div>

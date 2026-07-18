@@ -50,7 +50,7 @@ export default function OnboardingPage() {
 
     setSaving(true)
     try {
-      await api.put('/personal/profile', {
+      await api.patch('/personal/profile', {
         full_name: fullName,
         avatar_url: avatarUrl || null
       })
