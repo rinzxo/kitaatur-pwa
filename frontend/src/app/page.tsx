@@ -440,7 +440,7 @@ export default function Home() {
               </div>
 
               <Link
-                href="https://wa.me/6281234567890?text=Halo%20Tim%20KitaAtur,%20saya%20tertarik%20dengan%20paket%20Enterprise"
+                href="https://wa.me/6281219363321?text=Halo%20Tim%20KitaAtur,%20saya%20tertarik%20dengan%20paket%20Enterprise"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-xl text-center transition-all duration-300 block"
