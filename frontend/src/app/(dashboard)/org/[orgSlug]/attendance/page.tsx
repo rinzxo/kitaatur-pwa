@@ -164,14 +164,14 @@ export default function AttendanceDashboardPage() {
             <p className="text-slate-500 font-medium">Tidak ada agenda atau sesi absensi mendatang untuk saat ini.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex overflow-x-auto snap-x snap-mandatory hide-scrollbar gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6 pb-4 -mx-4 px-4 md:mx-0 md:px-0">
             {agendas.map((agenda) => {
               const isOngoing = new Date() >= new Date(agenda.start_time);
               return (
                 <Link 
                   key={agenda.id} 
                   href={`/org/${orgSlug}/attendance/scan`} 
-                  className="group relative bg-white rounded-[2rem] p-6 md:p-7 border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col"
+                  className="w-[85%] sm:w-[350px] shrink-0 snap-center md:w-auto group relative bg-white rounded-[2rem] p-6 md:p-7 border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-1.5 overflow-hidden flex flex-col"
                 >
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br from-blue-50 to-transparent rounded-full blur-2xl group-hover:opacity-100 opacity-0 transition-opacity duration-500"></div>
                   

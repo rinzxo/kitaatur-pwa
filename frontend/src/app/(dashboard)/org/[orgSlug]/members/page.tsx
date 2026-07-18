@@ -21,7 +21,7 @@ export interface Member {
   id: string
   organization_id: string
   profile_id: string
-  role: 'head' | 'bendahara' | 'sekretaris' | 'member'
+  role: 'head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
   joined_at: string
   custom_data: any
   profile: Profile
@@ -35,7 +35,7 @@ export default function OrganizationMembersPage() {
 
   const [members, setMembers] = useState<Member[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('')
-  const [currentUserRole, setCurrentUserRole] = useState<'head' | 'bendahara' | 'sekretaris' | 'member'>('member')
+  const [currentUserRole, setCurrentUserRole] = useState<'head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   
@@ -44,7 +44,7 @@ export default function OrganizationMembersPage() {
   // Form State
   const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
-  const [newRole, setNewRole] = useState<'bendahara' | 'sekretaris' | 'member'>('member')
+  const [newRole, setNewRole] = useState<'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
@@ -338,6 +338,7 @@ export default function OrganizationMembersPage() {
                                 { label: 'Anggota (Member)', value: 'member' },
                                 { label: 'Bendahara', value: 'bendahara' },
                                 { label: 'Sekretaris', value: 'sekretaris' },
+                                { label: 'Auditor', value: 'auditor' },
                                 { label: 'Head (Transfer)', value: 'head' }
                               ]}
                               className="max-w-[140px]"
@@ -433,6 +434,7 @@ export default function OrganizationMembersPage() {
                                     { label: 'Anggota (Member)', value: 'member' },
                                     { label: 'Bendahara', value: 'bendahara' },
                                     { label: 'Sekretaris', value: 'sekretaris' },
+                                    { label: 'Auditor', value: 'auditor' },
                                     { label: 'Head (Transfer Kepemilikan)', value: 'head' }
                                   ]}
                                 />

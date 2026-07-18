@@ -26,7 +26,7 @@ export default function CreateOrganizationPage() {
 
     try {
       const res = await api.post('/org/create', { name, slug })
-      router.push(`/org/${res.data.organization.slug}/dashboard`)
+      router.push(`/org/${res.data.slug}/dashboard`)
     } catch (err: any) {
       setError(err.response?.data?.error || 'Gagal membuat organisasi')
       setLoading(false)

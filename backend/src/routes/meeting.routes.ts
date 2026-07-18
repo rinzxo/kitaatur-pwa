@@ -14,6 +14,6 @@ router.use(requireAuth)
 router.post('/:orgIdOrSlug', requireOrgRole(['head', 'sekretaris']), createMeetingMinutes)
 
 // Ambil riwayat notulensi (Semua anggota)
-router.get('/:orgIdOrSlug', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getMeetingMinutes)
+router.get('/:orgIdOrSlug', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getMeetingMinutes)
 
 export default router

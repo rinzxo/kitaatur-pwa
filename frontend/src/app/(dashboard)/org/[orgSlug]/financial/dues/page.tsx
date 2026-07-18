@@ -117,7 +117,7 @@ export default function OrgDuesCollectionPage() {
         api.get(`/org/${orgSlug}/settings`)
       ])
       
-      setMembers(membersData)
+      setMembers(membersData.filter(m => m.role !== 'auditor'))
       setSettings(settingsRes.data)
       
       // Populate settings states

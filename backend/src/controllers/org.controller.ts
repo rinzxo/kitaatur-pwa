@@ -103,6 +103,12 @@ export async function getOrganizationMembers(req: Request, res: Response) {
       }
     })
 
+    members.sort((a: any, b: any) => {
+      const nameA = (a.profile?.full_name || a.profile?.email || '').toLowerCase();
+      const nameB = (b.profile?.full_name || b.profile?.email || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
     return res.status(200).json(members)
   } catch (err) {
     console.error('Error fetching members:', err)

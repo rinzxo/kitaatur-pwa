@@ -64,8 +64,8 @@ export default function SettingsPage() {
         }
         
         setUserEmail(user.email || '')
-        setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
-        setUserAvatar(profile?.avatar_url || user.user_metadata?.avatar_url || null)
+        setUserName(profile?.full_name || 'Pengguna')
+        setUserAvatar(profile?.avatar_url || null)
 
         try {
           const res = await api.get('/subscription/me')
@@ -334,25 +334,6 @@ export default function SettingsPage() {
                   <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group Inovasi" className="h-8 object-contain my-1 opacity-90 hover:opacity-100 transition-opacity" />
                   <p className="mt-3">Copyright © 2026. Hak Cipta Dilindungi.</p>
                 </div>
-              </div>
-
-              <div className="flex flex-col mt-4">
-                <Link href="/privacy" className="w-full flex items-center justify-between py-4 group">
-                  <span className="text-[16px] text-slate-800">Privacy and Cookies</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                </Link>
-                <Link href="/terms" className="w-full flex items-center justify-between py-4 group">
-                  <span className="text-[16px] text-slate-800">Terms of Use</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                </Link>
-                <Link href="/community" className="w-full flex items-center justify-between py-4 group">
-                  <span className="text-[16px] text-slate-800">Community Standards</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                </Link>
-                <Link href="/third-party" className="w-full flex items-center justify-between py-4 group">
-                  <span className="text-[16px] text-slate-800">Third Party Notices</span>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
-                </Link>
               </div>
             </div>
           )}

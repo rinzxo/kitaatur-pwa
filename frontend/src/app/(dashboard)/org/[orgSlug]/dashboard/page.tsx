@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, Wallet, QrCode, Target, 
-  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2, Calendar, Clock
+  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2, Calendar, Clock, BadgeCheck
 } from 'lucide-react'
 
 interface Goal {
@@ -38,6 +38,8 @@ export default function OrgDashboardPage() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [records, setRecords] = useState<FinancialRecord[]>([])
   const [userName, setUserName] = useState('')
+  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const [financialSummary, setFinancialSummary] = useState({ income: 0, expense: 0, balance: 0 })
   const [loading, setLoading] = useState(true)
@@ -47,6 +49,7 @@ export default function OrgDashboardPage() {
   const [agendas, setAgendas] = useState<any[]>([])
   const [activeHero, setActiveHero] = useState<number>(0)
   const [currentAgendaIndex, setCurrentAgendaIndex] = useState<number>(0)
+  const [membersCount, setMembersCount] = useState<number>(0)
 
   const formatRupiah = (value: number | string) => {
     const num = typeof value === 'string' ? parseFloat(value) : value
@@ -74,29 +77,24 @@ export default function OrgDashboardPage() {
         setGoals(goalsRes.data)
         setFinancialSummary(finRes.data.summary)
         setRecords(recordsRes.data)
+        const validMembers = (membersRes.data || []).filter((m: any) => m.role !== 'auditor')
+        setMembersCount(validMembers.length)
         
         const orgsList = orgsRes.data || [];
         
-        // Fetch agendas from all joined orgs
-        const agendaPromises = orgsList.map((org: any) => 
-          api.get(`/org-attendance/${org.slug}/agenda`).catch(() => ({ data: [] }))
-        );
-        const agendaResponses = await Promise.all(agendaPromises);
-        
-        let allAgendas: any[] = [];
-        agendaResponses.forEach((res, index) => {
-          if (res.data && res.data.length > 0) {
-            const orgAgendas = res.data.map((a: any) => ({
-              ...a,
-              orgSlug: orgsList[index].slug,
-              orgName: orgsList[index].name
-            }));
-            allAgendas = allAgendas.concat(orgAgendas);
-          }
-        });
-        
-        allAgendas.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-        setAgendas(allAgendas); // Store all agendas
+        // Fetch agenda from THIS org only
+        const agendaRes = await api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] }));
+        let orgAgendas: any[] = [];
+        if (agendaRes.data && agendaRes.data.length > 0) {
+          const currentOrg = orgsList.find((o: any) => o.slug === orgSlug) || { name: orgSlug };
+          orgAgendas = agendaRes.data.map((a: any) => ({
+            ...a,
+            orgSlug: orgSlug,
+            orgName: currentOrg.name
+          }));
+          orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+        }
+        setAgendas(orgAgendas); // Store this org's agendas
         
         const unread = notifRes.data.filter((n: any) => !n.is_read)
         setUnreadNotifs(unread.length)
@@ -109,17 +107,32 @@ export default function OrgDashboardPage() {
         const targetAmt = settingsRes.data?.dues_target_amount ? parseFloat(settingsRes.data.dues_target_amount) : 0
         setTargetAmount(targetAmt)
 
+        try {
+          const subRes = await api.get('/subscription/me')
+          setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
+        } catch (e) {
+          console.error('Failed to fetch subs', e)
+        }
+
         if (user) {
           try {
             const profileRes = await api.get('/personal/profile')
             const profile = profileRes.data
-            setUserName(profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+            
+            if (!profile?.full_name) {
+              router.push('/onboarding')
+              return
+            }
+            
+            setUserName(profile.full_name)
+            setUserAvatar(profile.avatar_url || null)
           } catch (e) {
-            setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
+            router.push('/onboarding')
+            return
           }
           
           const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-          if (currentMember && currentMember.joined_at && targetAmt > 0) {
+          if (currentMember && currentMember.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
             const joined = new Date(currentMember.joined_at)
             const now = new Date()
             let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
@@ -151,15 +164,14 @@ export default function OrgDashboardPage() {
 
   useEffect(() => {
     if (agendas.length > 0) {
+      let heroState = 0;
       const interval = setInterval(() => {
-        setActiveHero(prev => {
-          const next = prev === 0 ? 1 : 0;
-          if (next === 1 && agendas.length > 1) {
-            // Cycle agenda in the background while Kas is showing
-            setCurrentAgendaIndex(a => (a + 1) % agendas.length);
-          }
-          return next;
-        });
+        heroState = heroState === 0 ? 1 : 0;
+        setActiveHero(heroState);
+        if (heroState === 1 && agendas.length > 1) {
+          // Cycle agenda in the background while Kas is showing
+          setCurrentAgendaIndex(a => (a + 1) % agendas.length);
+        }
       }, 5000)
       return () => clearInterval(interval)
     }
@@ -190,21 +202,51 @@ export default function OrgDashboardPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans relative">
       
       {/* Top Navigation Bar */}
-      <header className="flex justify-between items-center p-4 md:px-8 max-w-4xl mx-auto pt-6">
-        <div className="flex items-center gap-3">
-          <Link href={`/org/${orgSlug}/members`} className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 hover:scale-105 transition-transform overflow-hidden" title="Kelola Anggota & Organisasi">
-            {orgData?.logo_url ? (
-              <img src={orgData.logo_url} alt="Logo" className="w-full h-full object-cover" />
-            ) : (
-              <Settings className="w-5 h-5" />
+      <header className="flex flex-col md:flex-row md:justify-between md:items-center p-4 md:px-8 max-w-4xl mx-auto pt-6 gap-4 md:gap-0">
+        
+        {/* Mobile View: Greeting & Bell on Top */}
+        <div className="flex md:hidden items-center justify-between w-full">
+          <div className="flex items-center gap-1.5">
+            <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
+            {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+          </div>
+          <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
+            <Bell className="w-6 h-6" />
+            {unreadNotifs > 0 && (
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
             )}
           </Link>
-          <div className="bg-blue-100 text-blue-700 text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
-            {orgData?.name || orgSlug}
+        </div>
+
+        {/* Logo and Workspace Name */}
+        <div className="flex justify-between items-center w-full md:w-auto">
+          <div className="flex items-center gap-3">
+            <Link href={`/org/${orgSlug}/members`} className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 hover:scale-105 transition-transform overflow-hidden" title="Kelola Anggota & Organisasi">
+              {orgData?.logo_url ? (
+                <img src={orgData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Settings className="w-5 h-5" />
+              )}
+            </Link>
+            <div className="bg-blue-100 text-blue-700 text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+              {orgData?.name || orgSlug}
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <span className="text-blue-600 font-bold text-sm hidden md:block">Halo, {userName}</span>
+        
+        {/* Desktop Greeting & Bell */}
+        <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
+            {userAvatar ? (
+              <img src={userAvatar} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
+            {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+          </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
             {unreadNotifs > 0 && (
@@ -224,41 +266,43 @@ export default function OrgDashboardPage() {
               
               {/* Slide 1: Agenda (satu slide, ganti-gantian isinya) */}
               {agendas.length > 0 && (
-                <div className="w-full shrink-0">
-                  <Link href={`/org/${agendas[currentAgendaIndex].orgSlug}/attendance`} className="block bg-blue-600 p-6 md:p-8 text-white relative overflow-hidden h-full group cursor-pointer">
+                <div className="w-full flex-none">
+                  <Link href={`/org/${agendas[currentAgendaIndex].orgSlug}/attendance`} className="block bg-blue-600 p-5 md:p-6 text-white relative overflow-hidden h-full group cursor-pointer">
                     <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none transition-transform duration-1000 group-hover:scale-110"></div>
 
                     <div className="flex justify-between items-start mb-2 relative z-10">
                       <div className="flex items-center gap-2 opacity-90">
                         <Calendar className="w-4 h-4" />
-                        <span className="font-semibold text-lg tracking-wide">Agenda • {agendas[currentAgendaIndex].orgName}</span>
+                        <span className="font-semibold text-base tracking-wide">{agendas[currentAgendaIndex].orgName}</span>
                       </div>
                       {new Date() >= new Date(agendas[currentAgendaIndex].start_time) ? (
-                        <span className="bg-rose-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-rose-500/20">Sedang Berjalan</span>
+                        <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-rose-500/20">Berjalan</span>
                       ) : (
-                        <span className="bg-white text-blue-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest shadow-sm">Mendatang</span>
+                        <span className="bg-white text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-sm">Mendatang</span>
                       )}
                     </div>
                     
-                    <div className="relative z-10 mt-5">
-                      <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-4 leading-tight group-hover:text-blue-100 transition-colors duration-300 pr-12">{agendas[currentAgendaIndex].title}</h1>
+                    <div className="relative z-10 mt-3">
+                      <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-3 leading-tight group-hover:text-blue-100 transition-colors duration-300 pr-10 truncate">{agendas[currentAgendaIndex].title}</h1>
                       
-                      <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 font-semibold text-sm bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md">
-                          <Clock className="w-4 h-4 text-blue-100" />
-                          <span className="text-white">{new Date(agendas[currentAgendaIndex].start_time).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</span>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex items-center gap-1.5 font-semibold text-xs md:text-sm bg-white/20 px-3 py-1.5 rounded-xl backdrop-blur-md">
+                          <Clock className="w-3.5 h-3.5 text-blue-100" />
+                          <span className="text-white">
+                            {new Date(agendas[currentAgendaIndex].start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {new Date(agendas[currentAgendaIndex].start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
                         {agendas.length > 1 && (
-                          <div className="flex items-center gap-2 font-semibold text-sm bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md text-blue-100 border border-white/10">
-                            1 dari {agendas.length}
+                          <div className="flex items-center gap-1.5 font-semibold text-xs md:text-sm bg-white/10 px-3 py-1.5 rounded-xl backdrop-blur-md text-blue-100 border border-white/10">
+                            {currentAgendaIndex + 1} / {agendas.length}
                           </div>
                         )}
                       </div>
                     </div>
                     
-                    <div className="absolute bottom-0 right-0 p-6 md:p-8 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
-                       <div className="bg-white/20 backdrop-blur-md p-3 rounded-full shadow-sm hover:bg-white/30 transition-colors">
-                         <ChevronRight className="w-5 h-5 text-white" />
+                    <div className="absolute bottom-0 right-0 p-4 md:p-6 opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500">
+                       <div className="bg-white/20 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white/30 transition-colors">
+                         <ChevronRight className="w-4 h-4 text-white" />
                        </div>
                     </div>
                   </Link>
@@ -266,26 +310,26 @@ export default function OrgDashboardPage() {
               )}
 
               {/* Slide 2: Kas Organisasi */}
-              <div className="w-full shrink-0">
-                <div className="bg-blue-600 p-6 md:p-8 text-white relative overflow-hidden h-full">
-                  <div className="flex justify-between items-start mb-2 relative z-10">
+              <div className="w-full flex-none">
+                <div className="bg-blue-600 p-5 md:p-6 text-white relative overflow-hidden h-full">
+                  <div className="flex justify-between items-start mb-1 relative z-10">
                     <div className="flex items-center gap-2 opacity-90">
-                      <span className="font-semibold text-lg">Kas Organisasi</span>
+                      <span className="font-semibold text-base">Kas Organisasi</span>
                       <Info className="w-4 h-4 opacity-70" />
                     </div>
                     <Link 
                       href={`/org/${orgSlug}/financial`}
-                      className="bg-white text-blue-600 hover:bg-blue-50 text-sm font-bold px-4 py-2 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                      className="bg-white text-blue-600 hover:bg-blue-50 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
                     >
-                      <Wallet className="w-4 h-4" />
+                      <Wallet className="w-3.5 h-3.5" />
                       Kelola
                     </Link>
                   </div>
                   
-                  <div className="relative z-10 mt-1">
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight">{formatRupiah(financialSummary.balance)}</h1>
-                    <div className="flex items-center gap-1 mt-3 font-semibold text-sm bg-white/20 w-fit px-3 py-1 rounded-lg backdrop-blur-sm">
-                      {financialSummary.balance > 0 ? <ChevronUp className="w-4 h-4" /> : financialSummary.balance < 0 ? <ChevronDown className="w-4 h-4" /> : null}
+                  <div className="relative z-10 mt-2">
+                    <h1 className="text-3xl md:text-4xl font-black tracking-tight truncate">{formatRupiah(financialSummary.balance)}</h1>
+                    <div className="flex items-center gap-1 mt-2 font-semibold text-xs md:text-sm bg-white/20 w-fit px-3 py-1 rounded-lg backdrop-blur-sm">
+                      {financialSummary.balance > 0 ? <ChevronUp className="w-3.5 h-3.5" /> : financialSummary.balance < 0 ? <ChevronDown className="w-3.5 h-3.5" /> : null}
                       <span>{financialSummary.balance > 0 ? 'Surplus / Aman' : financialSummary.balance < 0 ? 'Defisit / Minus' : 'Saldo Kosong'}</span>
                     </div>
                   </div>
@@ -347,7 +391,7 @@ export default function OrgDashboardPage() {
               <Users className="w-5 h-5" />
               <span className="text-slate-800">Anggota</span>
             </div>
-            <span className="text-slate-500 font-semibold text-sm group-hover:text-purple-600 transition-colors">Kelola Direktori</span>
+            <span className="text-slate-500 font-semibold text-sm group-hover:text-purple-600 transition-colors">{membersCount} Terdaftar</span>
           </Link>
 
           <Link href={`/org/${orgSlug}/attendance`} className="bg-white p-5 rounded-2xl md:rounded-3xl shadow-sm border border-slate-100 flex flex-col justify-center hover:border-blue-200 transition-colors group">

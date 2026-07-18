@@ -68,7 +68,7 @@ export async function createSession(req: any, res: Response) {
     
     const org = await prisma.organizations.findUnique({ where: { id: orgMemberContext.organizationId } });
     if (org) {
-      const members = await prisma.organization_members.findMany({ where: { organization_id: org.id } });
+      const members = await prisma.organization_members.findMany({ where: { organization_id: org.id, role: { not: 'auditor' as any } } });
       for (const m of members) {
         if (m.profile_id !== userId) {
           sendPushNotification(m.profile_id, 'Sesi Absensi Dibuka!', `Sesi "${newSession.title}" di ${org.name} telah dibuka. Segera lakukan presensi!`, `/org/${org.slug}/attendance/scan`);
@@ -230,11 +230,17 @@ export async function getSessionMembers(req: any, res: Response) {
     const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
 
     const members = await prisma.organization_members.findMany({
-      where: { organization_id: { in: validOrgs } },
+      where: { organization_id: { in: validOrgs }, role: { not: 'auditor' as any } },
       include: {
         profile: { select: { full_name: true, email: true, avatar_url: true } },
         organization: { select: { name: true } }
       }
+    });
+
+    members.sort((a: any, b: any) => {
+      const nameA = (a.profile?.full_name || a.profile?.email || '').toLowerCase();
+      const nameB = (b.profile?.full_name || b.profile?.email || '').toLowerCase();
+      return nameA.localeCompare(nameB);
     });
 
     // Ambil data absensi untuk sesi ini
@@ -676,7 +682,14 @@ export async function getAgenda(req: any, res: Response) {
           { organization_id: orgMemberContext.organizationId },
           { shared_with_orgs: { has: orgMemberContext.organizationId } }
         ],
-        end_time: { gte: now }
+        AND: [
+          {
+            OR: [
+              { start_time: { gte: now } },
+              { end_time: { gte: now } }
+            ]
+          }
+        ]
       },
       orderBy: { start_time: 'asc' }
     });

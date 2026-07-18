@@ -43,9 +43,9 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           }
 
           setCurrentUserInfo({
-            name: profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'Tanpa Nama',
+            name: profile?.full_name || 'Tanpa Nama',
             email: user.email || '',
-            avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || null
+            avatar_url: profile?.avatar_url || null
           })
 
           if (currentOrgSlug) {
@@ -189,12 +189,18 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
           {/* Floating Action Button di Tengah */}
           <div className="relative flex items-center justify-center -translate-y-5">
-            <Link 
-              href={fabHref}
-              className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all block"
-            >
-              <Plus className="w-6 h-6 stroke-[2.5px]" />
-            </Link>
+            {currentUserRole === 'auditor' ? (
+              <div className="bg-slate-200 text-slate-400 p-4 rounded-2xl shadow-sm block cursor-not-allowed" title="Aksi tidak tersedia untuk Auditor">
+                <Plus className="w-6 h-6 stroke-[2.5px]" />
+              </div>
+            ) : (
+              <Link 
+                href={fabHref}
+                className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all block"
+              >
+                <Plus className="w-6 h-6 stroke-[2.5px]" />
+              </Link>
+            )}
           </div>
 
           {activeBottomNavItems.slice(2, 4).map((item) => {

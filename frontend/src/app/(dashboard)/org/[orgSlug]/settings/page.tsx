@@ -68,8 +68,14 @@ export default function OrgSettingsPage() {
         }
         
         setUserEmail(user.email || '')
-        setUserName(user.user_metadata?.full_name || user.email?.split('@')[0] || 'Pengguna')
-        setUserAvatar(user.user_metadata?.avatar_url || null)
+        try {
+          const res = await api.get('/personal/profile')
+          setUserName(res.data?.full_name || 'Pengguna')
+          setUserAvatar(res.data?.avatar_url || null)
+        } catch (e) {
+          setUserName('Pengguna')
+          setUserAvatar(null)
+        }
 
         // Fetch user role in this org
         const membersRes = await api.get(`/org/${orgSlug}/members`)
@@ -150,13 +156,26 @@ export default function OrgSettingsPage() {
     e.preventDefault()
     setSaving(true)
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          await api.patch('/personal/profile', {
+            full_name: userName,
+            avatar_url: userAvatar
+          });
+        } catch (dbError) {
+          console.error('Gagal update profiles:', dbError);
+        }
+      }
+
       const { error } = await supabase.auth.updateUser({
         data: { full_name: userName, avatar_url: userAvatar }
       })
       if (error) throw error
       toast.success('Profil berhasil diperbarui.')
     } catch (err: any) {
-      toast.error(err.message || 'Terjadi kesalahan.')
+      console.error('Update error:', err)
+      toast.error('Gagal memperbarui profil.')
     } finally {
       setSaving(false)
     }
@@ -603,7 +622,12 @@ export default function OrgSettingsPage() {
               )}
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">{userName}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-slate-900">{userName}</h2>
+                {isVerified && (
+                  <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-50" />
+                )}
+              </div>
               <p className="text-slate-500">Tampilkan profil</p>
             </div>
           </div>

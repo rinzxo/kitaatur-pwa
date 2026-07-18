@@ -52,7 +52,7 @@ router.post('/create', createOrganization)
 router.put('/:orgIdOrSlug', requireOrgRole(['head']), updateOrganization)
 
 // B. Mendapatkan seluruh anggota organisasi (Semua role dalam org bersangkutan)
-router.get('/:orgIdOrSlug/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getOrganizationMembers)
+router.get('/:orgIdOrSlug/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrganizationMembers)
 
 // C. Menambahkan anggota baru ke dalam organisasi (Hanya Head organisasi)
 router.post('/:orgIdOrSlug/members', requireOrgRole(['head']), addOrganizationMember)
@@ -70,7 +70,7 @@ router.patch('/:orgIdOrSlug/members/:memberProfileId', requireOrgRole(['head']),
 router.delete('/:orgIdOrSlug/members/:memberProfileId', requireOrgRole(['head']), removeOrganizationMember)
 
 // E. Mendapatkan goals/target organisasi
-router.get('/:orgIdOrSlug/goals', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getOrgGoals)
+router.get('/:orgIdOrSlug/goals', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrgGoals)
 
 // E2. Buat Target/Anggaran Baru (Hanya Bendahara)
 router.post('/:orgIdOrSlug/goals', requireOrgRole(['bendahara']), createOrgGoal)
@@ -79,7 +79,7 @@ router.post('/:orgIdOrSlug/goals', requireOrgRole(['bendahara']), createOrgGoal)
 router.post('/:orgIdOrSlug/goals/:goalId/progress', requireOrgRole(['bendahara']), addGoalProgress)
 
 // E4. Ambil Riwayat Target (Semua Anggota)
-router.get('/:orgIdOrSlug/goals/:goalId/transactions', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getGoalTransactions)
+router.get('/:orgIdOrSlug/goals/:goalId/transactions', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getGoalTransactions)
 
 // E5. Kelola Dana Target (Pengeluaran, Pindah Kas, Pindah Target) (Hanya Bendahara)
 router.post('/:orgIdOrSlug/goals/:goalId/manage', requireOrgRole(['bendahara']), manageGoalFunds)
@@ -90,7 +90,7 @@ router.delete('/:orgIdOrSlug/goals/:goalId', requireOrgRole(['bendahara']), dele
 // F. Pengaturan Organisasi
 
 // F1. Ambil Pengaturan (Termasuk nominal iuran wajib) (Semua Anggota)
-router.get('/:orgIdOrSlug/settings', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getOrganizationSettings)
+router.get('/:orgIdOrSlug/settings', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrganizationSettings)
 
 // F2. Ubah Pengaturan (Hanya Bendahara untuk Iuran)
 router.patch('/:orgIdOrSlug/settings', requireOrgRole(['bendahara']), updateOrganizationSettings)
@@ -99,9 +99,9 @@ router.patch('/:orgIdOrSlug/settings', requireOrgRole(['bendahara']), updateOrga
 router.put('/:orgIdOrSlug/custom-fields', requireOrgRole(['head']), updateOrgCustomFields)
 
 // F4. Update Data Tambahan Anggota (Diri Sendiri atau Head)
-router.put('/:orgIdOrSlug/members/:memberProfileId/custom-data', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), updateMemberCustomData)
+router.put('/:orgIdOrSlug/members/:memberProfileId/custom-data', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), updateMemberCustomData)
 
 // F5. Keluar dari Organisasi (Meninggalkan Workspace Mandiri)
-router.delete('/:orgIdOrSlug/leave', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), leaveOrganization)
+router.delete('/:orgIdOrSlug/leave', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), leaveOrganization)
 
 export default router

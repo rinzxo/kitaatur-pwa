@@ -44,20 +44,20 @@ router.post('/:orgIdOrSlug/sessions/:sessionId/collaborate/reject', requireOrgRo
 router.post('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'sekretaris']), createSession)
 
 // Ambil daftar semua sesi absensi (Semua Anggota untuk keperluan filter riwayat)
-router.get('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getSessions)
+router.get('/:orgIdOrSlug/sessions', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getSessions)
 
 // Ambil sesi absensi yang sedang aktif (Semua Anggota)
-router.get('/:orgIdOrSlug/sessions/active', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getActiveSession)
+router.get('/:orgIdOrSlug/sessions/active', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getActiveSession)
 
 // Ambil anggota yang valid untuk suatu sesi (Bantu Absen)
-router.get('/:orgIdOrSlug/sessions/:sessionId/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getSessionMembers)
+router.get('/:orgIdOrSlug/sessions/:sessionId/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getSessionMembers)
 
 
 // Ambil active/upcoming agenda untuk Member
-router.get('/:orgIdOrSlug/agenda', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getAgenda)
+router.get('/:orgIdOrSlug/agenda', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getAgenda)
 
 // Ambil sesi absensi spesifik
-router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getActiveSession)
+router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getActiveSession)
 
 // Tutup sesi absensi (Head & Sekretaris)
 router.put('/:orgIdOrSlug/sessions/:sessionId/close', requireOrgRole(['head', 'sekretaris']), closeSession)
@@ -79,13 +79,13 @@ router.post('/:orgIdOrSlug/scan', requireOrgRole(['head', 'bendahara', 'sekretar
 // ========================
 
 // Ambil statistik absensi untuk Dashboard Sekretaris
-router.get('/:orgIdOrSlug/stats', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getAttendanceStats)
+router.get('/:orgIdOrSlug/stats', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getAttendanceStats)
 
 // Ambil riwayat absensi (Semua untuk Head/Sekretaris)
-router.get('/:orgIdOrSlug', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getAttendanceRecords)
+router.get('/:orgIdOrSlug', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getAttendanceRecords)
 
 // Ambil riwayat absensi pribadi (Untuk Pengguna Aktif)
-router.get('/:orgIdOrSlug/me/history', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), getMyAttendanceHistory)
+router.get('/:orgIdOrSlug/me/history', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getMyAttendanceHistory)
 
 // Update status absen (Sekretaris & Head) - Untuk menolak bukti
 router.put('/:orgIdOrSlug/attendance/:attendanceId/status', requireOrgRole(['head', 'sekretaris']), updateAttendanceStatus)

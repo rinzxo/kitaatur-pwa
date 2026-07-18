@@ -14,6 +14,7 @@
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^5.12.1",
     "@supabase/supabase-js": "^2.42.0",
+    "@types/pg": "^8.20.0",
     "@types/web-push": "^3.6.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

@@ -80,8 +80,8 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone()
 
-  // Protect dashboard and personal routes
-  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/personal')) {
+  // Protect dashboard and personal routes, as well as onboarding
+  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/personal') || url.pathname.startsWith('/onboarding')) {
     if (!user) {
       url.pathname = '/login'
       return NextResponse.redirect(url)
@@ -104,6 +104,7 @@ export const config = {
     '/',
     '/dashboard/:path*',
     '/personal/:path*',
+    '/onboarding',
     '/login',
     '/register'
   ],

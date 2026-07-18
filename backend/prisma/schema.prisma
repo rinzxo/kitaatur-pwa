@@ -23,6 +23,7 @@ enum org_member_role {
   bendahara
   sekretaris
   member
+  auditor
 
   @@schema("public")
 }
