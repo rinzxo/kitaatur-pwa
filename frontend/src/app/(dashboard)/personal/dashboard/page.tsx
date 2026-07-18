@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { api, supabase } from '@/lib/api'
 import TransactionForm from './transaction-form'
 import { User, Bell, ChevronUp, ChevronDown, Plus, Wallet, Target, Info, ArrowUpRight, ArrowDownRight, X, Calendar, Clock, ChevronRight, BadgeCheck } from 'lucide-react'
@@ -31,6 +32,7 @@ interface Goal {
 }
 
 export default function PersonalDashboard() {
+  const router = useRouter()
   const [userName, setUserName] = useState('Pengguna')
   const [userAvatar, setUserAvatar] = useState<string|null>(null)
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0, balance: 0 })
