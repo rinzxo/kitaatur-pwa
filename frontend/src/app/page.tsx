@@ -470,23 +470,23 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-slate-900 text-slate-400 py-16 border-t border-slate-800">
+      <footer className="bg-slate-50 text-slate-600 py-16 border-t border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8">
           
           {/* Kolom 1: Brand & Kontak */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center p-2 shadow-sm">
-                <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
+              <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center p-2 shadow-md shadow-blue-500/20">
+                <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain brightness-0 invert" />
               </div>
-              <span className="text-2xl font-extrabold tracking-tight text-white">KitaAtur</span>
+              <span className="text-2xl font-extrabold tracking-tight text-slate-900">KitaAtur</span>
             </div>
-            <p className="text-sm mt-2 max-w-xs leading-relaxed">
+            <p className="text-sm mt-2 max-w-xs leading-relaxed text-slate-500">
               Aplikasi manajemen organisasi yang modern, transparan, dan bebas kertas. Fokus pada tujuan, bukan administrasi.
             </p>
             <div className="flex flex-col gap-1 mt-4 text-sm">
-              <p className="font-semibold text-slate-500 uppercase tracking-wider text-xs mb-1">Email Bantuan:</p>
-              <a href="mailto:support.kitaatur@gmail.com" className="text-white hover:text-blue-400 font-medium inline-flex items-center transition-colors">
+              <p className="font-semibold text-slate-400 uppercase tracking-wider text-xs mb-1">Email Bantuan:</p>
+              <a href="mailto:support.kitaatur@gmail.com" className="text-blue-600 hover:text-blue-700 font-bold inline-flex items-center transition-colors">
                 support.kitaatur@gmail.com
               </a>
             </div>
@@ -494,23 +494,21 @@ export default function Home() {
 
           {/* Kolom 2: Link Penting */}
           <div className="flex flex-col gap-4 md:pl-10">
-            <h4 className="text-white font-bold mb-2">Tautan Penting</h4>
+            <h4 className="text-slate-900 font-bold mb-2">Tautan Penting</h4>
             <div className="flex flex-col gap-3 text-sm font-medium">
-              <Link href="/privacy" className="hover:text-white transition-colors">Kebijakan Privasi</Link>
-              <Link href="/terms" className="hover:text-white transition-colors">Syarat & Ketentuan</Link>
-              <Link href="#faq" className="hover:text-white transition-colors">FAQ</Link>
+              <Link href="/privacy" className="hover:text-blue-600 transition-colors">Kebijakan Privasi</Link>
+              <Link href="/terms" className="hover:text-blue-600 transition-colors">Syarat & Ketentuan</Link>
+              <Link href="#faq" className="hover:text-blue-600 transition-colors">FAQ</Link>
             </div>
           </div>
 
           {/* Kolom 3: Powered by Rinz Group */}
           <div className="flex flex-col gap-4">
-            <h4 className="text-white font-bold mb-2">Dipersembahkan oleh</h4>
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-lg p-2.5 inline-block shadow-sm">
-                <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-6 object-contain" />
-              </div>
+            <h4 className="text-slate-900 font-bold mb-2">Dipersembahkan oleh</h4>
+            <div className="flex items-center gap-3 mt-1">
+              <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-7 object-contain opacity-80 hover:opacity-100 transition-opacity" />
             </div>
-            <p className="text-xs mt-4">
+            <p className="text-xs mt-4 text-slate-500">
               &copy; {new Date().getFullYear()} RinzGroup.<br/>All rights reserved.
             </p>
           </div>
