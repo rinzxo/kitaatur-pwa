@@ -71,9 +71,10 @@ function ScanGuestsContent() {
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal memproses QR Code')
     } finally {
-      // Allow scanning the same QR again after 3 seconds if needed
+      // Hilangkan status loading secara instan agar UI langsung responsif
+      setLoading(false)
+      // Allow scanning the same QR again after 3 seconds
       setTimeout(() => {
-        setLoading(false)
         setLastScanned(null)
       }, 3000)
     }
