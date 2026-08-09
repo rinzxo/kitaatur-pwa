@@ -12,6 +12,7 @@ interface GuestStat {
   id: string
   name: string
   identifier: string
+  kelas?: string | null
   stats: {
     tepat: number
     terlambat: number
