@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, BarChart2, Users, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, BarChart2, Users, CheckCircle, Clock, AlertTriangle, Search, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 
 interface GuestStat {
   id: string
@@ -24,6 +26,7 @@ export default function GuestAnalyticsPage() {
   const orgSlug = params.orgSlug as string
 
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const [data, setData] = useState<{
     overall: any,
     dailyTrend: any[],
@@ -42,6 +45,72 @@ export default function GuestAnalyticsPage() {
       toast.error('Gagal memuat analitik tamu')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const exportToExcel = async () => {
+    if (!data) return
+
+    try {
+      const sortedList = [...data.guestList].sort((a, b) => a.name.localeCompare(b.name))
+      
+      const workbook = new ExcelJS.Workbook()
+      const worksheet = workbook.addWorksheet('Rekap Kehadiran Tamu')
+
+      // Define columns
+      worksheet.columns = [
+        { header: 'Nama', key: 'nama', width: 30 },
+        { header: 'Kelas', key: 'kelas', width: 15 },
+        { header: 'ID', key: 'id', width: 25, style: { numFmt: '@' } },
+        { header: 'TEPAT', key: 'tepat', width: 12 },
+        { header: 'TERLAMBAT', key: 'terlambat', width: 15 },
+        { header: 'ALPHA', key: 'alpha', width: 12 },
+      ]
+
+      // Add Data
+      sortedList.forEach((guest) => {
+        worksheet.addRow({
+          nama: guest.name,
+          kelas: guest.kelas || '-',
+          id: guest.identifier,
+          tepat: guest.stats.tepat,
+          terlambat: guest.stats.terlambat,
+          alpha: guest.stats.alpha
+        })
+      })
+
+      // Styling: Add Borders and center align header & numbers
+      worksheet.eachRow((row, rowNumber) => {
+        row.eachCell((cell, colNumber) => {
+          // Borders
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+          }
+          
+          // Header style
+          if (rowNumber === 1) {
+            cell.font = { bold: true }
+            cell.alignment = { vertical: 'middle', horizontal: 'center' }
+          } else {
+            // Data alignment: Nama & ID left, Numbers right/center
+            if (colNumber > 2) {
+              cell.alignment = { vertical: 'middle', horizontal: 'center' }
+            } else {
+              cell.alignment = { vertical: 'middle', horizontal: 'left' }
+            }
+          }
+        })
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      saveAs(blob, `Rekap_Kehadiran_Tamu_${orgSlug}.xlsx`)
+      toast.success('Berhasil mengekspor Excel!')
+    } catch (err) {
+      toast.error('Gagal mengekspor file Excel.')
     }
   }
 
@@ -122,51 +191,147 @@ export default function GuestAnalyticsPage() {
 
         {/* Individual Guest Stats Table */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-200 bg-slate-50">
-            <h3 className="font-bold text-slate-800">Rekapitulasi Kehadiran Individu</h3>
-            <p className="text-sm text-slate-500">Menampilkan jumlah kehadiran setiap tamu di seluruh sesi (Total {data.overall.totalSessions} Sesi Berjalan).</p>
+          <div className="p-5 border-b border-slate-200 bg-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-slate-800">Rekapitulasi Kehadiran Individu</h3>
+              <p className="text-sm text-slate-500">Menampilkan jumlah kehadiran setiap tamu di seluruh sesi (Total {data.overall.totalSessions} Sesi Berjalan).</p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <button 
+                onClick={exportToExcel}
+                className="w-full sm:w-auto px-4 py-2 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 font-bold rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export Excel
+              </button>
+              <div className="relative w-full sm:w-auto">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama tamu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50/50 text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
-                  <th className="p-4 font-bold">Nama Tamu</th>
-                  <th className="p-4 font-bold">ID / Identifier</th>
-                  <th className="p-4 font-bold text-center text-emerald-600">Hadir Tepat</th>
-                  <th className="p-4 font-bold text-center text-amber-600">Hadir Terlambat</th>
-                  <th className="p-4 font-bold text-center text-rose-600">Alpha</th>
-                  <th className="p-4 font-bold text-center text-blue-600">Persentase</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.guestList.map((guest) => (
-                  <tr key={guest.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="p-4 font-bold text-slate-900">{guest.name}</td>
-                    <td className="p-4 text-slate-500 font-mono text-sm">{guest.identifier}</td>
-                    <td className="p-4 text-center font-bold text-emerald-600 bg-emerald-50/30">
-                      {guest.stats.tepat}
-                    </td>
-                    <td className="p-4 text-center font-bold text-amber-600 bg-amber-50/30">
-                      {guest.stats.terlambat}
-                    </td>
-                    <td className="p-4 text-center font-bold text-rose-600 bg-rose-50/30">
-                      {guest.stats.alpha}
-                    </td>
-                    <td className="p-4 text-center font-bold text-blue-600 bg-blue-50/30">
-                      {guest.stats.percentage}%
-                    </td>
-                  </tr>
-                ))}
-                
-                {data.guestList.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="p-8 text-center text-slate-500">
-                      Belum ada data tamu.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          
+          <div className="p-4 bg-slate-50/50">
+            {(() => {
+              const filteredGuests = data.guestList
+                .filter(g => 
+                  g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  (g.kelas && g.kelas.toLowerCase().includes(searchQuery.toLowerCase()))
+                )
+                .sort((a, b) => a.name.localeCompare(b.name)) // Selalu diurutkan berdasarkan nama (A-Z)
+              
+              if (filteredGuests.length === 0) {
+                return (
+                  <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+                    Belum ada data tamu atau pencarian tidak ditemukan.
+                  </div>
+                );
+              }
+              
+              return (
+                <div>
+                  {/* Mobile View: Cards */}
+                  <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {filteredGuests.map((guest) => (
+                      <div key={guest.id} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                        <div>
+                          <h4 className="font-bold text-slate-900 text-lg leading-tight">{guest.name}</h4>
+                          <div className="flex gap-2 items-center mt-1">
+                            {guest.kelas && <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">{guest.kelas}</span>}
+                            <span className="text-sm text-slate-500 font-mono">{guest.identifier}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-auto">
+                          <div className="bg-emerald-50/50 p-2 rounded-lg border border-emerald-100">
+                            <p className="text-[10px] uppercase font-bold text-emerald-600 mb-1">Tepat</p>
+                            <p className="font-black text-emerald-700 text-lg">{guest.stats.tepat}</p>
+                          </div>
+                          <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100">
+                            <p className="text-[10px] uppercase font-bold text-amber-600 mb-1">Terlambat</p>
+                            <p className="font-black text-amber-700 text-lg">{guest.stats.terlambat}</p>
+                          </div>
+                          <div className="bg-rose-50/50 p-2 rounded-lg border border-rose-100">
+                            <p className="text-[10px] uppercase font-bold text-rose-600 mb-1">Alpha</p>
+                            <p className="font-black text-rose-700 text-lg">{guest.stats.alpha}</p>
+                          </div>
+                          <div className="bg-blue-50/50 p-2 rounded-lg border border-blue-100 flex flex-col justify-center items-center">
+                            <p className="text-[10px] uppercase font-bold text-blue-600 mb-1">Hadir</p>
+                            <p className="font-black text-blue-700 text-lg">{guest.stats.percentage}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop View: Table */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse min-w-[600px]">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-100/50">
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700">No</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700">Nama Tamu</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700">Kelas</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Tepat</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Terlambat</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Alpha</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-right">% Hadir</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredGuests.map((guest, idx) => (
+                          <tr key={guest.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td className="px-4 py-3 text-sm text-slate-500 font-medium">
+                              {idx + 1}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-bold text-slate-900">{guest.name}</div>
+                              <div className="text-xs font-mono text-slate-500 mt-0.5">{guest.identifier}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="text-sm font-bold text-slate-600">
+                                {guest.kelas || '-'}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2 py-1 bg-emerald-50 text-emerald-700 font-bold text-sm rounded-lg border border-emerald-100 min-w-[40px]">
+                                {guest.stats.tepat}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 font-bold text-sm rounded-lg border border-amber-100 min-w-[40px]">
+                                {guest.stats.terlambat}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2 py-1 bg-rose-50 text-rose-700 font-bold text-sm rounded-lg border border-rose-100 min-w-[40px]">
+                                {guest.stats.alpha}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className={`inline-flex items-center justify-center px-3 py-1 font-bold text-sm rounded-xl ${
+                                guest.stats.percentage >= 75 ? 'bg-emerald-100 text-emerald-800' :
+                                guest.stats.percentage >= 50 ? 'bg-amber-100 text-amber-800' :
+                                'bg-rose-100 text-rose-800'
+                              }`}>
+                                {guest.stats.percentage}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
 

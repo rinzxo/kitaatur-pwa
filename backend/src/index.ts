@@ -17,7 +17,10 @@ import paymentRoutes from './routes/payment.routes'
 import meetingRoutes from './routes/meeting.routes'
 import notificationRoutes from './routes/notification.routes'
 import scheduleRoutes from './routes/schedule.routes'
-import eduRoutes from './routes/edu.routes'
+import schoolRoutes from './routes/school.routes'
+import adminRoutes from './routes/admin.routes'
+
+import { maintenanceCheck } from './middleware/maintenance.middleware'
 
 import { initJobs } from './jobs/reminder.job'
 import { initSessionJobs } from './jobs/session.job'
@@ -60,6 +63,9 @@ app.use(express.json())
 // HTTP Parameter Pollution prevention
 app.use(hpp())
 
+// Maintenance Check Middleware (runs before all routes)
+app.use(maintenanceCheck)
+
 // Register Routes
 app.use('/api/personal', personalRoutes)
 app.use('/api/webhooks', webhookRoutes)
@@ -71,7 +77,8 @@ app.use('/api/org-attendance', attendanceRoutes)
 app.use('/api/notifications', notificationRoutes)
 app.use('/api/org-meeting', meetingRoutes)
 app.use('/api/org-schedule', scheduleRoutes)
-app.use('/api/edu', eduRoutes)
+app.use('/api/school', schoolRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Health check endpoint
 app.get('/health', (req, res) => {

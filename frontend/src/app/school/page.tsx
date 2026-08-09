@@ -15,7 +15,7 @@ export default function EduLandingPage() {
 
   const fetchSchools = async () => {
     try {
-      const res = await api.get('/edu/schools')
+      const res = await api.get('/school/schools')
       setSchools(res.data)
     } catch (err) {
       console.error(err)
@@ -69,7 +69,7 @@ export default function EduLandingPage() {
             {filteredSchools.map((school) => (
               <Link 
                 key={school.id} 
-                href={`/edu/${school.id}`} 
+                href={`/school/${school.id}`} 
                 className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:border-blue-300 transition-all group flex items-center justify-between"
               >
                 <div className="flex items-center gap-4">

@@ -143,6 +143,13 @@ function GenerateContent() {
               </button>
 
               <button 
+                onClick={() => router.push(`/org/${orgSlug}/attendance/guests?sessionId=${sessionId}`)}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-600 font-bold rounded-xl transition-all shadow-sm"
+              >
+                Lihat Daftar Hadir Tamu
+              </button>
+
+              <button 
                 onClick={closeSession}
                 className="w-full flex items-center justify-center gap-2 py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-all"
               >

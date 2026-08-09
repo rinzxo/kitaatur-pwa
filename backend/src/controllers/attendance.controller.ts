@@ -359,17 +359,50 @@ export async function validateAttendance(req: any, res: Response) {
 
 export const getGuests = async (req: Request, res: Response) => {
   const { orgIdOrSlug } = req.params;
+  const { sessionId } = req.query;
   try {
     const org = await prisma.organizations.findFirst({
       where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
     });
     if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
 
+    let targetSessionId = sessionId && sessionId !== 'null' ? String(sessionId) : null;
+
+    if (!targetSessionId) {
+      const now = new Date();
+      // Only auto-pick sessions that are active and not older than 24 hours to prevent abandoned sessions from showing up
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const activeSession = await prisma.attendance_sessions.findFirst({
+        where: {
+          organization_id: org.id,
+          is_active: true,
+          start_time: { lte: now },
+          end_time: { gte: now }
+        },
+        orderBy: { start_time: 'desc' }
+      });
+      if (activeSession) {
+        targetSessionId = activeSession.id;
+      }
+    }
+
     const guests = await prisma.org_guests.findMany({
       where: { organization_id: org.id },
-      orderBy: { created_at: 'desc' }
+      orderBy: { created_at: 'desc' },
+      include: targetSessionId ? {
+        guest_attendance: {
+          where: { session_id: targetSessionId },
+          select: { check_in_time: true, status: true }
+        }
+      } : undefined
     });
-    res.json(guests);
+    const formattedGuests = guests.map((guest: any) => ({
+      ...guest,
+      check_in_time: guest.guest_attendance?.[0]?.check_in_time || null,
+      status: guest.guest_attendance?.[0]?.status || null,
+      kelas: (guest.custom_data && guest.custom_data.kelas) ? guest.custom_data.kelas : null
+    }));
+    res.json(formattedGuests);
   } catch (error) {
     console.error('Error getting guests:', error);
     res.status(500).json({ error: 'Terjadi kesalahan saat memuat data tamu.' });
@@ -401,7 +434,8 @@ export const uploadGuests = async (req: Request, res: Response) => {
       // Key by lowercase name to prevent same-name duplicates in the upload itself
       uniqueGuestsMap.set(String(g.name).trim().toLowerCase(), { 
         name: String(g.name).trim(), 
-        identifier: String(g.identifier).trim() 
+        identifier: String(g.identifier).trim(),
+        kelas: g.kelas ? String(g.kelas).trim() : null
       });
     });
     const uniqueGuests = Array.from(uniqueGuestsMap.values());
@@ -422,7 +456,8 @@ export const uploadGuests = async (req: Request, res: Response) => {
           where: { id: existingId },
           data: { 
             name: g.name,
-            identifier: g.identifier
+            identifier: g.identifier,
+            ...(g.kelas ? { custom_data: { kelas: g.kelas } } : {})
           }
         });
       } else {
@@ -430,7 +465,8 @@ export const uploadGuests = async (req: Request, res: Response) => {
           data: {
             organization_id: org.id,
             name: g.name,
-            identifier: g.identifier
+            identifier: g.identifier,
+            custom_data: g.kelas ? { kelas: g.kelas } : {}
           }
         });
       }
@@ -631,6 +667,7 @@ export const getGuestAnalytics = async (req: Request, res: Response) => {
         id: guest.id,
         name: guest.name,
         identifier: guest.identifier,
+        kelas: ((guest as any).custom_data && (guest as any).custom_data.kelas) ? (guest as any).custom_data.kelas : null,
         stats: { tepat, terlambat, alpha, percentage }
       };
     });
@@ -1013,9 +1050,10 @@ export async function getAgenda(req: any, res: Response) {
 
   try {
     const now = new Date();
-    // Get ongoing or upcoming sessions (end_time is in the future)
+    // Get ongoing or upcoming active sessions
     const sessions = await prisma.attendance_sessions.findMany({
       where: {
+        is_active: true,
         OR: [
           { organization_id: orgMemberContext.organizationId },
           { shared_with_orgs: { has: orgMemberContext.organizationId } }

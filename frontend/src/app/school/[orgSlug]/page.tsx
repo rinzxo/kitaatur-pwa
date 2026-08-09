@@ -20,12 +20,12 @@ export default function EduPinVerifyPage() {
 
     setLoading(true)
     try {
-      const res = await api.post(`/edu/schools/${orgId}/verify`, { pin })
+      const res = await api.post(`/school/schools/${orgId}/verify`, { pin })
       if (res.data.success) {
         toast.success('PIN Benar. Akses diizinkan.')
         // Simpan pin sementara di session storage agar tidak perlu input lagi saat pindah halaman
         sessionStorage.setItem(`edu_pin_${orgId}`, pin)
-        router.push(`/edu/${orgId}/student`)
+        router.push(`/school/${orgId}/student`)
       }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'PIN Salah atau terjadi kesalahan.')
@@ -37,7 +37,7 @@ export default function EduPinVerifyPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-      <Link href="/edu" className="absolute top-6 left-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
+      <Link href="/school" className="absolute top-6 left-6 inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors">
         <ArrowLeft className="w-4 h-4" />
         Kembali ke Daftar Sekolah
       </Link>

@@ -37,8 +37,9 @@ export default function OrgDashboardPage() {
 
   const [goals, setGoals] = useState<Goal[]>([])
   const [records, setRecords] = useState<FinancialRecord[]>([])
-  const [userName, setUserName] = useState('')
+  const [userName, setUserName] = useState('Pengguna')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [unreadNotifs, setUnreadNotifs] = useState(0)
   const [financialSummary, setFinancialSummary] = useState({ income: 0, expense: 0, balance: 0 })
@@ -110,6 +111,7 @@ export default function OrgDashboardPage() {
         try {
           const subRes = await api.get('/subscription/me')
           setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
+          setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
         } catch (e) {
           console.error('Failed to fetch subs', e)
         }
@@ -209,6 +211,7 @@ export default function OrgDashboardPage() {
           <div className="flex items-center gap-1.5">
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
             {isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
@@ -254,8 +257,11 @@ export default function OrgDashboardPage() {
                 {userName.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
-            {isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            <span className="font-bold text-sm text-slate-700">{userName}</span>
+            <div className="flex items-center gap-1">
+              {isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />}
+              {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
+            </div>
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />

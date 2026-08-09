@@ -26,8 +26,9 @@ export default function OrgSettingsPage() {
 
   const [orgName, setOrgName] = useState('')
   const [orgLogo, setOrgLogo] = useState<string | null>(null)
-  const [isEdu, setIsEdu] = useState(false)
-  const [eduPin, setEduPin] = useState('')
+  const [isSchool, setIsSchool] = useState(false)
+  const [schoolPin, setSchoolPin] = useState('')
+  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
   const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('Pengguna')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
@@ -97,10 +98,10 @@ export default function OrgSettingsPage() {
           setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
         }
         if (settingsRes.data.is_edu !== undefined) {
-          setIsEdu(settingsRes.data.is_edu)
+          setIsSchool(settingsRes.data.is_edu)
         }
-        if (settingsRes.data.edu_pin) {
-          setEduPin(settingsRes.data.edu_pin)
+        if (settingsRes.data.school_pin) {
+          setSchoolPin(settingsRes.data.school_pin)
         }
 
         // Fetch all user orgs to find this one and its ID
@@ -110,6 +111,7 @@ export default function OrgSettingsPage() {
         try {
           const subRes = await api.get('/subscription/me')
           setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
+          setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
         } catch (e) {
           console.error('Failed to fetch subs', e)
         }
@@ -139,8 +141,8 @@ export default function OrgSettingsPage() {
       await api.put(`/org/${orgSlug}`, { 
         name: orgName, 
         logo_url: orgLogo,
-        is_edu: isEdu,
-        edu_pin: eduPin 
+        is_edu: isSchool,
+        school_pin: schoolPin 
       })
       toast.success('Profil organisasi berhasil disimpan.')
     } catch (err: any) {
@@ -585,41 +587,47 @@ export default function OrgSettingsPage() {
                   </div>
                 </div>
 
-                {/* KitaAtur Edu Settings Section */}
+                {/* Portal School Settings Section */}
                 <div className="pt-6 border-t border-slate-100">
-                  <h3 className="text-lg font-bold text-slate-900 mb-1">KitaAtur Edu 🎓</h3>
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">School</h3>
                   <p className="text-sm text-slate-500 mb-4">Aktifkan portal publik agar wali murid dapat mengecek kehadiran siswa secara mandiri.</p>
                   
                   <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
                     <div>
-                      <h4 className="font-bold text-slate-800">Aktifkan KitaAtur Edu</h4>
+                      <h4 className="font-bold text-slate-800">Aktifkan Portal School</h4>
                       <p className="text-xs text-slate-500">
                         Organisasi Anda akan muncul di halaman publik {' '}
-                        <a href={`${typeof window !== 'undefined' ? window.location.origin : ''}/edu`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
-                          {`${typeof window !== 'undefined' ? window.location.origin : ''}/edu`}
+                        <a href={`${typeof window !== 'undefined' ? window.location.origin : ''}/school`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                          {`${typeof window !== 'undefined' ? window.location.origin : ''}/school`}
                         </a>
                       </p>
+                      {(!hasSchoolPlan && userEmail !== 'generalrino@gmail.com') && (
+                        <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
+                          Hanya untuk pelanggan Paket School 
+                          <Link href="/personal/settings/subscription" className="underline ml-1">Upgrade</Link>
+                        </div>
+                      )}
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
                         type="checkbox" 
-                        disabled={!isHead}
-                        checked={isEdu} 
-                        onChange={(e) => setIsEdu(e.target.checked)}
+                        disabled={!isHead || (!hasSchoolPlan && userEmail !== 'generalrino@gmail.com')}
+                        checked={isSchool} 
+                        onChange={(e) => setIsSchool(e.target.checked)}
                         className="sr-only peer"
                       />
-                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50"></div>
                     </label>
                   </div>
 
-                  {isEdu && (
+                  {isSchool && (
                     <div className="space-y-4 animate-in fade-in duration-300">
                       <div>
                         <label className="block text-sm font-bold text-slate-700 mb-1">PIN Akses Wali Murid</label>
                         <input
                           type="text"
-                          value={eduPin}
-                          onChange={(e) => setEduPin(e.target.value)}
+                          value={schoolPin}
+                          onChange={(e) => setSchoolPin(e.target.value)}
                           disabled={!isHead}
                           placeholder="Contoh: 123456"
                           maxLength={10}

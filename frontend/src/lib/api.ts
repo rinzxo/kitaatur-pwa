@@ -26,3 +26,16 @@ api.interceptors.request.use(
     return Promise.reject(error)
   }
 )
+
+// Response interceptor untuk menangani 503 Maintenance
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 503) {
+      if (typeof window !== 'undefined' && window.location.pathname !== '/maintenance') {
+        window.location.href = '/maintenance'
+      }
+    }
+    return Promise.reject(error)
+  }
+)

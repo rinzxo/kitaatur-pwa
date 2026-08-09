@@ -58,10 +58,10 @@ export default function SchedulesPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <button onClick={() => router.back()} className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2">
+            <Link href={`/org/${orgSlug}/attendance`} className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2 relative z-10 p-2 -ml-2">
               <ArrowLeft className="h-3 w-3" />
               Kembali
-            </button>
+            </Link>
             <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
               <Calendar className="h-8 w-8 text-blue-600" />
               Jadwal Sesi Otomatis

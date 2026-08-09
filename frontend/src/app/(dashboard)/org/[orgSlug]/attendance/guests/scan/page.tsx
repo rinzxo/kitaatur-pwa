@@ -115,6 +115,12 @@ function ScanGuestsContent() {
         <div className="w-full max-w-sm relative aspect-square rounded-3xl overflow-hidden border-[6px] border-white shadow-2xl shadow-blue-900/10 bg-slate-900">
           <Scanner 
             onScan={handleScan}
+            formats={['qr_code']}
+            constraints={{
+              width: { ideal: 1280, min: 640 },
+              height: { ideal: 720, min: 480 },
+              advanced: [{ focusMode: "continuous" }] as any
+            }}
             components={{
               onOff: true,
               torch: true,

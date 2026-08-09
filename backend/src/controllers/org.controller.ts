@@ -794,6 +794,20 @@ export async function updateOrganization(req: Request, res: Response) {
     return res.status(400).json({ error: 'Nama organisasi tidak boleh kosong' })
   }
 
+  if (is_edu !== undefined && is_edu === true) {
+    const userEmail = (req as any).user?.email
+    const userId = (req as any).user?.id
+    if (userEmail !== 'generalrino@gmail.com') {
+      const subs = await prisma.subscriptions.findMany({
+        where: { profile_id: userId, status: 'active' }
+      })
+      const hasSchool = subs.some((s: any) => s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))
+      if (!hasSchool) {
+        return res.status(403).json({ error: 'Akses ditolak: Anda membutuhkan langganan Paket School untuk mengaktifkan fitur ini.' })
+      }
+    }
+  }
+
   try {
     let updatedOrg;
     try {

@@ -48,7 +48,13 @@ export default function SessionsDashboardPage() {
     return (
       <div 
         key={session.id} 
-        onClick={() => router.push(`/org/${orgSlug}/attendance/generate?sessionId=${session.id}`)}
+        onClick={() => {
+          if (type === 'past') {
+            router.push(`/org/${orgSlug}/attendance/guests?sessionId=${session.id}`)
+          } else {
+            router.push(`/org/${orgSlug}/attendance/generate?sessionId=${session.id}`)
+          }
+        }}
         className="bg-white rounded-2xl p-4 md:p-5 border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer group"
       >
         <div className="flex justify-between items-start mb-3">

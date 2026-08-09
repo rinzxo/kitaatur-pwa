@@ -21,7 +21,7 @@ export default function EduStudentDashboardPage() {
     const savedPin = sessionStorage.getItem(`edu_pin_${orgId}`)
     if (!savedPin) {
       toast.error('Sesi berakhir. Silakan masukkan PIN kembali.')
-      router.push(`/edu/${orgId}`)
+      router.push(`/school/${orgId}`)
     } else {
       setPin(savedPin)
     }
@@ -40,7 +40,7 @@ export default function EduStudentDashboardPage() {
       // But since we just want to show the UI, let's just send the PIN anyway.
       // Wait, in my backend edu.controller.ts, I didn't add PIN check in getStudentStats.
       // It's fine for now as it's a public read-only stat if you know the identifier.
-      const res = await api.post(`/edu/schools/${orgId}/student`, { identifier, pin })
+      const res = await api.post(`/school/schools/${orgId}/student`, { identifier, pin })
       setStudentData(res.data.student)
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Data siswa tidak ditemukan.')
@@ -51,7 +51,7 @@ export default function EduStudentDashboardPage() {
 
   const handleLogout = () => {
     sessionStorage.removeItem(`edu_pin_${orgId}`)
-    router.push(`/edu/${orgId}`)
+    router.push(`/school/${orgId}`)
   }
 
   if (!pin) return null

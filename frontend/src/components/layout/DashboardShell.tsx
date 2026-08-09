@@ -1,7 +1,7 @@
 'use client'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Wallet, Target, Home, User, Plus, Building2, QrCode, LogOut, ChevronRight, Settings, Package } from 'lucide-react'
+import { Wallet, Target, Home, User, Plus, Building2, QrCode, LogOut, ChevronRight, Settings, Package, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase, api } from '@/lib/api'
 
@@ -28,6 +28,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
   const [currentUserInfo, setCurrentUserInfo] = useState<{name: string, email: string, avatar_url: string|null} | null>(null)
   const [currentOrgInfo, setCurrentOrgInfo] = useState<{name: string, logo_url: string|null} | null>(null)
+  const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null)
 
   useEffect(() => {
     const fetchInfo = async () => {
@@ -67,6 +68,15 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       }
     }
 
+    // Fetch active announcement
+    api.get('/admin/announcements/active')
+      .then(res => {
+        if (res.data && res.data.length > 0) {
+          setActiveAnnouncement(res.data[0])
+        }
+      })
+      .catch(() => {})
+
     fetchInfo()
   }, [currentOrgSlug])
 
@@ -95,6 +105,10 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     { name: 'Keuangan', href: `/org/${currentOrgSlug}/financial`, icon: Wallet },
     { name: 'Pengaturan', href: `/org/${currentOrgSlug}/settings`, icon: Settings },
   ] : []
+
+  if (currentUserInfo?.email === 'generalrino@gmail.com') {
+    personalNavItems.push({ name: 'Admin Panel', href: '/admin', icon: Package })
+  }
 
   // Render Sidebar items conditionally based on active mode
   let activeSidebarItems = []
@@ -173,6 +187,21 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col h-full relative overflow-y-auto w-full md:w-[calc(100%-16rem)]">
+        {/* Announcement Banner */}
+        {activeAnnouncement && (
+          <div className={`px-4 py-3 relative z-50 shadow-sm flex items-start md:items-center justify-between gap-4 ${
+            activeAnnouncement.type === 'error' ? 'bg-rose-600 text-white' : 
+            activeAnnouncement.type === 'warning' ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
+          }`}>
+            <div className="flex-1 text-sm">
+              <strong className="mr-2">{activeAnnouncement.title}:</strong>
+              {activeAnnouncement.content}
+            </div>
+            <button onClick={() => setActiveAnnouncement(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors shrink-0">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        )}
         <div className="w-full flex-1 flex flex-col">
           {children}
         </div>

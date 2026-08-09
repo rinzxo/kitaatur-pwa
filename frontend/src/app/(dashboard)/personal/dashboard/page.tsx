@@ -35,6 +35,7 @@ export default function PersonalDashboard() {
   const router = useRouter()
   const [userName, setUserName] = useState('Pengguna')
   const [userAvatar, setUserAvatar] = useState<string|null>(null)
+  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0, balance: 0 })
   const [records, setRecords] = useState<Record[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
@@ -103,6 +104,7 @@ export default function PersonalDashboard() {
       try {
         const subRes = await api.get('/subscription/me')
         setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
+        setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
       } catch (e) {
         console.error('Failed to fetch subs', e)
       }
@@ -175,6 +177,7 @@ export default function PersonalDashboard() {
           <div className="flex items-center gap-1.5">
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
             {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
@@ -217,7 +220,10 @@ export default function PersonalDashboard() {
               </div>
             )}
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
-            {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            <div className="flex items-center gap-1">
+              {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+              {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
+            </div>
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
