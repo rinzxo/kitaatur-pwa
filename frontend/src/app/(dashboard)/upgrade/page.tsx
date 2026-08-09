@@ -12,6 +12,7 @@ export default function UpgradePage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [showModal, setShowModal] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<'plus' | 'pro'>('plus')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -19,20 +20,24 @@ export default function UpgradePage() {
     })
   }, [])
 
-  const handleSubscribeClick = () => {
+  const handleSubscribeClick = (plan: 'plus' | 'pro') => {
     if (!userId) return toast.error('Gagal mengambil data user.')
+    setSelectedPlan(plan)
     setShowModal(true)
   }
 
   const confirmSubscription = async () => {
     setLoading(true)
     try {
-      const baseAmount = billingCycle === 'yearly' ? 450000 : 45000;
+      const isPro = selectedPlan === 'pro';
+      const baseMonthly = isPro ? 110000 : 40000;
+      const baseYearly = isPro ? 1100000 : 400000;
+      const baseAmount = billingCycle === 'yearly' ? baseYearly : baseMonthly;
       const tax = baseAmount * 0.11;
       const totalAmount = baseAmount + tax;
 
       const res = await api.post('/payment/checkout', {
-        planType: `plus-${billingCycle}`,
+        planType: `${selectedPlan}-${billingCycle}`,
         amount: totalAmount,
         userId: userId
       })
@@ -86,23 +91,20 @@ export default function UpgradePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start max-w-6xl mx-auto">
           
           {/* Card: KitaAtur Plus */}
           <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm relative group hover:border-slate-300 transition-colors">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-slate-900">KitaAtur Plus</h3>
-              <span className="text-xs font-bold bg-slate-100 text-slate-600 px-3 py-1 rounded-full uppercase tracking-wider">
-                Populer
-              </span>
             </div>
             
             <div className="mb-8">
               {billingCycle === 'yearly' && (
-                <div className="text-slate-400 line-through text-sm font-medium mb-1">Rp 540.000 / tahun</div>
+                <div className="text-slate-400 line-through text-sm font-medium mb-1">Rp 480.000 / tahun</div>
               )}
               <span className="text-3xl font-bold text-slate-900">
-                {billingCycle === 'monthly' ? 'Rp 45.000' : 'Rp 450.000'}
+                {billingCycle === 'monthly' ? 'Rp 40.000' : 'Rp 400.000'}
               </span>
               <span className="text-slate-500"> {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}</span>
             </div>
@@ -110,7 +112,8 @@ export default function UpgradePage() {
             <ul className="space-y-4 mb-10 text-sm">
               {[
                 'Buat dan kelola 1 Organisasi Penuh',
-                'Anggota organisasi tanpa batas',
+                'Maksimal 100 anggota organisasi',
+                'Pemindai Kehadiran QR (Internal)',
                 'Akses fitur Validasi Bukti dengan AI',
                 'Laporan Absensi & Keuangan Ekspor ke Excel',
                 'Prioritas Layanan Support',
@@ -124,11 +127,56 @@ export default function UpgradePage() {
             </ul>
 
             <button 
-              onClick={handleSubscribeClick}
+              onClick={() => handleSubscribeClick('plus')}
               disabled={loading}
-              className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-xl transition-colors text-sm disabled:opacity-70"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md shadow-blue-500/30 disabled:opacity-70"
             >
               Berlangganan Sekarang
+            </button>
+          </div>
+
+          {/* Card: KitaAtur Pro (School) */}
+          <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm relative group hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">KitaAtur School</h3>
+            </div>
+            
+            <div className="mb-8">
+              {billingCycle === 'yearly' && (
+                <div className="text-slate-400 line-through text-sm font-medium mb-1">Rp 1.320.000 / tahun</div>
+              )}
+              <span className="text-3xl font-bold text-slate-900">
+                {billingCycle === 'monthly' ? 'Rp 110.000' : 'Rp 1.100.000'}
+              </span>
+              <span className="text-slate-500"> {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}</span>
+            </div>
+
+            <ul className="space-y-4 mb-10 text-sm">
+              <li className="flex items-start gap-3 text-slate-900 font-bold">
+                <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <span>Semua fitur KitaAtur Plus, ditambah:</span>
+              </li>
+              {[
+                'Anggota organisasi tanpa batas',
+                'Portal Publik KitaAtur School',
+                'Import Data Massal via Excel (Siswa/Tamu)',
+                'Pembuatan PIN Akses Wali Murid',
+                'Manajemen Tamu / Siswa Lanjutan',
+                'Analitik Kehadiran Real-time'
+              ].map((feature, i) => (
+                <li key={i} className="flex items-start gap-3 text-slate-600">
+                  <Check className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button 
+              onClick={() => handleSubscribeClick('pro')}
+              disabled={loading}
+              className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded-xl transition-colors text-sm disabled:opacity-70"
+            >
+              Pilih Paket School
             </button>
           </div>
 
@@ -183,21 +231,21 @@ export default function UpgradePage() {
             <div className="p-6">
               <div className="space-y-4 text-sm mb-6">
                 <div className="flex justify-between text-slate-600">
-                  <span>Paket KitaAtur Plus ({billingCycle === 'monthly' ? 'Bulanan' : 'Tahunan'})</span>
+                  <span>Paket KitaAtur {selectedPlan === 'pro' ? 'School' : 'Plus'} ({billingCycle === 'monthly' ? 'Bulanan' : 'Tahunan'})</span>
                   <span className="font-medium text-slate-900">
-                    Rp {billingCycle === 'monthly' ? '45.000' : '450.000'}
+                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '110.000' : '1.100.000') : (billingCycle === 'monthly' ? '40.000' : '400.000')}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>PPN (11%)</span>
                   <span className="font-medium text-slate-900">
-                    Rp {billingCycle === 'monthly' ? '4.950' : '49.500'}
+                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '12.100' : '121.000') : (billingCycle === 'monthly' ? '4.400' : '44.000')}
                   </span>
                 </div>
                 <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                   <span className="font-bold text-slate-900">Total Pembayaran</span>
                   <span className="text-xl font-bold text-blue-600">
-                    Rp {billingCycle === 'monthly' ? '49.950' : '499.500'}
+                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '122.100' : '1.221.000') : (billingCycle === 'monthly' ? '44.400' : '444.000')}
                   </span>
                 </div>
               </div>

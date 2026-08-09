@@ -13,13 +13,15 @@ function GenerateContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const orgSlug = params.orgSlug as string
-  const urlSessionId = searchParams?.get('sessionId')
+  const rawSessionId = searchParams?.get('sessionId')
+  const urlSessionId = rawSessionId === 'null' ? null : rawSessionId
 
   const [loading, setLoading] = useState(true)
   const [sessionPin, setSessionPin] = useState<string | null>(null)
   const [checkoutPin, setCheckoutPin] = useState<string | null>(null)
   const [sessionType, setSessionType] = useState<string>('in_only')
   const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null)
+  const [sessionTitle, setSessionTitle] = useState<string>('Sesi Absensi Aktif')
   const [locationStatus, setLocationStatus] = useState<string>('Memuat data sesi...')
 
 
@@ -39,6 +41,12 @@ function GenerateContent() {
         setCheckoutPin(res.data.checkout_pin_code)
         setSessionType(res.data.session_type)
         setSessionId(res.data.id)
+        if (res.data.title) setSessionTitle(res.data.title)
+        
+        // If URL had no sessionId or literally said 'null', fix the URL in the address bar
+        if (!rawSessionId || rawSessionId === 'null') {
+          router.replace(`/org/${orgSlug}/attendance/generate?sessionId=${res.data.id}`)
+        }
       } else {
         toast.error('Sesi tidak ditemukan atau belum aktif.')
         router.push(`/org/${orgSlug}/attendance/sessions`)
@@ -81,7 +89,7 @@ function GenerateContent() {
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <Clock className="h-7 w-7 text-blue-600" />
-            Sesi Absensi Aktif
+            {sessionTitle}
           </h1>
           <p className="text-slate-500 font-medium text-xs mt-2">
             Anggota wajib memasukkan PIN ini dan berada di radius 50 meter dari titik ini.
@@ -126,13 +134,22 @@ function GenerateContent() {
               )}
             </div>
 
-            <button 
-              onClick={closeSession}
-              className="w-full flex items-center justify-center gap-2 py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-all"
-            >
-              <StopCircle className="w-5 h-5" />
-              Tutup Sesi Absensi
-            </button>
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => router.push(`/org/${orgSlug}/attendance/guests/scan?sessionId=${sessionId}`)}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-blue-200 hover:border-blue-600 hover:bg-blue-50 text-blue-600 font-bold rounded-xl transition-all shadow-sm"
+              >
+                Scan QR Tamu
+              </button>
+
+              <button 
+                onClick={closeSession}
+                className="w-full flex items-center justify-center gap-2 py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-all"
+              >
+                <StopCircle className="w-5 h-5" />
+                Tutup Sesi Absensi
+              </button>
+            </div>
           </div>
         ) : (
           <div className="py-12">

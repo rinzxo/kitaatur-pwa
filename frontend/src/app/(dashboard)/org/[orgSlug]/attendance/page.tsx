@@ -113,6 +113,24 @@ export default function AttendanceDashboardPage() {
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">Kelola dan pantau kehadiran serta notulensi.</p>
         </div>
+        {isEditor && (
+          <div className="flex gap-2">
+            <Link
+              href={`/org/${orgSlug}/attendance/schedules`}
+              className="bg-white border border-slate-300 hover:border-blue-500 hover:bg-blue-50 text-slate-700 hover:text-blue-600 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
+            >
+              <Calendar className="w-4 h-4" />
+              Jadwal Sesi
+            </Link>
+            <Link
+              href={`/org/${orgSlug}/attendance/guests`}
+              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm"
+            >
+              <Users className="w-4 h-4" />
+              Data Tamu
+            </Link>
+          </div>
+        )}
       </header>
 
       {pendingCollabs.length > 0 && (
@@ -295,6 +313,27 @@ export default function AttendanceDashboardPage() {
               className="relative block w-full py-4 bg-fuchsia-50 hover:bg-fuchsia-600 hover:text-white text-fuchsia-700 font-bold rounded-xl transition-all duration-300 active:scale-[0.98] mt-auto shadow-sm"
             >
               Mulai Bantu Absen
+            </Link>
+          </div>
+        )}
+
+        {/* Scan Tamu Action (For Editor) */}
+        {isEditor && (
+          <div className="group bg-white border border-slate-200/60 shadow-sm hover:shadow-2xl hover:shadow-orange-500/10 rounded-[2rem] p-6 md:p-8 text-center flex flex-col h-full transition-all duration-300 hover:-translate-y-1.5 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-orange-50 rounded-full blur-3xl -mr-10 -mt-10 transition-opacity group-hover:opacity-100 opacity-0"></div>
+
+            <div className="relative w-16 h-16 bg-gradient-to-br from-orange-50 to-orange-100/50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-inner">
+              <QrCode className="w-8 h-8 drop-shadow-sm" />
+            </div>
+            <h3 className="relative text-xl font-bold text-slate-900 mb-2 group-hover:text-orange-700 transition-colors">Scan QR Tamu</h3>
+            <p className="relative text-slate-500 text-sm mb-8 leading-relaxed flex-grow">
+              Pindai tiket QR Code tamu untuk mencatat kehadiran mereka dengan cepat.
+            </p>
+            <Link 
+              href={`/org/${orgSlug}/attendance/guests/scan`}
+              className="relative block w-full py-4 bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-700 font-bold rounded-xl transition-all duration-300 active:scale-[0.98] mt-auto shadow-sm"
+            >
+              Mulai Scan Tamu
             </Link>
           </div>
         )}

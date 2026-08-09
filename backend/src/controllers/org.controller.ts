@@ -29,17 +29,17 @@ export async function createOrganization(req: Request, res: Response) {
 
     if (!activeSub) {
       return res.status(403).json({
-        error: 'Silakan berlangganan paket KitaAtur Plus atau Enterprise untuk membuat organisasi.'
+        error: 'Silakan berlangganan paket KitaAtur Plus, School, atau Enterprise untuk membuat organisasi.'
       })
     }
 
-    if (activeSub.plan_type === 'plus') {
+    if (activeSub.plan_type === 'plus' || activeSub.plan_type === 'pro') {
       const orgCount = await prisma.organizations.count({
         where: { owner_id: userId }
       })
       if (orgCount >= 1) {
         return res.status(403).json({
-          error: 'Paket KitaAtur Plus hanya dapat membuat maksimal 1 organisasi. Silakan hubungi Sales untuk upgrade ke Enterprise.'
+          error: 'Paket langganan Anda saat ini hanya dapat membuat maksimal 1 organisasi. Silakan hubungi Sales untuk upgrade ke Enterprise.'
         })
       }
     }
@@ -183,6 +183,20 @@ export async function addOrganizationMember(req: Request, res: Response) {
 
     if (existingMember) {
       return res.status(400).json({ error: 'Pengguna tersebut sudah tergabung dalam organisasi ini' })
+    }
+
+    // Limit check for Plus tier
+    const orgData = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId },
+      include: {
+        _count: {
+          select: { organization_members: true }
+        }
+      }
+    });
+
+    if (orgData && (orgData as any).subscription_tier === 'plus' && orgData._count.organization_members >= 100) {
+      return res.status(403).json({ error: 'Limit paket Plus (maksimal 100 anggota) telah tercapai. Silakan upgrade ke paket Pro untuk anggota tanpa batas.' });
     }
 
     // D. Hubungkan user ke organisasi sebagai member
@@ -741,11 +755,20 @@ export async function getOrganizationSettings(req: Request, res: Response) {
   }
 
   try {
-    // Menggunakan queryRaw untuk menghindari error Prisma Schema tidak sinkron di Windows
-    const result = await prisma.$queryRawUnsafe<any[]>(
-      `SELECT dues_target_amount, dues_presets, custom_fields_schema FROM public.organizations WHERE id = $1::uuid`,
-      orgMemberContext.organizationId
-    )
+    let result;
+    try {
+      // Coba query dengan kolom Edu (bisa gagal jika db push belum berhasil)
+      result = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT dues_target_amount, dues_presets, custom_fields_schema, is_edu, edu_pin FROM public.organizations WHERE id = $1::uuid`,
+        orgMemberContext.organizationId
+      )
+    } catch (columnErr) {
+      // Fallback ke skema lama jika kolom belum ada
+      result = await prisma.$queryRawUnsafe<any[]>(
+        `SELECT dues_target_amount, dues_presets, custom_fields_schema FROM public.organizations WHERE id = $1::uuid`,
+        orgMemberContext.organizationId
+      )
+    }
 
     if (!result || result.length === 0) {
       return res.status(404).json({ error: 'Organisasi tidak ditemukan' })
@@ -761,7 +784,7 @@ export async function getOrganizationSettings(req: Request, res: Response) {
 // 7b. Mengupdate Profil Organisasi (Akses: Head)
 export async function updateOrganization(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
-  const { name, logo_url } = req.body
+  const { name, logo_url, is_edu, edu_pin } = req.body
 
   if (!orgMemberContext || orgMemberContext.role !== 'head') {
     return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua yang dapat mengubah profil organisasi' })
@@ -772,13 +795,30 @@ export async function updateOrganization(req: Request, res: Response) {
   }
 
   try {
-    const updatedOrg = await prisma.organizations.update({
-      where: { id: orgMemberContext.organizationId },
-      data: {
-        name,
-        logo_url: logo_url || null
+    let updatedOrg;
+    try {
+      updatedOrg = await prisma.organizations.update({
+        where: { id: orgMemberContext.organizationId },
+        data: {
+          name,
+          logo_url: logo_url || null,
+          is_edu: is_edu !== undefined ? is_edu : undefined,
+          edu_pin: edu_pin !== undefined ? edu_pin : undefined
+        }
+      })
+    } catch (columnErr) {
+      // Fallback jika database belum ada kolom is_edu (db push gagal sebelumnya)
+      // Gunakan executeRawUnsafe agar Prisma Client tidak otomatis me-return SELECT is_edu
+      await prisma.$executeRawUnsafe(
+        `UPDATE public.organizations SET name = $1, logo_url = $2 WHERE id = $3::uuid`,
+        name, logo_url || null, orgMemberContext.organizationId
+      )
+      updatedOrg = { 
+        id: orgMemberContext.organizationId, 
+        name, 
+        logo_url 
       }
-    })
+    }
 
     return res.status(200).json({ message: 'Profil organisasi berhasil diperbarui', org: updatedOrg })
   } catch (err) {

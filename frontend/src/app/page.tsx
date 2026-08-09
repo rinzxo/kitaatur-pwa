@@ -20,6 +20,7 @@ import {
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isYearly, setIsYearly] = useState(false);
 
   // Fallback for auth redirect
   useEffect(() => {
@@ -103,11 +104,6 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-50/80 rounded-full blur-3xl -z-10 -translate-x-1/3 translate-y-1/3" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-sm font-bold mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Leaf className="w-4 h-4 text-emerald-500" />
-            <span>Dukung Gerakan Paperless & Penjagaan Bumi</span>
-          </div>
-          
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 max-w-4xl mx-auto">
             Kelola Organisasi <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Lebih Modern & Hijau</span>
@@ -255,13 +251,9 @@ export default function Home() {
           <div className="mt-8 bg-gradient-to-br from-teal-800 to-emerald-900 rounded-[2.5rem] p-10 md:p-16 border border-teal-700 relative overflow-hidden text-white flex flex-col justify-center items-center text-center">
             <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik01NC42MjcgMTEuMzhBNDEuODYgNDEuODYgMCAwIDAgNDEuMzggMjguMjNhNDEuODYgNDEuODYgMCAwIDAgMTMuMjQ3IDE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAgMTMuMjQ3LTE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAtMTMuMjQ3LTE2Ljg1eiIgZmlsbD0iIzEwYjliMSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+Cjwvc3ZnPg==')] opacity-30" />
             <div className="relative z-10 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-emerald-300 text-sm font-bold mb-6">
-                <Leaf className="w-4 h-4" />
-                Gerakan Penjagaan Bumi
-              </div>
-              <h4 className="text-3xl md:text-4xl font-black mb-4 leading-tight">Organisasi Bebas Kertas</h4>
+              <h4 className="text-3xl md:text-4xl font-black mb-4 leading-tight">Satu Aplikasi, Semua Terekap</h4>
               <p className="text-teal-100 font-medium text-lg leading-relaxed max-w-xl mx-auto">
-                Beralih ke digital. Hemat waktu, kurangi limbah kertas, dan lindungi bumi mulai hari ini.
+                Catat pemasukan, kelola data anggota, hingga rekap absensi harian secara otomatis tanpa berpindah-pindah aplikasi.
               </p>
             </div>
           </div>
@@ -328,12 +320,31 @@ export default function Home() {
             <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">
               Pilih Paket yang Sesuai untuk Organisasi Anda
             </h3>
-            <p className="text-slate-600 text-lg">
+            <p className="text-slate-600 text-lg mb-8">
               Mulai kelola kas keuangan pribadi secara gratis, atau buka akses fitur organisasi penuh dengan paket premium.
             </p>
+
+            {/* Billing Toggle */}
+            <div className="flex justify-center items-center">
+              <div className="bg-slate-100 p-1.5 rounded-full flex items-center relative">
+                <button 
+                  onClick={() => setIsYearly(false)}
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all ${!isYearly ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Bulanan
+                </button>
+                <button 
+                  onClick={() => setIsYearly(true)}
+                  className={`px-6 py-2 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${isYearly ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Tahunan
+                  <span className={`${isYearly ? 'bg-green-100 text-green-700' : 'bg-slate-200 text-slate-500'} text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider transition-colors`}>Hemat 17%</span>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto">
             {/* FREE PLAN */}
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
               <div>
@@ -375,23 +386,31 @@ export default function Home() {
             </div>
 
             {/* PLUS PLAN */}
-            <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-lg transition-all duration-300 relative">
-              <span className="absolute top-0 right-8 -translate-y-1/2 bg-blue-100 text-blue-700 text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm">
-                POPULER
+            <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-xl transition-all duration-300 relative transform lg:-translate-y-4">
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
+                Paling Direkomendasikan
               </span>
 
               <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-6">KitaAtur Plus</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">KitaAtur Plus</h3>
+                <p className="text-slate-500 text-xs mb-6 font-medium min-h-[32px]">Solusi lengkap untuk manajemen organisasi komunitas.</p>
                 
                 <div className="mb-6">
-                  <span className="text-4xl font-extrabold text-slate-900">Rp 45.000</span>
-                  <span className="text-slate-500 text-sm font-bold"> / bulan</span>
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className="text-3xl font-extrabold text-slate-900 leading-none whitespace-nowrap tracking-tight">
+                      {isYearly ? "Rp 400.000" : "Rp 40.000"}
+                    </span>
+                    <span className="text-slate-500 text-sm font-bold whitespace-nowrap">
+                      / {isYearly ? "tahun" : "bulan"}
+                    </span>
+                  </div>
                 </div>
 
                 <ul className="space-y-4 mb-8 font-medium">
                   {[
                     "Buat dan kelola 1 Organisasi Penuh",
-                    "Anggota organisasi tanpa batas",
+                    "Maksimal 100 anggota organisasi",
+                    "Pemindai Kehadiran QR (Internal)",
                     "Akses fitur Validasi Bukti dengan AI",
                     "Laporan Absensi & Keuangan Ekspor ke Excel",
                     "Prioritas Layanan Support",
@@ -407,16 +426,63 @@ export default function Home() {
 
               <Link
                 href="/register"
-                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
               >
                 Berlangganan Sekarang
+              </Link>
+            </div>
+
+            {/* PRO PLAN */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300 relative">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">KitaAtur School</h3>
+                <p className="text-slate-500 text-xs mb-6 font-medium min-h-[32px]">Fitur premium tanpa batas khusus untuk sekolah & institusi.</p>
+                
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1 flex-wrap">
+                    <span className="text-3xl font-extrabold text-slate-900 leading-none whitespace-nowrap tracking-tight">
+                      {isYearly ? "Rp 1.100.000" : "Rp 110.000"}
+                    </span>
+                    <span className="text-slate-500 text-sm font-bold whitespace-nowrap">
+                      / {isYearly ? "tahun" : "bulan"}
+                    </span>
+                  </div>
+                </div>
+
+                <ul className="space-y-4 mb-8 font-medium">
+                  <li className="flex items-start gap-3 text-slate-900 text-sm font-bold">
+                    <CheckCircle2 className="h-5 w-5 text-blue-600 shrink-0" />
+                    <span>Semua fitur KitaAtur Plus, ditambah:</span>
+                  </li>
+                  {[
+                    "Anggota organisasi tanpa batas",
+                    "Portal Publik KitaAtur School",
+                    "Import Data Massal via Excel (Siswa/Tamu)",
+                    "Pembuatan PIN Akses Wali Murid",
+                    "Manajemen Tamu / Siswa Lanjutan",
+                    "Analitik Kehadiran Real-time"
+                  ].map((feature, idx) => (
+                    <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
+                      <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <Link
+                href="/register"
+                className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded-xl text-center shadow-sm transition-all duration-300 block"
+              >
+                Pilih Paket School
               </Link>
             </div>
 
             {/* ENTERPRISE PLAN */}
             <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
               <div>
-                <h3 className="text-xl font-bold text-slate-900 mb-6">KitaAtur Enterprise</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">KitaAtur Enterprise</h3>
+                <p className="text-slate-500 text-xs mb-6 font-medium min-h-[32px]">Untuk skala besar dengan kebutuhan integrasi sistem kustom.</p>
                 
                 <div className="mb-6">
                   <span className="text-4xl font-extrabold text-slate-900">Hubungi Kami</span>
@@ -447,6 +513,52 @@ export default function Home() {
               >
                 Hubungi Tim Sales
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section id="faq" className="py-24 bg-slate-50 relative">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-blue-600 font-bold tracking-wider uppercase text-sm mb-3">FAQ</h2>
+            <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">
+              Pertanyaan yang Sering Diajukan
+            </h3>
+          </div>
+          
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Apakah KitaAtur benar-benar gratis?</h4>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Ya! Paket Personal kami 100% gratis selamanya. Anda bisa menggunakannya untuk mencatat kas harian pribadi, mengatur target keuangan, tanpa dikenakan biaya apapun.
+              </p>
+            </div>
+            
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Apa bedanya Paket Plus dan Paket School?</h4>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Selain fitur, perbedaannya ada pada batasan dan harga langganan:
+                <br/><br/>
+                - <strong>Paket Plus (Rp 40.000/bulan):</strong> Cocok untuk komunitas/UKM dengan batas maksimal 100 anggota dan memiliki fitur dasar QR Absensi internal.
+                <br/>
+                - <strong>Paket School (Rp 110.000/bulan):</strong> Bebas mendaftarkan anggota tanpa batas (unlimited), dilengkapi fitur ekstra seperti Portal Publik Edukasi, Import Data Massal via Excel, dan PIN khusus untuk wali murid.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Bagaimana sistem Absensi QR bekerja?</h4>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Setiap anggota memiliki kode QR unik. Untuk menjaga validitas, proses pemindaian (scanning) <strong>hanya dapat dilakukan oleh pengurus berwenang</strong> (Ketua, Sekretaris, atau Delegasi/Panitia yang ditunjuk) menggunakan smartphone mereka untuk merekam kehadiran peserta secara cepat dan real-time.
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Apakah ada metode pembayaran yang mudah untuk upgrade?</h4>
+              <p className="text-slate-600 font-medium leading-relaxed">
+                Tentu saja, kami mendukung metode pembayaran instan dan mudah seperti QRIS, e-wallet, dan Transfer Bank (Virtual Account) agar Anda bisa menikmati fitur Premium secepatnya.
+              </p>
             </div>
           </div>
         </div>

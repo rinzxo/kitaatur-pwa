@@ -121,14 +121,14 @@ export default function PersonalDashboard() {
           const profile = profileRes.data
           
           if (!profile?.full_name) {
-            router.push('/onboarding')
+            window.location.href = '/onboarding'
             return
           }
           
           setUserName(profile.full_name)
           setUserAvatar(profile.avatar_url || null)
         } catch (e) {
-          router.push('/onboarding')
+          window.location.href = '/onboarding'
           return
         }
       }
@@ -136,7 +136,7 @@ export default function PersonalDashboard() {
       setLoading(false)
     }
     init()
-  }, [])
+  }, [router])
 
   useEffect(() => {
     if (agendas.length > 0) {

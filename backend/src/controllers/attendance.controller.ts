@@ -155,7 +155,7 @@ export async function acceptCollaboration(req: any, res: Response) {
   const { sessionId } = req.params;
 
   try {
-    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    const session = await prisma.attendance_sessions.findFirst({ where: { id: sessionId.length === 36 ? sessionId : undefined } });
     if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
 
     if (!session.pending_shared_orgs.includes(orgMemberContext.organizationId)) {
@@ -163,7 +163,7 @@ export async function acceptCollaboration(req: any, res: Response) {
     }
 
     const updatedSession = await prisma.attendance_sessions.update({
-      where: { id: sessionId },
+      where: { id: sessionId.length === 36 ? sessionId : undefined },
       data: {
         pending_shared_orgs: session.pending_shared_orgs.filter(id => id !== orgMemberContext.organizationId),
         shared_with_orgs: { push: orgMemberContext.organizationId }
@@ -182,7 +182,7 @@ export async function rejectCollaboration(req: any, res: Response) {
   const { sessionId } = req.params;
 
   try {
-    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    const session = await prisma.attendance_sessions.findFirst({ where: { id: sessionId.length === 36 ? sessionId : undefined } });
     if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
 
     if (!session.pending_shared_orgs.includes(orgMemberContext.organizationId)) {
@@ -190,7 +190,7 @@ export async function rejectCollaboration(req: any, res: Response) {
     }
 
     const updatedSession = await prisma.attendance_sessions.update({
-      where: { id: sessionId },
+      where: { id: sessionId.length === 36 ? sessionId : undefined },
       data: {
         pending_shared_orgs: session.pending_shared_orgs.filter(id => id !== orgMemberContext.organizationId)
       }
@@ -207,7 +207,7 @@ export async function getSessionMembers(req: any, res: Response) {
   const { sessionId } = req.params;
 
   try {
-    const session = await prisma.attendance_sessions.findUnique({ where: { id: sessionId } });
+    const session = await prisma.attendance_sessions.findFirst({ where: { id: sessionId.length === 36 ? sessionId : undefined } });
     if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
 
     // Cek authorization: harus head, sekretaris, atau memiliki custom_data.can_take_attendance = true
@@ -348,10 +348,348 @@ export async function validateAttendance(req: any, res: Response) {
 
     res.json({ message: 'Izin/Sakit berhasil disetujui (divalidasi)', data: updated });
   } catch (error) {
-    console.error('Error validating attendance:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan saat memvalidasi absen' });
+    console.error('Error getting session members:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
   }
 }
+
+// ========================
+// Guest Attendance
+// ========================
+
+export const getGuests = async (req: Request, res: Response) => {
+  const { orgIdOrSlug } = req.params;
+  try {
+    const org = await prisma.organizations.findFirst({
+      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+
+    const guests = await prisma.org_guests.findMany({
+      where: { organization_id: org.id },
+      orderBy: { created_at: 'desc' }
+    });
+    res.json(guests);
+  } catch (error) {
+    console.error('Error getting guests:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat memuat data tamu.' });
+  }
+};
+
+export const uploadGuests = async (req: Request, res: Response) => {
+  const { orgIdOrSlug } = req.params;
+  const { guests } = req.body; // Array of { name, identifier }
+
+  if (!guests || !Array.isArray(guests)) {
+    return res.status(400).json({ error: 'Data tamu tidak valid.' });
+  }
+
+  try {
+    const org = await prisma.organizations.findFirst({
+      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+
+    const validGuests = guests.filter(g => g.name && g.identifier);
+    if (validGuests.length === 0) {
+      return res.status(400).json({ error: 'Tidak ada data tamu yang valid.' });
+    }
+
+    // Deduplicate the incoming payload by name (keep the last occurrence)
+    const uniqueGuestsMap = new Map();
+    validGuests.forEach(g => {
+      // Key by lowercase name to prevent same-name duplicates in the upload itself
+      uniqueGuestsMap.set(String(g.name).trim().toLowerCase(), { 
+        name: String(g.name).trim(), 
+        identifier: String(g.identifier).trim() 
+      });
+    });
+    const uniqueGuests = Array.from(uniqueGuestsMap.values());
+
+    const existingGuests = await prisma.org_guests.findMany({
+      where: { organization_id: org.id },
+      select: { identifier: true, name: true, id: true }
+    });
+    
+    const existingByIdentifier = new Map(existingGuests.map(g => [g.identifier, g.id]));
+    const existingByName = new Map(existingGuests.map(g => [g.name.toLowerCase(), g.id]));
+
+    const ops = uniqueGuests.map(g => {
+      const existingId = existingByIdentifier.get(g.identifier) || existingByName.get(g.name.toLowerCase());
+      
+      if (existingId) {
+        return prisma.org_guests.update({
+          where: { id: existingId },
+          data: { 
+            name: g.name,
+            identifier: g.identifier
+          }
+        });
+      } else {
+        return prisma.org_guests.create({
+          data: {
+            organization_id: org.id,
+            name: g.name,
+            identifier: g.identifier
+          }
+        });
+      }
+    });
+
+    const createdGuests = await prisma.$transaction(ops);
+
+    res.status(201).json({ message: `${createdGuests.length} tamu berhasil ditambahkan.`, data: createdGuests });
+  } catch (error) {
+    console.error('Error uploading guests:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat menyimpan data tamu.' });
+  }
+};
+
+export const scanGuestQR = async (req: Request, res: Response) => {
+  const { orgIdOrSlug, sessionId } = req.params;
+  const { qrToken } = req.body;
+
+  if (!qrToken) {
+    return res.status(400).json({ error: 'QR Token wajib diisi.' });
+  }
+
+  try {
+    const org = await prisma.organizations.findFirst({
+      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+
+    let guest = null;
+    if (qrToken.length === 36) {
+      guest = await prisma.org_guests.findFirst({
+        where: {
+          organization_id: org.id,
+          OR: [{ qr_token: qrToken }, { identifier: qrToken }]
+        }
+      });
+    } else {
+      guest = await prisma.org_guests.findFirst({
+        where: {
+          organization_id: org.id,
+          identifier: qrToken
+        }
+      });
+    }
+
+    if (!guest) {
+      return res.status(404).json({ error: 'QR Code tidak valid atau bukan tamu dari organisasi ini.' });
+    }
+
+    const session = await prisma.attendance_sessions.findUnique({
+      where: { id: sessionId.length === 36 ? sessionId : undefined }
+    });
+
+    if (!session || !session.is_active) {
+      return res.status(400).json({ error: 'Sesi absen sudah tidak aktif atau tidak ditemukan.' });
+    }
+
+    const existingCheckin = await prisma.guest_attendance.findFirst({
+      where: {
+        session_id: sessionId,
+        guest_id: guest.id
+      }
+    });
+
+    if (existingCheckin) {
+      return res.status(400).json({ error: 'Tamu ini sudah melakukan check-in di sesi ini.' });
+    }
+
+    const updatedGuest = await prisma.guest_attendance.create({
+      data: {
+        session_id: sessionId,
+        guest_id: guest.id,
+        status: 'present',
+        check_in_time: new Date()
+      }
+    });
+
+    res.json({ message: 'Berhasil check-in.', data: updatedGuest });
+  } catch (error) {
+    console.error('Error scanning guest QR:', error);
+    res.status(500).json({ error: 'Terjadi kesalahan saat scan QR.' });
+  }
+};
+export const getGuestStats = async (req: Request, res: Response) => {
+  const { orgIdOrSlug, sessionId } = req.params;
+
+  try {
+    const org = await prisma.organizations.findFirst({
+      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+
+    const session = await prisma.attendance_sessions.findUnique({
+      where: { id: sessionId }
+    });
+    if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
+
+    // Total guests in this organization
+    const totalGuests = await prisma.org_guests.count({
+      where: { organization_id: org.id }
+    });
+
+    // Count present and late guests for this session
+    const guestAttendance = await prisma.guest_attendance.groupBy({
+      by: ['status'],
+      where: { session_id: sessionId },
+      _count: { status: true }
+    });
+
+    let tepatCount = 0;
+    let terlambatCount = 0;
+
+    guestAttendance.forEach(item => {
+      if (item.status === 'present') tepatCount += item._count.status;
+      if (item.status === 'late') terlambatCount += item._count.status;
+    });
+
+    const alphaCount = Math.max(0, totalGuests - tepatCount - terlambatCount);
+    const presentPercentage = totalGuests > 0 ? Math.round(((tepatCount + terlambatCount) / totalGuests) * 100) : 0;
+
+    return res.json({
+      sessionTitle: session.title,
+      stats: {
+        total: totalGuests,
+        tepat: tepatCount,
+        terlambat: terlambatCount,
+        alpha: alphaCount,
+        percentage: presentPercentage
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting guest stats:', error);
+    res.status(500).json({ error: 'Gagal memuat statistik tamu' });
+  }
+};
+
+export const getGuestAnalytics = async (req: Request, res: Response) => {
+  const { orgIdOrSlug } = req.params;
+
+  try {
+    const org = await prisma.organizations.findFirst({
+      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+    });
+    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+
+    // 1. Total Guests
+    const totalGuests = await prisma.org_guests.count({
+      where: { organization_id: org.id }
+    });
+
+    // 2. Fetch all sessions to calculate applicable sessions per guest
+    const allSessions = await prisma.attendance_sessions.findMany({
+      where: { organization_id: org.id },
+      select: { start_time: true }
+    });
+    const totalSessions = allSessions.length;
+
+    // 3. Guest Stats per Guest
+    const allGuests = await prisma.org_guests.findMany({
+      where: { organization_id: org.id },
+      include: {
+        guest_attendance: {
+          select: { status: true }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    let overallTepat = 0;
+    let overallTerlambat = 0;
+    let overallAlpha = 0;
+
+    const guestList = allGuests.map(guest => {
+      let tepat = 0;
+      let terlambat = 0;
+      
+      guest.guest_attendance.forEach(att => {
+        if (att.status === 'present') tepat++;
+        if (att.status === 'late') terlambat++;
+      });
+
+      overallTepat += tepat;
+      overallTerlambat += terlambat;
+
+      // Only count sessions that started AFTER the guest was created
+      const applicableSessions = allSessions.filter(s => s.start_time >= guest.created_at).length;
+      const alpha = Math.max(0, applicableSessions - (tepat + terlambat));
+      
+      let percentage = 0;
+      if (applicableSessions > 0) {
+        percentage = Math.min(100, Math.round(((tepat + terlambat) / applicableSessions) * 100));
+      }
+      
+      overallAlpha += alpha;
+
+      return {
+        id: guest.id,
+        name: guest.name,
+        identifier: guest.identifier,
+        stats: { tepat, terlambat, alpha, percentage }
+      };
+    });
+
+    // 4. Daily Trend (last 7 days of guest_attendance)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const recentAttendance = await prisma.guest_attendance.findMany({
+      where: {
+        session: { organization_id: org.id },
+        created_at: { gte: sevenDaysAgo }
+      },
+      select: {
+        status: true,
+        created_at: true
+      }
+    });
+
+    // Group by date (YYYY-MM-DD)
+    const dailyData: Record<string, { tepat: number, terlambat: number }> = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      dailyData[dateStr] = { tepat: 0, terlambat: 0 };
+    }
+
+    recentAttendance.forEach(att => {
+      const dateStr = att.created_at.toISOString().split('T')[0];
+      if (dailyData[dateStr]) {
+        if (att.status === 'present') dailyData[dateStr].tepat++;
+        if (att.status === 'late') dailyData[dateStr].terlambat++;
+      }
+    });
+
+    const dailyTrend = Object.keys(dailyData).map(date => ({
+      date,
+      tepat: dailyData[date].tepat,
+      terlambat: dailyData[date].terlambat
+    }));
+
+    return res.json({
+      overall: {
+        totalGuests,
+        totalSessions,
+        tepat: overallTepat,
+        terlambat: overallTerlambat,
+        alpha: overallAlpha
+      },
+      dailyTrend,
+      guestList
+    });
+
+  } catch (error) {
+    console.error('Error getting guest analytics:', error);
+    res.status(500).json({ error: 'Gagal memuat analitik tamu' });
+  }
+};
 
 // 2. Get Active Session (We define active as is_active=true AND now() < end_time)
 export async function getActiveSession(req: any, res: Response) {
@@ -364,9 +702,9 @@ export async function getActiveSession(req: any, res: Response) {
 
   try {
     let session = null;
-    if (sessionId) {
-      session = await prisma.attendance_sessions.findUnique({
-        where: { id: sessionId }
+    if (sessionId && sessionId !== 'null') {
+      session = await prisma.attendance_sessions.findFirst({
+        where: { id: sessionId.length === 36 ? sessionId : undefined }
       });
     } else {
       // Find the first currently ongoing session
@@ -400,7 +738,7 @@ export async function closeSession(req: any, res: Response) {
 
   try {
     const session = await prisma.attendance_sessions.update({
-      where: { id: sessionId },
+      where: { id: sessionId.length === 36 ? sessionId : undefined },
       data: {
         is_active: false,
         closed_at: new Date()
@@ -792,7 +1130,7 @@ export async function manualBulkCheckIn(req: any, res: Response) {
     }
 
     const session = await prisma.attendance_sessions.findUnique({
-      where: { id: sessionId }
+      where: { id: sessionId.length === 36 ? sessionId : undefined }
     });
 
     if (!session) {

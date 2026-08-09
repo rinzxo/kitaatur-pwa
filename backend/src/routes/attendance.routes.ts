@@ -63,7 +63,7 @@ router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', '
 router.put('/:orgIdOrSlug/sessions/:sessionId/close', requireOrgRole(['head', 'sekretaris']), closeSession)
 
 // Manual Bulk Check-in (Untuk Head/Sekretaris/Delegasi)
-router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), manualBulkCheckIn)
+router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'sekretaris']), manualBulkCheckIn)
 
 
 // ========================
@@ -72,6 +72,18 @@ router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole([
 
 // Check-in dengan PIN dan GPS (Semua Anggota)
 router.post('/:orgIdOrSlug/scan', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member']), checkIn)
+
+
+// ========================
+// Guest Attendance (QR Code)
+// ========================
+import { getGuests, uploadGuests, scanGuestQR, getGuestStats, getGuestAnalytics } from '../controllers/attendance.controller'
+
+router.get('/:orgIdOrSlug/guests', requireOrgRole(['head', 'sekretaris', 'member']), getGuests)
+router.post('/:orgIdOrSlug/guests', requireOrgRole(['head', 'sekretaris']), uploadGuests)
+router.get('/:orgIdOrSlug/guests/analytics', requireOrgRole(['head', 'sekretaris', 'member']), getGuestAnalytics)
+router.post('/:orgIdOrSlug/sessions/:sessionId/guests/scan', requireOrgRole(['head', 'sekretaris']), scanGuestQR)
+router.get('/:orgIdOrSlug/sessions/:sessionId/guests/stats', requireOrgRole(['head', 'sekretaris', 'member']), getGuestStats)
 
 
 // ========================

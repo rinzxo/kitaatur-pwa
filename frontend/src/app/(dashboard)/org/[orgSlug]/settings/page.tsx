@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
-import { Settings, Save, Loader2, Building2, AlertTriangle, User, Shield, ChevronRight, Users, ArrowLeft, LogOut, Info, Bell, Plus, Trash2, Settings2, Camera, ImagePlus, BadgeCheck } from 'lucide-react'
+import { Settings, Save, Loader2, Building2, AlertTriangle, User, Shield, ChevronRight, Users, ArrowLeft, LogOut, Info, Bell, Plus, Trash2, Settings2, Camera, ImagePlus, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { CustomUpload } from '@/components/ui/CustomUpload'
@@ -26,6 +26,8 @@ export default function OrgSettingsPage() {
 
   const [orgName, setOrgName] = useState('')
   const [orgLogo, setOrgLogo] = useState<string | null>(null)
+  const [isEdu, setIsEdu] = useState(false)
+  const [eduPin, setEduPin] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [userName, setUserName] = useState('Pengguna')
   const [userAvatar, setUserAvatar] = useState<string | null>(null)
@@ -94,6 +96,12 @@ export default function OrgSettingsPage() {
         if (settingsRes.data.custom_fields_schema) {
           setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
         }
+        if (settingsRes.data.is_edu !== undefined) {
+          setIsEdu(settingsRes.data.is_edu)
+        }
+        if (settingsRes.data.edu_pin) {
+          setEduPin(settingsRes.data.edu_pin)
+        }
 
         // Fetch all user orgs to find this one and its ID
         const switcherOrgsRes = await api.get('/org/me/list')
@@ -128,9 +136,13 @@ export default function OrgSettingsPage() {
 
     setSaving(true)
     try {
-      await api.put(`/org/${orgSlug}`, { name: orgName, logo_url: orgLogo })
+      await api.put(`/org/${orgSlug}`, { 
+        name: orgName, 
+        logo_url: orgLogo,
+        is_edu: isEdu,
+        edu_pin: eduPin 
+      })
       toast.success('Profil organisasi berhasil disimpan.')
-      window.location.reload()
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal menyimpan profil organisasi')
     } finally {
@@ -565,12 +577,58 @@ export default function OrgSettingsPage() {
                     <label className="block text-sm font-bold text-slate-700 mb-1">Tautan Unik (Slug)</label>
                     <input
                       type="text"
-                      value={orgData?.slug || ''}
+                      value={orgData?.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/org/${orgData.slug}` : ''}
                       disabled
                       className="w-full p-3 border border-slate-200 rounded-xl outline-none font-medium bg-slate-50 text-slate-500"
                     />
                     <p className="text-xs text-slate-400 mt-1">Slug tidak dapat diubah setelah organisasi dibuat.</p>
                   </div>
+                </div>
+
+                {/* KitaAtur Edu Settings Section */}
+                <div className="pt-6 border-t border-slate-100">
+                  <h3 className="text-lg font-bold text-slate-900 mb-1">KitaAtur Edu 🎓</h3>
+                  <p className="text-sm text-slate-500 mb-4">Aktifkan portal publik agar wali murid dapat mengecek kehadiran siswa secara mandiri.</p>
+                  
+                  <div className="flex items-center justify-between p-4 bg-slate-50 border border-slate-200 rounded-xl mb-4">
+                    <div>
+                      <h4 className="font-bold text-slate-800">Aktifkan KitaAtur Edu</h4>
+                      <p className="text-xs text-slate-500">
+                        Organisasi Anda akan muncul di halaman publik {' '}
+                        <a href={`${typeof window !== 'undefined' ? window.location.origin : ''}/edu`} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                          {`${typeof window !== 'undefined' ? window.location.origin : ''}/edu`}
+                        </a>
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        disabled={!isHead}
+                        checked={isEdu} 
+                        onChange={(e) => setIsEdu(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  {isEdu && (
+                    <div className="space-y-4 animate-in fade-in duration-300">
+                      <div>
+                        <label className="block text-sm font-bold text-slate-700 mb-1">PIN Akses Wali Murid</label>
+                        <input
+                          type="text"
+                          value={eduPin}
+                          onChange={(e) => setEduPin(e.target.value)}
+                          disabled={!isHead}
+                          placeholder="Contoh: 123456"
+                          maxLength={10}
+                          className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-medium bg-white disabled:bg-slate-50 disabled:text-slate-500"
+                        />
+                        <p className="text-xs text-slate-400 mt-1">Berikan PIN ini kepada wali murid agar mereka bisa mengakses data siswa.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {isHead && (
@@ -625,7 +683,7 @@ export default function OrgSettingsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-slate-900">{userName}</h2>
                 {isVerified && (
-                  <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-50" />
+                  <CheckCircle2 className="w-5 h-5 text-blue-500 fill-blue-50" />
                 )}
               </div>
               <p className="text-slate-500">Tampilkan profil</p>

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, Wallet, QrCode, Target, 
-  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2, Calendar, Clock, BadgeCheck
+  ArrowUpRight, ArrowDownRight, Settings, Bell, Info, ChevronRight, ChevronUp, ChevronDown, History, AlertCircle, CheckCircle2, Calendar, Clock
 } from 'lucide-react'
 
 interface Goal {
@@ -208,7 +208,7 @@ export default function OrgDashboardPage() {
         <div className="flex md:hidden items-center justify-between w-full">
           <div className="flex items-center gap-1.5">
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
-            {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            {isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
@@ -255,7 +255,7 @@ export default function OrgDashboardPage() {
               </div>
             )}
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
-            {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
+            {isVerified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
