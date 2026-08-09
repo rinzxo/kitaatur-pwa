@@ -512,6 +512,22 @@ export const scanGuestQR = async (req: Request, res: Response) => {
       });
     }
 
+    // Jika tidak ditemukan dengan exact match, coba cari substring (ID ada di dalam raw string QR)
+    if (!guest) {
+      const allGuests = await prisma.org_guests.findMany({
+        where: { organization_id: org.id },
+        select: { id: true, identifier: true, qr_token: true }
+      });
+      
+      // Sort berdasarkan panjang identifier (terpanjang lebih dulu) untuk menghindari partial match ID pendek
+      allGuests.sort((a, b) => b.identifier.length - a.identifier.length);
+
+      const matchedPartial = allGuests.find(g => qrToken.includes(g.identifier));
+      if (matchedPartial) {
+        guest = await prisma.org_guests.findUnique({ where: { id: matchedPartial.id } });
+      }
+    }
+
     if (!guest) {
       return res.status(404).json({ error: 'QR Code tidak valid atau bukan tamu dari organisasi ini.' });
     }
