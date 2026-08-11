@@ -33,6 +33,7 @@ export default function GuestAnalyticsPage() {
   const [data, setData] = useState<{
     overall: any,
     dailyTrend: any[],
+    guestList: any[]
   } | null>(null)
   const [isSchool, setIsSchool] = useState(false)
 
