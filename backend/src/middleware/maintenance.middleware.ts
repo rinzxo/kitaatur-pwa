@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
+import { verifyToken } from './auth.middleware'
 import { prisma } from '../config/db'
 import { createClient } from '@supabase/supabase-js'
 import WebSocket from 'ws'
@@ -43,7 +44,7 @@ export async function maintenanceCheck(req: Request, res: Response, next: NextFu
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       try {
-        const { data: { user } } = await supabase.auth.getUser(token)
+        const user = await verifyToken(token)
         if (user && user.email === 'generalrino@gmail.com') {
           return next()
         }

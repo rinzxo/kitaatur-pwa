@@ -367,41 +367,77 @@ export const getGuests = async (req: Request, res: Response) => {
     if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
 
     let targetSessionId = sessionId && sessionId !== 'null' ? String(sessionId) : null;
+    let targetSession = null;
 
-    if (!targetSessionId) {
+    if (targetSessionId) {
+      targetSession = await prisma.attendance_sessions.findUnique({
+        where: { id: targetSessionId },
+        select: { id: true, start_time: true }
+      });
+    }
+
+    if (!targetSession) {
       const now = new Date();
       // Only auto-pick sessions that are active and not older than 24 hours to prevent abandoned sessions from showing up
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      const activeSession = await prisma.attendance_sessions.findFirst({
+      targetSession = await prisma.attendance_sessions.findFirst({
         where: {
           organization_id: org.id,
           is_active: true,
           start_time: { lte: now },
           end_time: { gte: now }
         },
-        orderBy: { start_time: 'desc' }
+        orderBy: { start_time: 'desc' },
+        select: { id: true, start_time: true }
       });
-      if (activeSession) {
-        targetSessionId = activeSession.id;
+      if (targetSession) {
+        targetSessionId = targetSession.id;
       }
     }
 
+    // Fetch all guests with attendance and all leaves
     const guests = await prisma.org_guests.findMany({
       where: { organization_id: org.id },
-      orderBy: { created_at: 'desc' },
-      include: targetSessionId ? {
+      orderBy: { name: 'asc' },
+      include: targetSessionId ? ({
         guest_attendance: {
           where: { session_id: targetSessionId },
           select: { check_in_time: true, status: true }
-        }
-      } : undefined
+        },
+        guest_leaves: true
+      } as any) : undefined
     });
-    const formattedGuests = guests.map((guest: any) => ({
-      ...guest,
-      check_in_time: guest.guest_attendance?.[0]?.check_in_time || null,
-      status: guest.guest_attendance?.[0]?.status || null,
-      kelas: (guest.custom_data && guest.custom_data.kelas) ? guest.custom_data.kelas : null
-    }));
+    
+    let sessionDateStr = targetSession ? targetSession.start_time.toISOString().split('T')[0] : null;
+
+    const formattedGuests = guests.map((guest: any) => {
+      let finalStatus = guest.guest_attendance?.[0]?.status || null; // 'present' or 'late'
+
+      if (targetSession && !finalStatus) {
+        // Find if they have leave for this session
+        const leave = (guest as any).guest_leaves?.find((l: any) => l.session_id === targetSession.id);
+        if (leave) {
+          finalStatus = leave.type; // 'izin' or 'sakit'
+          if (finalStatus === 'sakit' && !leave.proof_url) {
+             const ageHours = (Date.now() - new Date(leave.created_at).getTime()) / (1000 * 60 * 60);
+             if (ageHours > 24) finalStatus = 'izin';
+          }
+        } else {
+           // check if guest was created before or at session start
+           if (targetSession.start_time >= guest.created_at) {
+             finalStatus = 'alpha';
+           }
+        }
+      }
+
+      return {
+        ...guest,
+        check_in_time: guest.guest_attendance?.[0]?.check_in_time || null,
+        status: finalStatus,
+        kelas: (guest.custom_data && guest.custom_data.kelas) ? guest.custom_data.kelas : null
+      };
+    });
+
     res.json(formattedGuests);
   } catch (error) {
     console.error('Error getting guests:', error);
@@ -637,44 +673,79 @@ export const getGuestAnalytics = async (req: Request, res: Response) => {
     // 2. Fetch all sessions to calculate applicable sessions per guest
     const allSessions = await prisma.attendance_sessions.findMany({
       where: { organization_id: org.id },
-      select: { start_time: true }
+      select: { id: true, start_time: true }
     });
     const totalSessions = allSessions.length;
 
     // 3. Guest Stats per Guest
     const allGuests = await prisma.org_guests.findMany({
       where: { organization_id: org.id },
-      include: {
+      include: ({
         guest_attendance: {
-          select: { status: true }
-        }
-      },
+          select: { status: true, session_id: true }
+        },
+        guest_leaves: true
+      } as any),
       orderBy: { name: 'asc' }
     });
 
     let overallTepat = 0;
     let overallTerlambat = 0;
+    let overallIzin = 0;
+    let overallSakit = 0;
     let overallAlpha = 0;
 
     const guestList = allGuests.map(guest => {
       let tepat = 0;
       let terlambat = 0;
+      const attendedSessionIds = new Set<string>();
       
-      guest.guest_attendance.forEach(att => {
-        if (att.status === 'present') tepat++;
-        if (att.status === 'late') terlambat++;
+      (guest as any).guest_attendance.forEach((att: any) => {
+        if (att.status === 'present') {
+          tepat++;
+          attendedSessionIds.add(att.session_id);
+        }
+        if (att.status === 'late') {
+          terlambat++;
+          attendedSessionIds.add(att.session_id);
+        }
       });
+
+      const now = new Date();
+      const applicableSessions = allSessions.filter(s => s.start_time <= now && s.start_time >= guest.created_at);
+      
+      let izin = 0;
+      let sakit = 0;
+      const leavesBySession = new Map<string, any>();
+      (guest as any).guest_leaves.forEach((leave: any) => leavesBySession.set(leave.session_id, leave));
+
+      applicableSessions.forEach((session: any) => {
+        if (!attendedSessionIds.has(session.id)) {
+          const leave = leavesBySession.get(session.id);
+          if (leave) {
+            let finalType = leave.type;
+            if (finalType === 'sakit' && !leave.proof_url) {
+              const ageHours = (Date.now() - new Date(leave.created_at).getTime()) / (1000 * 60 * 60);
+              if (ageHours > 24) finalType = 'izin';
+            }
+            if (finalType === 'sakit') sakit++;
+            else izin++;
+          }
+        }
+      });
+
+      const totalLeaves = izin + sakit;
 
       overallTepat += tepat;
       overallTerlambat += terlambat;
+      overallIzin += izin;
+      overallSakit += sakit;
 
-      // Only count sessions that started AFTER the guest was created
-      const applicableSessions = allSessions.filter(s => s.start_time >= guest.created_at).length;
-      const alpha = Math.max(0, applicableSessions - (tepat + terlambat));
+      const alpha = Math.max(0, applicableSessions.length - (tepat + terlambat + totalLeaves));
       
       let percentage = 0;
-      if (applicableSessions > 0) {
-        percentage = Math.min(100, Math.round(((tepat + terlambat) / applicableSessions) * 100));
+      if (applicableSessions.length > 0) {
+        percentage = Math.min(100, Math.round(((tepat + terlambat) / applicableSessions.length) * 100));
       }
       
       overallAlpha += alpha;
@@ -684,7 +755,7 @@ export const getGuestAnalytics = async (req: Request, res: Response) => {
         name: guest.name,
         identifier: guest.identifier,
         kelas: ((guest as any).custom_data && (guest as any).custom_data.kelas) ? (guest as any).custom_data.kelas : null,
-        stats: { tepat, terlambat, alpha, percentage }
+        stats: { tepat, terlambat, izin, sakit, alpha, percentage }
       };
     });
 
@@ -732,6 +803,8 @@ export const getGuestAnalytics = async (req: Request, res: Response) => {
         totalSessions,
         tepat: overallTepat,
         terlambat: overallTerlambat,
+        izin: overallIzin,
+        sakit: overallSakit,
         alpha: overallAlpha
       },
       dailyTrend,

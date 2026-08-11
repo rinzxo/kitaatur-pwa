@@ -27,23 +27,25 @@ export default function EduLandingPage() {
   const filteredSchools = schools.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 py-6 px-4">
+    <div className="min-h-screen bg-slate-50 relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-[45vh] bg-blue-600 rounded-b-[40px] z-0 shadow-lg"></div>
+
+      <header className="relative z-10 py-6 px-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3 text-blue-600">
+          <div className="flex items-center gap-3 text-white">
             <img src="/icons/KitaEdu.png" alt="KitaAtur School Logo" className="h-10 w-auto object-contain" />
-            <h1 className="text-2xl font-black tracking-tight">KitaAtur <span className="text-slate-900">School</span></h1>
+            <h1 className="text-2xl font-black tracking-tight">KitaAtur <span className="text-blue-200">School</span></h1>
           </div>
-          <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-900">
+          <Link href="/" className="text-sm font-bold text-blue-100 hover:text-white transition-colors">
             Beranda Utama
           </Link>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-extrabold text-slate-900 mb-4">Portal Transparansi Kehadiran Siswa</h2>
-          <p className="text-lg text-slate-500">Pilih sekolah Anda di bawah ini dan masukkan PIN serta ID Pelajar untuk mengecek kehadiran secara mandiri.</p>
+      <main className="relative z-10 max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-4 drop-shadow-md">Portal Transparansi Kehadiran Siswa</h2>
+          <p className="text-lg text-blue-100 max-w-2xl mx-auto">Pilih sekolah Anda di bawah ini dan masukkan PIN serta ID Pelajar untuk mengecek kehadiran secara mandiri.</p>
         </div>
 
         <div className="relative mb-8 max-w-xl mx-auto">

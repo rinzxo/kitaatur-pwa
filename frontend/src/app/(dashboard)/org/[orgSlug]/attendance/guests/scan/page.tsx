@@ -19,6 +19,7 @@ function ScanGuestsContent() {
   
   const [sessionTitle, setSessionTitle] = useState<string>('')
   const [stats, setStats] = useState<any>(null)
+  const [isSchool, setIsSchool] = useState(false)
 
   const fetchStats = async (sid: string) => {
     try {
@@ -48,6 +49,11 @@ function ScanGuestsContent() {
     } else {
       fetchStats(urlSessionId)
     }
+
+    // Fetch settings for terminology
+    api.get(`/org/${orgSlug}/settings`).then(res => {
+      setIsSchool(res.data?.is_edu || false)
+    }).catch(() => {})
   }, [urlSessionId, orgSlug, router])
 
   const handleScan = async (result: any) => {
@@ -101,7 +107,7 @@ function ScanGuestsContent() {
           Kembali
         </button>
         <div className="flex-1 text-center font-extrabold text-slate-800 mr-8">
-          Scan QR Tamu
+          Scan QR {isSchool ? 'Siswa' : 'Tamu'}
         </div>
       </div>
 
@@ -162,7 +168,7 @@ function ScanGuestsContent() {
             <div className="bg-white p-4 rounded-2xl text-center border border-slate-200 shadow-sm mt-1">
                <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-3 px-1">
                  <span>Tingkat Kehadiran</span>
-                 <span className="text-blue-600">{stats.percentage}% <span className="text-slate-400 font-normal">dari {stats.total} Tamu</span></span>
+                 <span className="text-blue-600">{stats.percentage}% <span className="text-slate-400 font-normal">dari {stats.total} {isSchool ? 'Siswa' : 'Tamu'}</span></span>
                </div>
                <div className="w-full bg-slate-100 rounded-full h-2.5 shadow-inner overflow-hidden">
                  <div className="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${stats.percentage}%` }}></div>
@@ -176,7 +182,7 @@ function ScanGuestsContent() {
                 <ScanLine className="w-6 h-6 text-blue-600" />
               </div>
               <p className="text-sm font-medium text-slate-600 text-left leading-relaxed">
-                Arahkan kamera ke QR Code milik tamu untuk melakukan absensi otomatis.
+                Arahkan kamera ke QR Code milik {isSchool ? 'siswa' : 'tamu'} untuk melakukan absensi otomatis.
               </p>
             </div>
           </div>

@@ -18,6 +18,7 @@ export default function AttendanceDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [pendingCollabs, setPendingCollabs] = useState<any[]>([])
   const [agendas, setAgendas] = useState<any[]>([])
+  const [isSchool, setIsSchool] = useState(false)
 
   const initRoleAndData = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -40,6 +41,13 @@ export default function AttendanceDashboardPage() {
 
         const agendaRes = await api.get(`/org-attendance/${orgSlug}/agenda`)
         setAgendas(agendaRes.data || [])
+
+        try {
+          const settingsRes = await api.get(`/org/${orgSlug}/settings`)
+          setIsSchool(settingsRes.data?.is_edu || false)
+        } catch (e) {
+          // Ignore if settings fetch fails
+        }
       } else {
         router.push('/personal/dashboard')
       }
@@ -127,7 +135,7 @@ export default function AttendanceDashboardPage() {
               className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm"
             >
               <Users className="w-4 h-4" />
-              Data Tamu
+              {isSchool ? 'Data Siswa' : 'Data Tamu'}
             </Link>
           </div>
         )}
@@ -325,15 +333,15 @@ export default function AttendanceDashboardPage() {
             <div className="relative w-16 h-16 bg-gradient-to-br from-orange-50 to-orange-100/50 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-inner">
               <QrCode className="w-8 h-8 drop-shadow-sm" />
             </div>
-            <h3 className="relative text-xl font-bold text-slate-900 mb-2 group-hover:text-orange-700 transition-colors">Scan QR Tamu</h3>
+            <h3 className="relative text-xl font-bold text-slate-900 mb-2 group-hover:text-orange-700 transition-colors">Scan QR {isSchool ? 'Siswa' : 'Tamu'}</h3>
             <p className="relative text-slate-500 text-sm mb-8 leading-relaxed flex-grow">
-              Pindai tiket QR Code tamu untuk mencatat kehadiran mereka dengan cepat.
+              Pindai tiket QR Code {isSchool ? 'siswa' : 'tamu'} untuk mencatat kehadiran mereka dengan cepat.
             </p>
             <Link 
               href={`/org/${orgSlug}/attendance/guests/scan`}
               className="relative block w-full py-4 bg-orange-50 hover:bg-orange-500 hover:text-white text-orange-700 font-bold rounded-xl transition-all duration-300 active:scale-[0.98] mt-auto shadow-sm"
             >
-              Mulai Scan Tamu
+              Mulai Scan {isSchool ? 'Siswa' : 'Tamu'}
             </Link>
           </div>
         )}

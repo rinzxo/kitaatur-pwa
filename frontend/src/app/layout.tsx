@@ -66,7 +66,7 @@ export default function RootLayout({
   const splashShown = cookieStore.get('kitaatur_splash_shown');
 
   return (
-    <html lang="id">
+    <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -77,7 +77,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="KitaAtur" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         {!splashShown ? (
           <SplashScreen>
             <ConfirmProvider>

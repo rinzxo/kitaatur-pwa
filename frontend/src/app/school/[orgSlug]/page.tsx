@@ -69,9 +69,19 @@ export default function EduPinVerifyPage() {
             disabled={loading || !pin}
             className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buka Akses'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buka Akses Siswa'}
           </button>
         </form>
+
+        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm text-slate-500 mb-3">Anda seorang guru / pengajar?</p>
+          <Link 
+            href={`/school/${orgId}/monitor`}
+            className="inline-flex w-full items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 rounded-xl transition-colors border border-indigo-100"
+          >
+            Masuk ke Monitor Kelas
+          </Link>
+        </div>
       </div>
     </div>
   )

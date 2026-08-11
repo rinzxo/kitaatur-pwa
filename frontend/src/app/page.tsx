@@ -14,7 +14,8 @@ import {
   ChevronRight,
   TrendingUp,
   Globe2,
-  ClipboardCheck
+  ClipboardCheck,
+  GraduationCap
 } from "lucide-react";
 
 export default function Home() {
@@ -61,6 +62,7 @@ export default function Home() {
             <Link href="#fitur" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Fitur Utama</Link>
             <Link href="#keunggulan" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Keunggulan</Link>
             <Link href="#faq" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">FAQ</Link>
+            <Link href="/school" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Portal Siswa</Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -88,6 +90,7 @@ export default function Home() {
             <Link href="#fitur" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">Fitur Utama</Link>
             <Link href="#keunggulan" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">Keunggulan</Link>
             <Link href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">FAQ</Link>
+            <Link href="/school" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">Portal Siswa</Link>
           </div>
           <div className="flex flex-col gap-3 mt-8">
             <Link href="/login" className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3.5 rounded-xl">Masuk</Link>
@@ -104,12 +107,12 @@ export default function Home() {
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-emerald-50/80 rounded-full blur-3xl -z-10 -translate-x-1/3 translate-y-1/3" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 max-w-4xl mx-auto">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-black text-slate-900 tracking-tight leading-[1.1] mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100 max-w-4xl mx-auto">
             Kelola Organisasi <br className="hidden md:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Lebih Modern & Hijau</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
+          <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
             Tinggalkan kertas. Mulai dari absensi digital yang terintegrasi, pencatatan uang kas transparan, hingga manajemen anggota dalam satu aplikasi yang ramah lingkungan.
           </p>
           
@@ -172,10 +175,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-blue-600 font-bold tracking-wider uppercase text-sm mb-3">Fitur Lengkap</h2>
-            <h3 className="text-3xl md:text-5xl font-black text-slate-900 mb-6">
+            <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 mb-6">
               Satu Aplikasi,<br/>Semua Kebutuhan Organisasi
             </h3>
-            <p className="text-slate-600 text-lg">
+            <p className="text-slate-600 text-base sm:text-lg">
               Desain modern yang mudah digunakan, membantu Anda menghemat waktu dan kertas.
             </p>
           </div>
@@ -188,8 +191,8 @@ export default function Home() {
                 <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6 shadow-lg shadow-emerald-100/50">
                   <ClipboardCheck className="w-8 h-8" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900 mb-4">Absensi Bebas Kertas</h4>
-                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                <h4 className="text-2xl sm:text-3xl font-black text-slate-900 mb-4">Absensi Bebas Kertas</h4>
+                <p className="text-slate-600 text-base sm:text-lg font-medium leading-relaxed">
                   Buat sesi kehadiran dan rekam jejak absensi secara digital. Tersedia fitur delegasi absen (Bantu Absen) tanpa batasan lokasi untuk memudahkan pencatatan, tanpa perlu buang kertas percuma.
                 </p>
               </div>
@@ -209,8 +212,8 @@ export default function Home() {
                 <div className="w-16 h-16 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mb-6 shadow-lg shadow-blue-100/50">
                   <Wallet className="w-8 h-8" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900 mb-4">Manajemen Kas Transparan</h4>
-                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                <h4 className="text-2xl sm:text-3xl font-black text-slate-900 mb-4">Manajemen Kas Transparan</h4>
+                <p className="text-slate-600 text-base sm:text-lg font-medium leading-relaxed">
                   Catat pemasukan dan pengeluaran secara digital. Semua anggota bisa memantau saldo, menghindari prasangka, dan membangun kepercayaan.
                 </p>
               </div>
@@ -230,8 +233,8 @@ export default function Home() {
                 <div className="w-16 h-16 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 shadow-lg shadow-indigo-100/50">
                   <TrendingUp className="w-8 h-8" />
                 </div>
-                <h4 className="text-3xl font-black text-slate-900 mb-4">Analisis Cerdas & AI</h4>
-                <p className="text-slate-600 text-lg font-medium leading-relaxed">
+                <h4 className="text-2xl sm:text-3xl font-black text-slate-900 mb-4">Analisis Cerdas & AI</h4>
+                <p className="text-slate-600 text-base sm:text-lg font-medium leading-relaxed">
                   Dapatkan wawasan mendalam tentang kedisiplinan anggota. Dilengkapi dengan Rapor Kedisiplinan berbasis AI, deteksi dini pola kehadiran, dan klasemen otomatis untuk memotivasi organisasi Anda.
                 </p>
               </div>
@@ -248,12 +251,17 @@ export default function Home() {
           </div>
 
           {/* Feature 4: Go Green Banner (Moved Below Flex Layout) */}
-          <div className="mt-8 bg-gradient-to-br from-teal-800 to-emerald-900 rounded-[2.5rem] p-10 md:p-16 border border-teal-700 relative overflow-hidden text-white flex flex-col justify-center items-center text-center">
-            <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik01NC42MjcgMTEuMzhBNDEuODYgNDEuODYgMCAwIDAgNDEuMzggMjguMjNhNDEuODYgNDEuODYgMCAwIDAgMTMuMjQ3IDE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAgMTMuMjQ3LTE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAtMTMuMjQ3LTE2Ljg1eiIgZmlsbD0iIzEwYjliMSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+Cjwvc3ZnPg==')] opacity-30" />
+          <div className="mt-8 bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 rounded-[2.5rem] p-10 md:p-16 border-[6px] border-white shadow-2xl shadow-blue-500/20 relative overflow-hidden text-white flex flex-col justify-center items-center text-center group">
+            <div className="absolute top-0 right-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCI+CjxwYXRoIGQ9Ik01NC42MjcgMTEuMzhBNDEuODYgNDEuODYgMCAwIDAgNDEuMzggMjguMjNhNDEuODYgNDEuODYgMCAwIDAgMTMuMjQ3IDE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAgMTMuMjQ3LTE2Ljg1IDQxLjg2 NDEuODYgMCAwIDAtMTMuMjQ3LTE2Ljg1eiIgZmlsbD0iIzEwYjliMSIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+Cjwvc3ZnPg==')] opacity-20 mix-blend-overlay animate-pulse group-hover:scale-110 transition-transform duration-1000" style={{ animationDuration: '6s' }} />
+            <div className="absolute -top-32 -left-32 w-80 h-80 bg-white/30 blur-3xl rounded-full pointer-events-none animate-pulse" style={{ animationDuration: '4s' }} />
+            <div className="absolute -bottom-32 -right-32 w-80 h-80 bg-indigo-500/40 blur-3xl rounded-full pointer-events-none animate-pulse" style={{ animationDuration: '5s' }} />
+            
             <div className="relative z-10 max-w-2xl">
-              <h4 className="text-3xl md:text-4xl font-black mb-4 leading-tight">Satu Aplikasi, Semua Terekap</h4>
-              <p className="text-teal-100 font-medium text-lg leading-relaxed max-w-xl mx-auto">
-                Catat pemasukan, kelola data anggota, hingga rekap absensi harian secara otomatis tanpa berpindah-pindah aplikasi.
+              <h4 className="text-3xl sm:text-4xl md:text-5xl font-black mb-5 leading-tight animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-1000 tracking-tight">
+                Biar Kita Yang Atur!
+              </h4>
+              <p className="text-blue-50 font-medium text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+                Anda fokus capai tujuan organisasi. Urusan administrasi, absensi, dan keuangan, biar sistem otomatis kami yang selesaikan.
               </p>
             </div>
           </div>
@@ -602,6 +610,12 @@ export default function Home() {
                 support.kitaatur@gmail.com
               </a>
             </div>
+            <div className="flex flex-col gap-1 mt-4 text-sm">
+              <p className="font-semibold text-slate-400 uppercase tracking-wider text-xs mb-1">Alamat:</p>
+              <p className="text-slate-500 font-medium leading-relaxed max-w-xs">
+                Jl. Baru Perjuangan No.70 RT01/07, MargaMulya, Bekasi Utara, Kota Bks 17121
+              </p>
+            </div>
           </div>
 
           {/* Kolom 2: Link Penting */}
@@ -615,12 +629,14 @@ export default function Home() {
           </div>
 
           {/* Kolom 3: Powered by Rinz Group */}
-          <div className="flex flex-col gap-4">
-            <h4 className="text-slate-900 font-bold mb-2">Dipersembahkan oleh</h4>
-            <div className="flex items-center gap-3 mt-1">
-              <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-7 object-contain opacity-80 hover:opacity-100 transition-opacity" />
+          <div className="flex flex-col gap-4 justify-between h-full">
+            <div>
+              <h4 className="text-slate-900 font-bold mb-2">Dipersembahkan oleh</h4>
+              <div className="flex items-center gap-3 mt-1">
+                <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-7 object-contain opacity-80 hover:opacity-100 transition-opacity" />
+              </div>
             </div>
-            <p className="text-xs mt-4 text-slate-500">
+            <p className="text-xs mt-auto text-slate-500">
               &copy; {new Date().getFullYear()} RinzGroup.<br/>All rights reserved.
             </p>
           </div>

@@ -6,6 +6,10 @@ const nextConfig = {
         source: '/api/:path*',
         destination: 'https://kitatur-production.up.railway.app/api/:path*',
       },
+      {
+        source: '/m/:slug',
+        destination: '/school/:slug/monitor',
+      },
     ]
   },
 }

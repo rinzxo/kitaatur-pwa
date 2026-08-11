@@ -16,6 +16,8 @@ interface GuestStat {
   stats: {
     tepat: number
     terlambat: number
+    izin: number
+    sakit: number
     alpha: number
     percentage: number
   }
@@ -31,8 +33,8 @@ export default function GuestAnalyticsPage() {
   const [data, setData] = useState<{
     overall: any,
     dailyTrend: any[],
-    guestList: GuestStat[]
   } | null>(null)
+  const [isSchool, setIsSchool] = useState(false)
 
   useEffect(() => {
     fetchAnalytics()
@@ -42,6 +44,11 @@ export default function GuestAnalyticsPage() {
     try {
       const res = await api.get(`/org-attendance/${orgSlug}/guests/analytics`)
       setData(res.data)
+
+      try {
+        const settingsRes = await api.get(`/org/${orgSlug}/settings`)
+        setIsSchool(settingsRes.data?.is_edu || false)
+      } catch (e) {}
     } catch (err) {
       toast.error('Gagal memuat analitik tamu')
     } finally {
@@ -56,7 +63,7 @@ export default function GuestAnalyticsPage() {
       const sortedList = [...data.guestList].sort((a, b) => a.name.localeCompare(b.name))
       
       const workbook = new ExcelJS.Workbook()
-      const worksheet = workbook.addWorksheet('Rekap Kehadiran Tamu')
+      const worksheet = workbook.addWorksheet(isSchool ? 'Rekap Kehadiran Siswa' : 'Rekap Kehadiran Tamu')
 
       // Define columns
       worksheet.columns = [
@@ -65,6 +72,8 @@ export default function GuestAnalyticsPage() {
         { header: 'ID', key: 'id', width: 25, style: { numFmt: '@' } },
         { header: 'TEPAT', key: 'tepat', width: 12 },
         { header: 'TERLAMBAT', key: 'terlambat', width: 15 },
+        { header: 'IZIN', key: 'izin', width: 12 },
+        { header: 'SAKIT', key: 'sakit', width: 12 },
         { header: 'ALPHA', key: 'alpha', width: 12 },
       ]
 
@@ -76,6 +85,8 @@ export default function GuestAnalyticsPage() {
           id: guest.identifier,
           tepat: guest.stats.tepat,
           terlambat: guest.stats.terlambat,
+          izin: guest.stats.izin,
+          sakit: guest.stats.sakit,
           alpha: guest.stats.alpha
         })
       })
@@ -108,7 +119,7 @@ export default function GuestAnalyticsPage() {
 
       const buffer = await workbook.xlsx.writeBuffer()
       const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-      saveAs(blob, `Rekap_Kehadiran_Tamu_${orgSlug}.xlsx`)
+      saveAs(blob, `Rekap_Kehadiran_${isSchool ? 'Siswa' : 'Tamu'}_${orgSlug}.xlsx`)
       toast.success('Berhasil mengekspor Excel!')
     } catch (err) {
       toast.error('Gagal mengekspor file Excel.')
@@ -135,20 +146,20 @@ export default function GuestAnalyticsPage() {
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-3"
           >
             <ArrowLeft className="h-3 w-3" />
-            Kembali ke Data Tamu
+            Kembali ke Data {isSchool ? 'Siswa' : 'Tamu'}
           </Link>
           <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
             <BarChart2 className="w-6 h-6 text-indigo-600" />
-            Statistik Kehadiran Tamu
+            Statistik Kehadiran {isSchool ? 'Siswa' : 'Tamu'}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Rekapitulasi kehadiran tamu dari seluruh sesi absensi otomatis.</p>
+          <p className="text-sm text-slate-500 mt-1">Rekapitulasi kehadiran {isSchool ? 'siswa' : 'tamu'} dari seluruh sesi absensi otomatis.</p>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 mt-6">
         
         {/* Overall Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-8">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <Users className="w-6 h-6" />
@@ -176,6 +187,26 @@ export default function GuestAnalyticsPage() {
             <div>
               <p className="text-xs text-amber-600 font-bold uppercase">Total Terlambat</p>
               <p className="text-2xl font-black text-amber-900">{data.overall.terlambat}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-purple-600 font-bold uppercase">Total Izin</p>
+              <p className="text-2xl font-black text-purple-900">{data.overall.izin}</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-5 rounded-2xl border border-orange-100 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="text-xs text-orange-600 font-bold uppercase">Total Sakit</p>
+              <p className="text-2xl font-black text-orange-900">{data.overall.sakit}</p>
             </div>
           </div>
 
@@ -282,6 +313,8 @@ export default function GuestAnalyticsPage() {
                           <th className="px-4 py-3 text-sm font-bold text-slate-700">Kelas</th>
                           <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Tepat</th>
                           <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Terlambat</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Izin</th>
+                          <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Sakit</th>
                           <th className="px-4 py-3 text-sm font-bold text-slate-700 text-center">Alpha</th>
                           <th className="px-4 py-3 text-sm font-bold text-slate-700 text-right">% Hadir</th>
                         </tr>
@@ -309,6 +342,16 @@ export default function GuestAnalyticsPage() {
                             <td className="px-4 py-3 text-center">
                               <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 font-bold text-sm rounded-lg border border-amber-100 min-w-[40px]">
                                 {guest.stats.terlambat}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 font-bold text-sm rounded-lg border border-purple-100 min-w-[40px]">
+                                {guest.stats.izin}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className="inline-block px-2 py-1 bg-orange-50 text-orange-700 font-bold text-sm rounded-lg border border-orange-100 min-w-[40px]">
+                                {guest.stats.sakit}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-center">

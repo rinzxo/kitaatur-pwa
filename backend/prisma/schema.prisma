@@ -1,13 +1,842 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
-  schemas   = ["public", "auth"]
+  schemas   = ["auth", "public"]
 }
 
-generator client {
-  provider = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+model profiles {
+  id                                                       String                 @id @db.Uuid
+  email                                                    String
+  full_name                                                String?
+  avatar_url                                               String?
+  created_at                                               DateTime               @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  global_role                                              user_global_role?      @default(user)
+  updated_at                                               DateTime?              @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  attendance                                               attendance[]
+  attendance_records                                       attendance_records[]
+  attendance_schedules                                     attendance_schedules[]
+  attendance_sessions                                      attendance_sessions[]
+  financial_records                                        financial_records[]
+  financial_records_financial_records_created_byToprofiles financial_records[]    @relation("financial_records_created_byToprofiles")
+  goals                                                    goals[]
+  meeting_minutes                                          meeting_minutes[]
+  notifications                                            notifications[]
+  organization_members                                     organization_members[]
+  organizations                                            organizations[]
+  users                                                    users                  @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  push_subscriptions                                       push_subscriptions[]
+  subscriptions                                            subscriptions[]
+
+  @@schema("public")
+}
+
+model organizations {
+  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                 String
+  slug                 String                 @unique
+  description          String?
+  created_at           DateTime               @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  owner_id             String?                @db.Uuid
+  logo_url             String?
+  updated_at           DateTime?              @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  dues_target_amount   Decimal?               @db.Decimal(15, 2)
+  dues_presets         String?                @default("10000,20000,50000,100000")
+  invite_code          String?                @unique
+  custom_fields_schema Json?
+  is_edu               Boolean?               @default(false)
+  edu_pin              String?                @db.VarChar(10)
+  attendance           attendance[]
+  attendance_schedules attendance_schedules[]
+  attendance_sessions  attendance_sessions[]
+  financial_records    financial_records[]
+  goals                goals[]
+  guest_leaves         guest_leaves[]
+  meeting_minutes      meeting_minutes[]
+  org_guests           org_guests[]
+  organization_members organization_members[]
+  owner                profiles?              @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model organization_members {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String          @db.Uuid
+  profile_id      String          @db.Uuid
+  role            org_member_role @default(member)
+  joined_at       DateTime        @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  custom_data     Json?
+  organization    organizations   @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "organization_members_org_id_fkey")
+  profile         profiles        @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([organization_id, profile_id], map: "organization_members_org_id_profile_id_key")
+  @@schema("public")
+}
+
+model financial_records {
+  id                                              String         @id(map: "organization_financials_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id                                 String?        @db.Uuid
+  amount                                          Decimal        @db.Decimal
+  type                                            financial_type
+  category                                        String
+  description                                     String?
+  transaction_date                                DateTime       @db.Date
+  receipt_url                                     String?
+  created_by                                      String?        @db.Uuid
+  created_at                                      DateTime       @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  profile_id                                      String?        @db.Uuid
+  profile                                         profiles?      @relation(fields: [profile_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  profiles_financial_records_created_byToprofiles profiles?      @relation("financial_records_created_byToprofiles", fields: [created_by], references: [id], onUpdate: NoAction, map: "organization_financials_created_by_fkey")
+  organization                                    organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "organization_financials_org_id_fkey")
+
+  @@schema("public")
+}
+
+model attendance {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String               @db.Uuid
+  profile_id      String               @db.Uuid
+  status          attendance_status?   @default(present)
+  notes           String?
+  check_in_time   DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  created_at      DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  session_id      String?              @db.Uuid
+  proof_url       String?
+  latitude        Float?
+  longitude       Float?
+  distance_meters Float?
+  check_out_time  DateTime?            @db.Timestamptz(6)
+  organization    organizations        @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile         profiles             @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  session         attendance_sessions? @relation(fields: [session_id], references: [id])
+
+  @@schema("public")
+}
+
+model attendance_sessions {
+  id                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id     String             @db.Uuid
+  created_by          String             @db.Uuid
+  title               String             @default("Sesi Absensi")
+  session_type        String             @default("in_only")
+  pin_code            String             @db.VarChar(10)
+  latitude            Float
+  longitude           Float
+  radius_meters       Int                @default(50)
+  start_time          DateTime           @default(now()) @db.Timestamptz(6)
+  end_time            DateTime           @default(now()) @db.Timestamptz(6)
+  late_time           DateTime?          @db.Timestamptz(6)
+  is_active           Boolean            @default(true)
+  created_at          DateTime           @default(now()) @db.Timestamptz(6)
+  closed_at           DateTime?          @db.Timestamptz(6)
+  checkout_pin_code   String?            @db.VarChar(10)
+  checkout_start_time DateTime?          @db.Timestamptz(6)
+  shared_with_orgs    String[]           @default([])
+  pending_shared_orgs String[]           @default([])
+  attendance          attendance[]
+  creator             profiles           @relation(fields: [created_by], references: [id])
+  organization        organizations      @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  guest_attendance    guest_attendance[]
+  guest_leaves        guest_leaves[]
+  meeting_minutes     meeting_minutes?
+
+  @@schema("public")
+}
+
+model meeting_minutes {
+  id              String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String               @db.Uuid
+  session_id      String?              @unique @db.Uuid
+  title           String
+  content         String
+  ai_summary      String?
+  created_by      String               @db.Uuid
+  created_at      DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  author          profiles             @relation(fields: [created_by], references: [id])
+  organization    organizations        @relation(fields: [organization_id], references: [id], onDelete: Cascade)
+  session         attendance_sessions? @relation(fields: [session_id], references: [id])
+
+  @@schema("public")
+}
+
+model notifications {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id String   @db.Uuid
+  title      String
+  body       String
+  is_read    Boolean  @default(false)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  profile    profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model push_subscriptions {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id String   @db.Uuid
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  profile    profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model goals {
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id   String?             @db.Uuid
+  profile_id        String              @db.Uuid
+  title             String
+  description       String?
+  target_amount     Decimal?            @db.Decimal
+  current_amount    Decimal?            @default(0) @db.Decimal
+  deadline          DateTime?           @db.Date
+  status            goal_status?        @default(active)
+  created_at        DateTime?           @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  type              String              @default("saving")
+  budget_category   String?
+  period            String              @default("monthly")
+  goal_transactions goal_transactions[]
+  organization      organizations?      @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile           profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model goal_transactions {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  goal_id     String   @db.Uuid
+  profile_id  String   @db.Uuid
+  amount      Decimal  @db.Decimal(15, 2)
+  source      String
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  description String?
+  type        String   @default("income")
+  goal        goals    @relation(fields: [goal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile     users    @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model subscriptions {
+  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id              String               @db.Uuid
+  pakasir_subscription_id String?              @unique
+  status                  subscription_status? @default(active)
+  plan_type               String
+  amount_paid             Decimal?             @db.Decimal
+  starts_at               DateTime             @db.Timestamptz(6)
+  expires_at              DateTime             @db.Timestamptz(6)
+  created_at              DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at              DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  payment_url             String?
+  profile                 profiles             @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model org_guests {
+  id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id  String             @db.Uuid
+  name             String
+  identifier       String
+  qr_token         String             @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  custom_data      Json?
+  guest_attendance guest_attendance[]
+  guest_leaves     guest_leaves[]
+  organization     organizations      @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model guest_attendance {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id    String              @db.Uuid
+  guest_id      String              @db.Uuid
+  status        attendance_status   @default(present)
+  check_in_time DateTime            @default(now()) @db.Timestamptz(6)
+  created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  guest         org_guests          @relation(fields: [guest_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  session       attendance_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, guest_id])
+  @@schema("public")
+}
+
+model attendance_schedules {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String        @db.Uuid
+  created_by      String        @db.Uuid
+  title           String        @default("Sesi Rutin")
+  session_type    String        @default("in_only")
+  latitude        Float
+  longitude       Float
+  radius_meters   Int           @default(50)
+  days_of_week    Int[]
+  start_time      String
+  end_time        String
+  late_time       String?
+  is_active       Boolean       @default(true)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  creator         profiles      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model system_settings {
+  key         String   @id @db.VarChar
+  value       Json
+  description String?
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+model announcements {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title      String    @db.VarChar
+  content    String
+  type       String    @default("info") @db.VarChar
+  is_active  Boolean   @default(true)
+  starts_at  DateTime? @db.Timestamptz(6)
+  ends_at    DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+model feature_flags {
+  key         String   @id @db.VarChar
+  is_enabled  Boolean  @default(false)
+  description String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@schema("public")
+}
+
+model guest_leaves {
+  id              String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organization_id String              @db.Uuid
+  guest_id        String              @db.Uuid
+  type            String
+  notes           String?
+  proof_url       String?
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  session_id      String              @db.Uuid
+  guest           org_guests          @relation(fields: [guest_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  organization    organizations       @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  session         attendance_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model audit_log_entries {
+  instance_id String?   @db.Uuid
+  id          String    @id @db.Uuid
+  payload     Json?     @db.Json
+  created_at  DateTime? @db.Timestamptz(6)
+  ip_address  String    @default("") @db.VarChar(64)
+
+  @@index([instance_id], map: "audit_logs_instance_id_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model custom_oauth_providers {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider_type           String
+  identifier              String    @unique
+  name                    String
+  client_id               String
+  client_secret           String
+  acceptable_client_ids   String[]  @default([])
+  scopes                  String[]  @default([])
+  pkce_enabled            Boolean   @default(true)
+  attribute_mapping       Json      @default("{}")
+  authorization_params    Json      @default("{}")
+  enabled                 Boolean   @default(true)
+  email_optional          Boolean   @default(false)
+  issuer                  String?
+  discovery_url           String?
+  skip_nonce_check        Boolean   @default(false)
+  cached_discovery        Json?
+  discovery_cached_at     DateTime? @db.Timestamptz(6)
+  authorization_url       String?
+  token_url               String?
+  userinfo_url            String?
+  jwks_uri                String?
+  created_at              DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at              DateTime  @default(now()) @db.Timestamptz(6)
+  custom_claims_allowlist String[]  @default([])
+
+  @@index([created_at])
+  @@index([enabled])
+  @@index([identifier])
+  @@index([provider_type])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model flow_state {
+  id                     String                 @id @db.Uuid
+  user_id                String?                @db.Uuid
+  auth_code              String?
+  code_challenge_method  code_challenge_method?
+  code_challenge         String?
+  provider_type          String
+  provider_access_token  String?
+  provider_refresh_token String?
+  created_at             DateTime?              @db.Timestamptz(6)
+  updated_at             DateTime?              @db.Timestamptz(6)
+  authentication_method  String
+  auth_code_issued_at    DateTime?              @db.Timestamptz(6)
+  invite_token           String?
+  referrer               String?
+  oauth_client_state_id  String?                @db.Uuid
+  linking_target_id      String?                @db.Uuid
+  email_optional         Boolean                @default(false)
+  saml_relay_states      saml_relay_states[]
+
+  @@index([created_at(sort: Desc)])
+  @@index([auth_code], map: "idx_auth_code")
+  @@index([user_id, authentication_method], map: "idx_user_id_auth_method")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model identities {
+  provider_id     String
+  user_id         String    @db.Uuid
+  identity_data   Json
+  provider        String
+  last_sign_in_at DateTime? @db.Timestamptz(6)
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+  email           String?   @default(dbgenerated("lower((identity_data ->> 'email'::text))"))
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  users           users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([provider_id, provider], map: "identities_provider_id_provider_unique")
+  @@index([email])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model instances {
+  id              String    @id @db.Uuid
+  uuid            String?   @db.Uuid
+  raw_base_config String?
+  created_at      DateTime? @db.Timestamptz(6)
+  updated_at      DateTime? @db.Timestamptz(6)
+
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_amr_claims {
+  session_id            String   @db.Uuid
+  created_at            DateTime @db.Timestamptz(6)
+  updated_at            DateTime @db.Timestamptz(6)
+  authentication_method String
+  id                    String   @id(map: "amr_id_pk") @db.Uuid
+  sessions              sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, authentication_method], map: "mfa_amr_claims_session_id_authentication_method_pkey")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_challenges {
+  id                     String      @id @db.Uuid
+  factor_id              String      @db.Uuid
+  created_at             DateTime    @db.Timestamptz(6)
+  verified_at            DateTime?   @db.Timestamptz(6)
+  ip_address             String      @db.Inet
+  otp_code               String?
+  web_authn_session_data Json?
+  mfa_factors            mfa_factors @relation(fields: [factor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "mfa_challenges_auth_factor_id_fkey")
+
+  @@index([created_at(sort: Desc)], map: "mfa_challenge_created_at_idx")
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model mfa_factors {
+  id                           String           @id @db.Uuid
+  user_id                      String           @db.Uuid
+  friendly_name                String?
+  factor_type                  factor_type
+  status                       factor_status
+  created_at                   DateTime         @db.Timestamptz(6)
+  updated_at                   DateTime         @db.Timestamptz(6)
+  secret                       String?
+  phone                        String?
+  last_challenged_at           DateTime?        @unique @db.Timestamptz(6)
+  web_authn_credential         Json?
+  web_authn_aaguid             String?          @db.Uuid
+  last_webauthn_challenge_data Json?
+  mfa_challenges               mfa_challenges[]
+  users                        users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, phone], map: "unique_phone_factor_per_user")
+  @@index([user_id, created_at], map: "factor_id_created_at_idx")
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_authorizations {
+  id                    String                     @id @db.Uuid
+  authorization_id      String                     @unique
+  client_id             String                     @db.Uuid
+  user_id               String?                    @db.Uuid
+  redirect_uri          String
+  scope                 String
+  state                 String?
+  resource              String?
+  code_challenge        String?
+  code_challenge_method code_challenge_method?
+  response_type         oauth_response_type        @default(code)
+  status                oauth_authorization_status @default(pending)
+  authorization_code    String?                    @unique
+  created_at            DateTime                   @default(now()) @db.Timestamptz(6)
+  expires_at            DateTime                   @default(dbgenerated("(now() + '00:03:00'::interval)")) @db.Timestamptz(6)
+  approved_at           DateTime?                  @db.Timestamptz(6)
+  nonce                 String?
+  oauth_clients         oauth_clients              @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                 users?                     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model oauth_client_states {
+  id            String   @id @db.Uuid
+  provider_type String
+  code_verifier String?
+  created_at    DateTime @db.Timestamptz(6)
+
+  @@index([created_at], map: "idx_oauth_client_states_created_at")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_clients {
+  id                         String                  @id @db.Uuid
+  client_secret_hash         String?
+  registration_type          oauth_registration_type
+  redirect_uris              String
+  grant_types                String
+  client_name                String?
+  client_uri                 String?
+  logo_uri                   String?
+  created_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                @default(now()) @db.Timestamptz(6)
+  deleted_at                 DateTime?               @db.Timestamptz(6)
+  client_type                oauth_client_type       @default(confidential)
+  token_endpoint_auth_method String
+  oauth_authorizations       oauth_authorizations[]
+  oauth_consents             oauth_consents[]
+  sessions                   sessions[]
+
+  @@index([deleted_at])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model oauth_consents {
+  id            String        @id @db.Uuid
+  user_id       String        @db.Uuid
+  client_id     String        @db.Uuid
+  scopes        String
+  granted_at    DateTime      @default(now()) @db.Timestamptz(6)
+  revoked_at    DateTime?     @db.Timestamptz(6)
+  oauth_clients oauth_clients @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         users         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, client_id], map: "oauth_consents_user_client_unique")
+  @@index([user_id, granted_at(sort: Desc)], map: "oauth_consents_user_order_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model one_time_tokens {
+  id         String              @id @db.Uuid
+  user_id    String              @db.Uuid
+  token_type one_time_token_type
+  token_hash String
+  relates_to String
+  created_at DateTime            @default(now()) @db.Timestamp(6)
+  updated_at DateTime            @default(now()) @db.Timestamp(6)
+  users      users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, token_type])
+  @@index([relates_to], map: "one_time_tokens_relates_to_hash_idx", type: Hash)
+  @@index([token_hash], map: "one_time_tokens_token_hash_hash_idx", type: Hash)
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model refresh_tokens {
+  instance_id String?   @db.Uuid
+  id          BigInt    @id @default(autoincrement())
+  token       String?   @unique(map: "refresh_tokens_token_unique") @db.VarChar(255)
+  user_id     String?   @db.VarChar(255)
+  revoked     Boolean?
+  created_at  DateTime? @db.Timestamptz(6)
+  updated_at  DateTime? @db.Timestamptz(6)
+  parent      String?   @db.VarChar(255)
+  session_id  String?   @db.Uuid
+  sessions    sessions? @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([instance_id])
+  @@index([instance_id, user_id])
+  @@index([parent])
+  @@index([session_id, revoked])
+  @@index([updated_at(sort: Desc)])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saml_providers {
+  id                String        @id @db.Uuid
+  sso_provider_id   String        @db.Uuid
+  entity_id         String        @unique
+  metadata_xml      String
+  metadata_url      String?
+  attribute_mapping Json?
+  created_at        DateTime?     @db.Timestamptz(6)
+  updated_at        DateTime?     @db.Timestamptz(6)
+  name_id_format    String?
+  sso_providers     sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model saml_relay_states {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  request_id      String
+  for_email       String?
+  redirect_to     String?
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  flow_state_id   String?       @db.Uuid
+  flow_state      flow_state?   @relation(fields: [flow_state_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)])
+  @@index([for_email])
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model schema_migrations {
+  version String @id @db.VarChar(255)
+
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sessions {
+  id                     String           @id @db.Uuid
+  user_id                String           @db.Uuid
+  created_at             DateTime?        @db.Timestamptz(6)
+  updated_at             DateTime?        @db.Timestamptz(6)
+  factor_id              String?          @db.Uuid
+  aal                    aal_level?
+  not_after              DateTime?        @db.Timestamptz(6)
+  refreshed_at           DateTime?        @db.Timestamp(6)
+  user_agent             String?
+  ip                     String?          @db.Inet
+  tag                    String?
+  oauth_client_id        String?          @db.Uuid
+  refresh_token_hmac_key String?
+  refresh_token_counter  BigInt?
+  scopes                 String?
+  mfa_amr_claims         mfa_amr_claims[]
+  refresh_tokens         refresh_tokens[]
+  oauth_clients          oauth_clients?   @relation(fields: [oauth_client_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                  users            @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([not_after(sort: Desc)])
+  @@index([oauth_client_id])
+  @@index([user_id])
+  @@index([user_id, created_at], map: "user_id_created_at_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_domains {
+  id              String        @id @db.Uuid
+  sso_provider_id String        @db.Uuid
+  domain          String
+  created_at      DateTime?     @db.Timestamptz(6)
+  updated_at      DateTime?     @db.Timestamptz(6)
+  sso_providers   sso_providers @relation(fields: [sso_provider_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sso_provider_id])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model sso_providers {
+  id                String              @id @db.Uuid
+  resource_id       String?
+  created_at        DateTime?           @db.Timestamptz(6)
+  updated_at        DateTime?           @db.Timestamptz(6)
+  disabled          Boolean?
+  saml_providers    saml_providers[]
+  saml_relay_states saml_relay_states[]
+  sso_domains       sso_domains[]
+
+  @@index([resource_id], map: "sso_providers_resource_id_pattern_idx")
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model users {
+  instance_id                 String?                @db.Uuid
+  id                          String                 @id @db.Uuid
+  aud                         String?                @db.VarChar(255)
+  role                        String?                @db.VarChar(255)
+  email                       String?                @db.VarChar(255)
+  encrypted_password          String?                @db.VarChar(255)
+  email_confirmed_at          DateTime?              @db.Timestamptz(6)
+  invited_at                  DateTime?              @db.Timestamptz(6)
+  confirmation_token          String?                @db.VarChar(255)
+  confirmation_sent_at        DateTime?              @db.Timestamptz(6)
+  recovery_token              String?                @db.VarChar(255)
+  recovery_sent_at            DateTime?              @db.Timestamptz(6)
+  email_change_token_new      String?                @db.VarChar(255)
+  email_change                String?                @db.VarChar(255)
+  email_change_sent_at        DateTime?              @db.Timestamptz(6)
+  last_sign_in_at             DateTime?              @db.Timestamptz(6)
+  raw_app_meta_data           Json?
+  raw_user_meta_data          Json?
+  is_super_admin              Boolean?
+  created_at                  DateTime?              @db.Timestamptz(6)
+  updated_at                  DateTime?              @db.Timestamptz(6)
+  phone                       String?                @unique
+  phone_confirmed_at          DateTime?              @db.Timestamptz(6)
+  phone_change                String?                @default("")
+  phone_change_token          String?                @default("") @db.VarChar(255)
+  phone_change_sent_at        DateTime?              @db.Timestamptz(6)
+  confirmed_at                DateTime?              @default(dbgenerated("LEAST(email_confirmed_at, phone_confirmed_at)")) @db.Timestamptz(6)
+  email_change_token_current  String?                @default("") @db.VarChar(255)
+  email_change_confirm_status Int?                   @default(0) @db.SmallInt
+  banned_until                DateTime?              @db.Timestamptz(6)
+  reauthentication_token      String?                @default("") @db.VarChar(255)
+  reauthentication_sent_at    DateTime?              @db.Timestamptz(6)
+  is_sso_user                 Boolean                @default(false)
+  deleted_at                  DateTime?              @db.Timestamptz(6)
+  is_anonymous                Boolean                @default(false)
+  identities                  identities[]
+  mfa_factors                 mfa_factors[]
+  oauth_authorizations        oauth_authorizations[]
+  oauth_consents              oauth_consents[]
+  one_time_tokens             one_time_tokens[]
+  sessions                    sessions[]
+  webauthn_challenges         webauthn_challenges[]
+  webauthn_credentials        webauthn_credentials[]
+  goal_transactions           goal_transactions[]
+  profiles                    profiles?
+
+  @@index([created_at(sort: Desc)], map: "idx_users_created_at_desc")
+  @@index([email], map: "idx_users_email")
+  @@index([last_sign_in_at(sort: Desc)], map: "idx_users_last_sign_in_at_desc")
+  @@index([instance_id])
+  @@index([is_anonymous])
+  @@schema("auth")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model webauthn_challenges {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id        String?  @db.Uuid
+  challenge_type String
+  session_data   Json
+  created_at     DateTime @default(now()) @db.Timestamptz(6)
+  expires_at     DateTime @db.Timestamptz(6)
+  users          users?   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([expires_at])
+  @@index([user_id])
+  @@schema("auth")
+}
+
+model webauthn_credentials {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String    @db.Uuid
+  credential_id    Bytes     @unique
+  public_key       Bytes
+  attestation_type String    @default("")
+  aaguid           String?   @db.Uuid
+  sign_count       BigInt    @default(0)
+  transports       Json      @default("[]")
+  backup_eligible  Boolean   @default(false)
+  backed_up        Boolean   @default(false)
+  friendly_name    String    @default("")
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @db.Timestamptz(6)
+  last_used_at     DateTime? @db.Timestamptz(6)
+  users            users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id])
+  @@schema("auth")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model attendance_records {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  session_id String   @db.Uuid
+  profile_id String   @db.Uuid
+  scanned_at DateTime @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  profiles   profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([session_id, profile_id])
+  @@schema("public")
 }
 
 enum user_global_role {
@@ -61,320 +890,72 @@ enum subscription_status {
   @@schema("public")
 }
 
-model profiles {
-  id                  String                 @id @db.Uuid
-  email               String                 @unique
-  full_name           String?
-  avatar_url          String?
-  global_role         user_global_role       @default(user)
-  created_at          DateTime               @default(now()) @db.Timestamptz
-  updated_at          DateTime               @updatedAt @db.Timestamptz
-  organizations       organizations[]
-  organization_members organization_members[]
-  financial_records   financial_records[]
-  attendance          attendance[]
-  attendance_sessions attendance_sessions[]
-  meeting_minutes     meeting_minutes[]
-  goals               goals[]
-  goal_transactions   goal_transactions[]
-  subscriptions       subscriptions[]
-  notifications       notifications[]
-  push_subscriptions  push_subscriptions[]
-  attendance_schedules attendance_schedules[]
+enum aal_level {
+  aal1
+  aal2
+  aal3
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model organizations {
-  id                   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                 String
-  slug                 String                 @unique
-  owner_id             String                 @db.Uuid
-  logo_url             String?
-  invite_code          String?                @unique
-  dues_target_amount   Decimal?               @db.Decimal(15, 2)
-  dues_presets         String?                @default("10000,20000,50000,100000")
-  custom_fields_schema Json?
-  is_edu               Boolean                @default(false)
-  edu_pin              String?                @db.VarChar(10)
-  created_at           DateTime               @default(now()) @db.Timestamptz
-  updated_at           DateTime               @updatedAt @db.Timestamptz
-  owner                profiles               @relation(fields: [owner_id], references: [id])
-  organization_members organization_members[]
-  financial_records   financial_records[]
-  attendance          attendance[]
-  attendance_sessions attendance_sessions[]
-  attendance_schedules attendance_schedules[]
-  meeting_minutes     meeting_minutes[]
-  goals               goals[]
-  org_guests          org_guests[]
+enum code_challenge_method {
+  s256
+  plain
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model organization_members {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String          @db.Uuid
-  profile_id      String          @db.Uuid
-  role            org_member_role @default(member)
-  custom_data     Json?
-  joined_at       DateTime        @default(now()) @db.Timestamptz
-  organization    organizations   @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  profile         profiles        @relation(fields: [profile_id], references: [id], onDelete: Cascade)
+enum factor_status {
+  unverified
+  verified
 
-  @@unique([organization_id, profile_id])
-  @@schema("public")
+  @@schema("auth")
 }
 
-model financial_records {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String?         @db.Uuid
-  profile_id      String          @db.Uuid
-  amount          Decimal         @db.Decimal(15, 2)
-  type            financial_type
-  category        String
-  description     String?
-  receipt_url     String?
-  transaction_date DateTime       @default(now()) @db.Date
-  created_at      DateTime        @default(now()) @db.Timestamptz
-  organization    organizations?  @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  profile         profiles        @relation(fields: [profile_id], references: [id])
+enum factor_type {
+  totp
+  webauthn
+  phone
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model attendance {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String            @db.Uuid
-  profile_id      String            @db.Uuid
-  session_id      String?           @db.Uuid
-  status          attendance_status @default(present)
-  notes           String?
-  proof_url       String?           // Bukti sakit/izin
-  latitude        Float?
-  longitude       Float?
-  distance_meters Float?
-  check_in_time   DateTime          @default(now()) @db.Timestamptz
-  check_out_time  DateTime?         @db.Timestamptz
-  created_at      DateTime          @default(now()) @db.Timestamptz
-  
-  organization    organizations     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  profile         profiles          @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  session         attendance_sessions? @relation(fields: [session_id], references: [id], onDelete: SetNull)
+enum oauth_authorization_status {
+  pending
+  approved
+  denied
+  expired
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model attendance_sessions {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String        @db.Uuid
-  created_by      String        @db.Uuid
-  title           String        @default("Sesi Absensi")
-  session_type    String        @default("in_only") // 'in_only' atau 'in_out'
-  pin_code        String        @db.VarChar(10)
-  checkout_pin_code String?     @db.VarChar(10)
-  latitude        Float
-  longitude       Float
-  radius_meters   Int           @default(50)
-  start_time      DateTime      @default(now()) @db.Timestamptz
-  end_time        DateTime      @default(now()) @db.Timestamptz
-  checkout_start_time DateTime? @db.Timestamptz
-  late_time       DateTime?     @db.Timestamptz
-  is_active       Boolean       @default(true)
-  created_at      DateTime      @default(now()) @db.Timestamptz
-  closed_at       DateTime?     @db.Timestamptz
-  shared_with_orgs String[]     @default([]) // Array of organization IDs that have accepted the collaboration
-  pending_shared_orgs String[]  @default([]) // Array of organization IDs that are invited but haven't accepted
-  
-  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  creator         profiles      @relation(fields: [created_by], references: [id])
-  attendance      attendance[]
-  guest_attendance guest_attendance[]
-  meeting_minutes meeting_minutes?
+enum oauth_client_type {
+  public
+  confidential
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model meeting_minutes {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String        @db.Uuid
-  session_id      String?       @unique @db.Uuid
-  title           String
-  content         String        @db.Text
-  ai_summary      String?       @db.Text
-  created_by      String        @db.Uuid
-  created_at      DateTime      @default(now()) @db.Timestamptz
-  updated_at      DateTime      @default(now()) @updatedAt @db.Timestamptz
-  
-  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  session         attendance_sessions? @relation(fields: [session_id], references: [id], onDelete: SetNull)
-  author          profiles      @relation(fields: [created_by], references: [id])
+enum oauth_registration_type {
+  dynamic
+  manual
 
-  @@schema("public")
+  @@schema("auth")
 }
 
-model notifications {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_id  String    @db.Uuid
-  title       String
-  body        String
-  is_read     Boolean   @default(false)
-  created_at  DateTime  @default(now()) @db.Timestamptz
-  
-  profile     profiles  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  @@schema("public")
+enum oauth_response_type {
+  code
+
+  @@schema("auth")
 }
 
-model push_subscriptions {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_id  String    @db.Uuid
-  endpoint    String    @unique
-  p256dh      String
-  auth        String
-  created_at  DateTime  @default(now()) @db.Timestamptz
-  
-  profile     profiles  @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  @@schema("public")
-}
+enum one_time_token_type {
+  confirmation_token
+  reauthentication_token
+  recovery_token
+  email_change_token_new
+  email_change_token_current
+  phone_change_token
 
-model goals {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String?       @db.Uuid
-  profile_id      String        @db.Uuid
-  type            String        @default("saving") // "saving" (Target Tabungan) or "budget" (Batas Anggaran)
-  budget_category String?       // Jika type="budget", ini menyimpan kategori pengeluaran (misal: "Konsumsi")
-  period          String?       @default("monthly") // "monthly" atau "yearly"
-  title           String
-  description     String?
-  target_amount   Decimal?      @db.Decimal(15, 2)
-  current_amount  Decimal?      @default(0.00) @db.Decimal(15, 2)
-  deadline        DateTime?     @db.Date
-  status          goal_status   @default(active)
-  created_at      DateTime      @default(now()) @db.Timestamptz
-  organization    organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  profile         profiles      @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-  goal_transactions goal_transactions[]
-
-  @@schema("public")
-}
-
-model goal_transactions {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  goal_id    String   @db.Uuid
-  profile_id String   @db.Uuid
-  amount     Decimal  @db.Decimal(15, 2)
-  type       String   @default("income") // 'income', 'expense', or 'transfer_out'
-  source     String   // 'kas' or 'eksternal' (atau bisa jadi 'target' jika pindahan)
-  description String?
-  created_at DateTime @default(now()) @db.Timestamptz
-
-  goal    goals    @relation(fields: [goal_id], references: [id], onDelete: Cascade)
-  profile profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-
-  @@schema("public")
-}
-
-model subscriptions {
-  id                      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_id              String              @db.Uuid
-  pakasir_subscription_id String?             @unique
-  status                  subscription_status @default(active)
-  plan_type               String
-  payment_url             String?
-  amount_paid             Decimal?            @db.Decimal(15, 2)
-  starts_at               DateTime            @db.Timestamptz
-  expires_at              DateTime            @db.Timestamptz
-  created_at              DateTime            @default(now()) @db.Timestamptz
-  updated_at              DateTime            @updatedAt @db.Timestamptz
-  profile                 profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade)
-
-  @@schema("public")
-}
-
-model org_guests {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String            @db.Uuid
-  name            String
-  identifier      String            // e.g. NIM/Email
-  qr_token        String            @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  custom_data     Json?
-  created_at      DateTime          @default(now()) @db.Timestamptz
-
-  organization    organizations     @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  guest_attendance guest_attendance[]
-
-  @@schema("public")
-}
-
-model guest_attendance {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  session_id      String            @db.Uuid
-  guest_id        String            @db.Uuid
-  status          attendance_status @default(present)
-  check_in_time   DateTime          @default(now()) @db.Timestamptz
-  created_at      DateTime          @default(now()) @db.Timestamptz
-
-  session         attendance_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade)
-  guest           org_guests          @relation(fields: [guest_id], references: [id], onDelete: Cascade)
-
-  @@unique([session_id, guest_id])
-  @@schema("public")
-}
-
-model attendance_schedules {
-  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organization_id String        @db.Uuid
-  created_by      String        @db.Uuid
-  title           String        @default("Sesi Rutin")
-  session_type    String        @default("in_only")
-  latitude        Float
-  longitude       Float
-  radius_meters   Int           @default(50)
-  
-  days_of_week    Int[]         // [1,2,3,4,5] for Mon-Fri (0=Sunday, 1=Monday... 6=Saturday)
-  start_time      String        // "08:00"
-  end_time        String        // "17:00"
-  late_time       String?       // "08:15"
-  
-  is_active       Boolean       @default(true)
-  created_at      DateTime      @default(now()) @db.Timestamptz
-
-  organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade)
-  creator         profiles      @relation(fields: [created_by], references: [id])
-
-  @@schema("public")
-}
-
-
-
-model system_settings {
-  key         String   @id
-  value       Json
-  description String?
-  updated_at  DateTime @updatedAt @db.Timestamptz
-
-  @@schema("public")
-}
-
-model announcements {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title      String
-  content    String
-  type       String   @default("info")
-  is_active  Boolean  @default(true)
-  starts_at  DateTime? @db.Timestamptz
-  ends_at    DateTime? @db.Timestamptz
-  created_at DateTime @default(now()) @db.Timestamptz
-
-  @@schema("public")
-}
-
-model feature_flags {
-  key         String   @id
-  is_enabled  Boolean  @default(false)
-  description String?
-  created_at  DateTime @default(now()) @db.Timestamptz
-  updated_at  DateTime @updatedAt @db.Timestamptz
-
-  @@schema("public")
+  @@schema("auth")
 }

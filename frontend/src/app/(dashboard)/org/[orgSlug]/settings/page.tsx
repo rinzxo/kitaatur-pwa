@@ -100,8 +100,8 @@ export default function OrgSettingsPage() {
         if (settingsRes.data.is_edu !== undefined) {
           setIsSchool(settingsRes.data.is_edu)
         }
-        if (settingsRes.data.school_pin) {
-          setSchoolPin(settingsRes.data.school_pin)
+        if (settingsRes.data.edu_pin) {
+          setSchoolPin(settingsRes.data.edu_pin)
         }
 
         // Fetch all user orgs to find this one and its ID
@@ -142,7 +142,7 @@ export default function OrgSettingsPage() {
         name: orgName, 
         logo_url: orgLogo,
         is_edu: isSchool,
-        school_pin: schoolPin 
+        edu_pin: schoolPin 
       })
       toast.success('Profil organisasi berhasil disimpan.')
     } catch (err: any) {
