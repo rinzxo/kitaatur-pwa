@@ -133,7 +133,7 @@ export async function addOrganizationMember(req: Request, res: Response) {
 
   try {
     // A. Cari apakah email sudah terdaftar di profiles
-    let profile = await prisma.profiles.findUnique({
+    let profile = await prisma.profiles.findFirst({
       where: { email }
     })
 
@@ -507,7 +507,8 @@ export async function addGoalProgress(req: any, res: Response) {
           amount: new Prisma.Decimal(amount),
           type: 'expense',
           category: 'Alokasi Target',
-          description: `Alokasi untuk target: ${targetGoal.title}`
+          description: `Alokasi untuk target: ${targetGoal.title}`,
+          transaction_date: new Date()
         }
       })
     }
@@ -558,7 +559,7 @@ export async function getGoalTransactions(req: any, res: Response) {
       return res.status(404).json({ error: 'Target tidak ditemukan' })
     }
 
-    const transactions = await prisma.goal_transactions.findMany({
+    const transactions = await (prisma as any).goal_transactions.findMany({
       where: { goal_id: goalId },
       orderBy: { created_at: 'desc' },
       include: {
@@ -648,7 +649,8 @@ export async function manageGoalFunds(req: any, res: Response) {
             amount: new Prisma.Decimal(amount),
             type: 'income',
             category: 'Pencairan Target',
-            description: description || `Pencairan dari target: ${sourceGoal.title}`
+            description: description || `Pencairan dari target: ${sourceGoal.title}`,
+            transaction_date: new Date()
           }
         })
       } else if (action === 'transfer_goal') {
