@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Search, GraduationCap, CheckCircle, Clock, AlertTriangle, UserCircle, X } from 'lucide-react'
+import { ArrowLeft, Search, GraduationCap, CheckCircle, Clock, AlertTriangle, UserCircle, X, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { CustomUpload } from '@/components/ui/CustomUpload'
 
@@ -23,6 +23,10 @@ export default function EduStudentDashboardPage() {
   const [leaveNotes, setLeaveNotes] = useState('')
   const [proofUrl, setProofUrl] = useState('')
   const [submittingLeave, setSubmittingLeave] = useState(false)
+  const [uploadingProofFor, setUploadingProofFor] = useState<string | null>(null)
+  const [uploadingProof, setUploadingProof] = useState(false)
+  const [viewProofUrl, setViewProofUrl] = useState<string | null>(null)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
 
   useEffect(() => {
     // Check PIN from session storage
@@ -88,6 +92,24 @@ export default function EduStudentDashboardPage() {
   const handleLogout = () => {
     sessionStorage.removeItem(`edu_pin_${orgId}`)
     router.push(`/school/${orgId}`)
+  }
+
+  const handleUploadProof = async (sessionId: string, url: string) => {
+    setUploadingProof(true)
+    try {
+      await api.patch(`/school/schools/${orgId}/student/leave/proof`, {
+        identifier: studentData.identifier,
+        session_id: sessionId,
+        proof_url: url
+      })
+      toast.success('Surat dokter berhasil diunggah!')
+      setUploadingProofFor(null)
+      await fetchStudentData(identifier, pin)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal mengunggah surat')
+    } finally {
+      setUploadingProof(false)
+    }
   }
 
   if (!pin) return null
@@ -197,7 +219,7 @@ export default function EduStudentDashboardPage() {
                       </strong>
                     </p>
                   </div>
-                  {(activeSession.status === 'alpha' || activeSession.status === 'izin' || activeSession.status === 'sakit') && (
+                  {activeSession.status === 'alpha' && (
                     <button 
                       onClick={() => setShowLeaveModal(true)}
                       className="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 whitespace-nowrap"
@@ -324,15 +346,32 @@ export default function EduStudentDashboardPage() {
                       
                       <div>
                         {h.proof_url ? (
-                          <a href={h.proof_url} target="_blank" rel="noreferrer" className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors inline-block whitespace-nowrap">Lihat Bukti</a>
+                          <button onClick={() => setViewProofUrl(h.proof_url)} className="text-sm font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors inline-block whitespace-nowrap">Lihat Bukti</button>
                         ) : (
                           h.status === 'sakit' ? (
-                            <button 
-                               className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg whitespace-nowrap"
-                               onClick={() => toast('Silakan buat pengajuan absensi baru di Sesi yang sama untuk mengunggah ulang', { icon: 'ℹ️' })}
-                            >
-                               Susulan Bukti
-                            </button>
+                            uploadingProofFor === h.session_id ? (
+                              <div className="space-y-2 min-w-[200px]">
+                                <CustomUpload
+                                  onUpload={(url) => handleUploadProof(h.session_id, url)}
+                                  label={uploadingProof ? 'Mengunggah...' : 'Upload Surat Dokter'}
+                                  className="!p-3 border-dashed border-2 rounded-xl text-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setUploadingProofFor(null)}
+                                  className="text-xs text-slate-500 hover:text-slate-700 w-full text-center"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setUploadingProofFor(h.session_id)}
+                                className="text-xs font-bold bg-orange-100 hover:bg-orange-200 text-orange-700 px-3 py-1.5 rounded-lg whitespace-nowrap transition-colors"
+                              >
+                                Upload Surat Sakit
+                              </button>
+                            )
                           ) : null
                         )}
                       </div>
@@ -372,21 +411,68 @@ export default function EduStudentDashboardPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className="block text-sm font-bold text-slate-700 mb-1.5">Pilih Sesi</label>
-                  <select 
-                    value={leaveSessionId} 
-                    onChange={(e) => setLeaveSessionId(e.target.value)} 
-                    required 
-                    className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-medium"
+                  
+                  {/* Custom Select Button */}
+                  <div 
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className={`w-full p-3.5 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm font-medium flex justify-between items-center cursor-pointer bg-white transition-all ${isDropdownOpen ? 'border-blue-500 ring-2 ring-blue-100' : 'border-slate-200 hover:border-slate-300'}`}
                   >
-                    <option value="" disabled>-- Pilih Sesi --</option>
-                    {studentData?.sessions?.map((s: any) => (
-                      <option key={s.id} value={s.id}>
-                        {s.title} ({new Date(s.start_time).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })})
-                      </option>
-                    ))}
-                  </select>
+                    <span className={leaveSessionId ? 'text-slate-900 font-bold' : 'text-slate-400 font-medium'}>
+                      {leaveSessionId 
+                        ? (() => {
+                            const selected = studentData?.sessions?.find((s: any) => s.id === leaveSessionId);
+                            return selected ? `${selected.title} (${new Date(selected.start_time).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })})` : '-- Pilih Sesi --';
+                          })()
+                        : '-- Pilih Sesi --'
+                      }
+                    </span>
+                    <ChevronDown className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </div>
+
+                  {/* Custom Dropdown List */}
+                  {isDropdownOpen && (
+                    <>
+                      {/* Invisible backdrop to close dropdown when clicking outside */}
+                      <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)}></div>
+                      
+                      <div className="absolute z-20 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200 divide-y divide-slate-50">
+                        {(() => {
+                          const activeSessions = studentData?.sessions?.filter((s: any) => {
+                            if (!s.is_active) return false;
+                            const sessionDate = new Date(s.start_time);
+                            const today = new Date();
+                            return sessionDate.getDate() === today.getDate() &&
+                                   sessionDate.getMonth() === today.getMonth() &&
+                                   sessionDate.getFullYear() === today.getFullYear();
+                          });
+
+                          if (!activeSessions || activeSessions.length === 0) {
+                            return <div className="p-4 text-sm text-slate-500 text-center font-medium">Tidak ada sesi aktif hari ini</div>;
+                          }
+
+                          return activeSessions.map((s: any) => (
+                            <div 
+                              key={s.id} 
+                              onClick={() => {
+                                setLeaveSessionId(s.id);
+                                setIsDropdownOpen(false);
+                              }}
+                              className={`p-3.5 cursor-pointer transition-colors flex flex-col gap-1 relative overflow-hidden ${leaveSessionId === s.id ? 'bg-blue-50/80' : 'hover:bg-slate-50'}`}
+                            >
+                              {leaveSessionId === s.id && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-full"></div>}
+                              <span className={`text-sm ${leaveSessionId === s.id ? 'text-blue-700 font-bold' : 'text-slate-700 font-bold'}`}>{s.title}</span>
+                              <span className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {new Date(s.start_time).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                              </span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div>
@@ -415,6 +501,30 @@ export default function EduStudentDashboardPage() {
                   {submittingLeave ? 'Menyimpan...' : 'Kirim Pengajuan'}
                 </button>
               </form>
+            </div>
+          </div>
+        )}
+
+        {viewProofUrl && (
+          <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex flex-col animate-in fade-in duration-200" onClick={() => setViewProofUrl(null)}>
+            {/* Header / Top Bar */}
+            <div className="flex justify-between items-center p-4 bg-gradient-to-b from-black/60 to-transparent absolute top-0 left-0 right-0 z-10" onClick={e => e.stopPropagation()}>
+              <h3 className="text-white font-medium text-sm drop-shadow-md">Bukti Surat</h3>
+              <button 
+                onClick={() => setViewProofUrl(null)}
+                className="p-2 text-white/80 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-all active:scale-95 backdrop-blur-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Image Container */}
+            <div className="flex-1 flex items-center justify-center p-4 w-full h-full pt-16" onClick={e => e.stopPropagation()}>
+              <img 
+                src={viewProofUrl} 
+                alt="Bukti Surat" 
+                className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-300"
+              />
             </div>
           </div>
         )}

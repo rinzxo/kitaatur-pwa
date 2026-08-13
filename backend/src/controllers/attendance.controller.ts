@@ -35,6 +35,27 @@ export async function createSession(req: any, res: Response) {
     return res.status(400).json({ error: 'Waktu mulai dan selesai wajib disertakan' });
   }
 
+  const startDt = new Date(start_time);
+  const endDt = new Date(end_time);
+
+  if (endDt <= startDt) {
+    return res.status(400).json({ error: 'Waktu Selesai harus lebih besar dari Waktu Mulai' });
+  }
+
+  if (late_time) {
+    const lateDt = new Date(late_time);
+    if (lateDt <= startDt || lateDt >= endDt) {
+      return res.status(400).json({ error: 'Batas keterlambatan harus berada di antara Waktu Mulai dan Waktu Selesai' });
+    }
+  }
+
+  if (session_type === 'in_out' && checkout_start_time) {
+    const checkoutDt = new Date(checkout_start_time);
+    if (checkoutDt <= startDt || checkoutDt >= endDt) {
+      return res.status(400).json({ error: 'Waktu mulai absen pulang harus di antara Waktu Mulai dan Waktu Selesai' });
+    }
+  }
+
   try {
     // Generate random 4-digit PIN
     const pin_code = Math.floor(1000 + Math.random() * 9000).toString();

@@ -44,16 +44,25 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
       {showSplash && (
         <div
           id="splash-screen"
-          className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
+          className={`fixed inset-0 z-[9999] overflow-hidden bg-white transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
         >
-          {/* Full Screen Video Animation - Dynamically changed based on orientation */}
+          {/* Full Screen Video Animation - portrait & landscape masing-masing sudah didesain khusus */}
           <video
             key={isPortrait ? 'portrait' : 'landscape'}
             autoPlay
             muted
             playsInline
-            // Karena videonya sudah didesain khusus (portrait & landscape), kita bisa pakai object-cover
-            className="w-full h-full object-cover z-10"
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              minWidth: '100%',
+              minHeight: '100%',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'cover',
+            }}
           >
             <source 
               src={isPortrait ? "/videos/Starting potrait.mp4" : "/videos/Starting anm.mp4"} 

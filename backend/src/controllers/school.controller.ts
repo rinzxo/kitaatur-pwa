@@ -178,7 +178,10 @@ export async function getStudentStats(req: Request, res: Response) {
             created_at: l.created_at
           };
         }).sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
-        sessions: applicableSessions,
+        sessions: applicableSessions.map((session: any) => ({
+          ...session,
+          is_active: session.is_active && new Date(session.start_time) <= now && new Date(session.end_time) >= now
+        })),
         history: applicableSessions.map((session: any) => {
           let status = 'alpha';
           let check_in_time = null;
@@ -337,3 +340,48 @@ export async function getMonitorData(req: Request, res: Response) {
   }
 }
 
+// 6. Update Proof URL for Existing Sick Leave (tanpa submit ulang)
+export async function updateLeaveProof(req: Request, res: Response) {
+  const { orgId } = req.params;
+  const { identifier, session_id, proof_url } = req.body;
+
+  if (!identifier || !session_id || !proof_url) {
+    return res.status(400).json({ error: 'identifier, session_id, dan proof_url wajib diisi.' });
+  }
+
+  try {
+    const student = await prisma.org_guests.findFirst({
+      where: {
+        organization_id: orgId,
+        identifier: { equals: identifier.trim(), mode: 'insensitive' }
+      }
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: 'Data siswa tidak ditemukan.' });
+    }
+
+    const leave = await (prisma as any).guest_leaves.findFirst({
+      where: {
+        guest_id: student.id,
+        session_id,
+        organization_id: orgId,
+        type: 'sakit'
+      }
+    });
+
+    if (!leave) {
+      return res.status(404).json({ error: 'Data izin sakit untuk sesi ini tidak ditemukan.' });
+    }
+
+    const updated = await (prisma as any).guest_leaves.update({
+      where: { id: leave.id },
+      data: { proof_url }
+    });
+
+    return res.json({ success: true, message: 'Surat dokter berhasil diunggah.', leave: updated });
+  } catch (error) {
+    console.error('Error updating leave proof:', error);
+    return res.status(500).json({ error: 'Terjadi kesalahan saat mengunggah surat.' });
+  }
+}

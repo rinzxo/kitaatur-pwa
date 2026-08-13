@@ -139,6 +139,33 @@ export default function CreateSessionPage() {
     e.preventDefault()
     setLoading(true)
 
+    const startDt = new Date(startTime)
+    const endDt = new Date(endTime)
+
+    if (endDt <= startDt) {
+      toast.error('Waktu Selesai harus lebih besar dari Waktu Mulai')
+      setLoading(false)
+      return
+    }
+
+    if (lateTime) {
+      const lateDt = new Date(lateTime)
+      if (lateDt <= startDt || lateDt >= endDt) {
+        toast.error('Batas keterlambatan harus berada di antara Waktu Mulai dan Waktu Selesai')
+        setLoading(false)
+        return
+      }
+    }
+
+    if (sessionType === 'in_out' && checkoutStartTime) {
+      const checkoutDt = new Date(checkoutStartTime)
+      if (checkoutDt <= startDt || checkoutDt >= endDt) {
+        toast.error('Waktu mulai absen pulang harus di antara Waktu Mulai dan Waktu Selesai')
+        setLoading(false)
+        return
+      }
+    }
+
     const submitData = async (latitude: number, longitude: number) => {
       try {
         const payload = {
