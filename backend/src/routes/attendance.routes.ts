@@ -63,7 +63,7 @@ router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', '
 router.put('/:orgIdOrSlug/sessions/:sessionId/close', requireOrgRole(['head', 'sekretaris']), closeSession)
 
 // Manual Bulk Check-in (Untuk Head/Sekretaris/Delegasi)
-router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'sekretaris']), manualBulkCheckIn)
+router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'sekretaris', 'member']), manualBulkCheckIn)
 
 
 // ========================
