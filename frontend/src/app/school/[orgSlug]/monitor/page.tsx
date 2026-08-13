@@ -17,6 +17,7 @@ export default function MonitorPage() {
   
   const [data, setData] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSessionId, setSelectedSessionId] = useState<string>('all')
 
   const submitPin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -113,6 +114,26 @@ export default function MonitorPage() {
              />
           </div>
         </div>
+        
+        {sessions.length > 0 && (
+          <div className="max-w-5xl mx-auto mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedSessionId('all')}
+              className={`px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${selectedSessionId === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              Semua Sesi
+            </button>
+            {sessions.map((s: any) => (
+              <button
+                key={s.id}
+                onClick={() => setSelectedSessionId(s.id)}
+                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${selectedSessionId === s.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {s.title}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="max-w-5xl mx-auto px-4 mt-6 space-y-3">
@@ -124,10 +145,13 @@ export default function MonitorPage() {
              let status = 'alpha'
              let notes = null
 
-             if (g.guest_attendance && g.guest_attendance.length > 0) {
-                 status = g.guest_attendance[0].status
-             } else if (g.guest_leaves && g.guest_leaves.length > 0) {
-                 const leave = g.guest_leaves[0]
+             const targetAttendances = selectedSessionId === 'all' ? g.guest_attendance : g.guest_attendance.filter((a:any) => a.session_id === selectedSessionId);
+             const targetLeaves = selectedSessionId === 'all' ? g.guest_leaves : g.guest_leaves.filter((l:any) => l.session_id === selectedSessionId);
+
+             if (targetAttendances && targetAttendances.length > 0) {
+                 status = targetAttendances[0].status
+             } else if (targetLeaves && targetLeaves.length > 0) {
+                 const leave = targetLeaves[0]
                  status = leave.type
                  notes = leave.notes
                  if (status === 'sakit' && !leave.proof_url) {
