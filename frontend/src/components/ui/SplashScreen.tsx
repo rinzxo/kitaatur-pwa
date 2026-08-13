@@ -5,8 +5,20 @@ import { useEffect, useState } from 'react'
 export function SplashScreen({ children }: { children: React.ReactNode }) {
   const [showSplash, setShowSplash] = useState(true)
   const [isFading, setIsFading] = useState(false)
+  const [isPortrait, setIsPortrait] = useState(true)
 
   useEffect(() => {
+    // Check orientation
+    const checkOrientation = () => {
+      setIsPortrait(window.innerHeight > window.innerWidth)
+    }
+    
+    // Initial check
+    checkOrientation()
+    
+    // Listen for resize
+    window.addEventListener('resize', checkOrientation)
+
     // Mark as shown for future reloads in the same session via a session cookie (no expires attribute)
     document.cookie = "kitaatur_splash_shown=true; path=/";
 
@@ -23,6 +35,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
     return () => {
       clearTimeout(fadeTimer)
       clearTimeout(removeTimer)
+      window.removeEventListener('resize', checkOrientation)
     }
   }, [])
 
@@ -33,14 +46,19 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
           id="splash-screen"
           className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white transition-opacity duration-500 ease-in-out ${isFading ? 'opacity-0' : 'opacity-100'}`}
         >
-          {/* Full Screen Video Animation */}
+          {/* Full Screen Video Animation - Dynamically changed based on orientation */}
           <video
+            key={isPortrait ? 'portrait' : 'landscape'}
             autoPlay
             muted
             playsInline
+            // Karena videonya sudah didesain khusus (portrait & landscape), kita bisa pakai object-cover
             className="w-full h-full object-cover z-10"
           >
-            <source src="/videos/Starting Animation.webm" type="video/webm" />
+            <source 
+              src={isPortrait ? "/videos/Starting potrait.mp4" : "/videos/Starting anm.mp4"} 
+              type="video/mp4" 
+            />
           </video>
         </div>
       )}
