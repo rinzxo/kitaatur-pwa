@@ -1,13 +1,37 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
-export function SplashScreen({ children }: { children: React.ReactNode }) {
-  const [showSplash, setShowSplash] = useState(true)
+export function SplashScreen({ 
+  children,
+  hasSeenSplash = false
+}: { 
+  children: React.ReactNode,
+  hasSeenSplash?: boolean
+}) {
+  const pathname = usePathname()
+  
+  // Evaluate if we should show splash.
+  // - Landing page ('/'): Always show
+  // - Login page ('/login'): Show only if haven't seen splash this session
+  // - Others: Don't show
+  const [isTargetPage] = useState(() => {
+    if (pathname === '/') return true;
+    if (pathname === '/login') return !hasSeenSplash;
+    return false;
+  })
+  
+  const [showSplash, setShowSplash] = useState(isTargetPage)
   const [isFading, setIsFading] = useState(false)
   const [isPortrait, setIsPortrait] = useState(true)
 
   useEffect(() => {
+    // Mark as shown for future reloads in the same session via a session cookie (no expires attribute)
+    document.cookie = "kitaatur_splash_shown=true; path=/";
+
+    if (!isTargetPage) return;
+
     // Check orientation
     const checkOrientation = () => {
       setIsPortrait(window.innerHeight > window.innerWidth)
@@ -18,9 +42,6 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
     
     // Listen for resize
     window.addEventListener('resize', checkOrientation)
-
-    // Mark as shown for future reloads in the same session via a session cookie (no expires attribute)
-    document.cookie = "kitaatur_splash_shown=true; path=/";
 
     // Start fading out after 4 seconds
     const fadeTimer = setTimeout(() => {
@@ -37,7 +58,7 @@ export function SplashScreen({ children }: { children: React.ReactNode }) {
       clearTimeout(removeTimer)
       window.removeEventListener('resize', checkOrientation)
     }
-  }, [])
+  }, [isTargetPage])
 
   return (
     <>

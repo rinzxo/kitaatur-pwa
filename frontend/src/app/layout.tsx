@@ -78,19 +78,12 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
       <body suppressHydrationWarning>
-        {!splashShown ? (
-          <SplashScreen>
-            <ConfirmProvider>
-              {children}
-              <Toaster position="top-center" />
-            </ConfirmProvider>
-          </SplashScreen>
-        ) : (
+        <SplashScreen hasSeenSplash={!!splashShown}>
           <ConfirmProvider>
             {children}
             <Toaster position="top-center" />
           </ConfirmProvider>
-        )}
+        </SplashScreen>
         <ServiceWorkerRegistration />
         <script
           dangerouslySetInnerHTML={{
