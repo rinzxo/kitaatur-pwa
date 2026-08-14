@@ -284,7 +284,7 @@ export async function submitStudentLeave(req: Request, res: Response) {
 // 5. Get Monitor Data
 export async function getMonitorData(req: Request, res: Response) {
   const { orgId } = req.params;
-  const { pin } = req.body;
+  const { pin, sessionId } = req.body;
 
   if (!pin) {
     return res.status(400).json({ error: 'PIN wajib diisi.' });
@@ -304,20 +304,40 @@ export async function getMonitorData(req: Request, res: Response) {
       return res.status(401).json({ error: 'PIN yang dimasukkan salah.' });
     }
 
-    // Get active sessions for today
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-
-    const sessions = await prisma.attendance_sessions.findMany({
-      where: {
-        organization_id: orgId,
-        start_time: { gte: startOfDay, lte: endOfDay }
-      },
-      orderBy: { start_time: 'asc' }
+    // Get all sessions for the dropdown
+    const allSessionsRaw = await prisma.attendance_sessions.findMany({
+      where: { organization_id: orgId },
+      orderBy: { start_time: 'desc' },
+      select: { id: true, title: true, start_time: true, end_time: true, is_active: true }
     });
 
-    const sessionIds = sessions.map(s => s.id);
+    const now = new Date();
+    const allSessions = allSessionsRaw.map((s: any) => ({
+      ...s,
+      is_currently_active: s.is_active && new Date(s.start_time) <= now && new Date(s.end_time) >= now
+    }));
+
+    let sessionsToFetch = [];
+    if (sessionId && sessionId !== 'today' && sessionId !== 'all') {
+      sessionsToFetch = await prisma.attendance_sessions.findMany({
+        where: { id: sessionId, organization_id: orgId }
+      });
+    } else {
+      // Get active sessions for today
+      const now = new Date();
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+      sessionsToFetch = await prisma.attendance_sessions.findMany({
+        where: {
+          organization_id: orgId,
+          start_time: { gte: startOfDay, lte: endOfDay }
+        },
+        orderBy: { start_time: 'asc' }
+      });
+    }
+
+    const sessionIds = sessionsToFetch.map((s: any) => s.id);
 
     // Get all guests
     const guests = await prisma.org_guests.findMany({
@@ -333,7 +353,7 @@ export async function getMonitorData(req: Request, res: Response) {
       }
     });
 
-    return res.json({ success: true, sessions, guests });
+    return res.json({ success: true, sessions: sessionsToFetch, allSessions, guests });
   } catch (error) {
     console.error('Error fetching monitor data:', error);
     return res.status(500).json({ error: 'Terjadi kesalahan saat memuat data monitor.' });

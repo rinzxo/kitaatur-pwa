@@ -19,22 +19,28 @@ export default function MonitorPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedSessionId, setSelectedSessionId] = useState<string>('all')
 
-  const submitPin = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-    if (!pin) return
-
+  const fetchSessionData = async (sessionId: string, isInitial = false) => {
     setLoading(true)
     try {
-      const res = await api.post(`/school/schools/${orgId}/monitor`, { pin })
+      const res = await api.post(`/school/schools/${orgId}/monitor`, { pin, sessionId })
       setData(res.data)
-      setAuthorized(true)
-      toast.success('Akses Diberikan')
+      setSelectedSessionId(sessionId)
+      if (isInitial) {
+        setAuthorized(true)
+        toast.success('Akses Diberikan')
+      }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'PIN salah')
-      setPin('')
+      toast.error(err.response?.data?.error || (isInitial ? 'PIN salah' : 'Gagal memuat data'))
+      if (isInitial) setPin('')
     } finally {
       setLoading(false)
     }
+  }
+
+  const submitPin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    if (!pin) return
+    await fetchSessionData('all', true)
   }
 
   if (!authorized) {
@@ -77,7 +83,7 @@ export default function MonitorPage() {
   }
 
   // Monitor Dashboard
-  const { guests, sessions } = data
+  const { guests, sessions, allSessions } = data
   const filteredGuests = guests.filter((g: any) => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (g.identifier && g.identifier.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -99,9 +105,9 @@ export default function MonitorPage() {
             </div>
             <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
               <Users className="w-6 h-6 text-blue-600" />
-              Rekap Kehadiran Hari Ini
+              {selectedSessionId === 'all' ? 'Rekap Kehadiran Hari Ini' : 'Rekap Kehadiran Sesi'}
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Sesi: {sessions.length > 0 ? sessions.map((s:any) => s.title).join(', ') : 'Tidak ada sesi aktif hari ini'}</p>
+            <p className="text-sm text-slate-500 mt-1">Sesi: {sessions.length > 0 ? sessions.map((s:any) => s.title).join(', ') : 'Tidak ada sesi'}</p>
           </div>
           <div className="w-full md:w-auto relative">
              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -115,23 +121,21 @@ export default function MonitorPage() {
           </div>
         </div>
         
-        {sessions.length > 0 && (
-          <div className="max-w-5xl mx-auto mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedSessionId('all')}
-              className={`px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${selectedSessionId === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+        {allSessions && allSessions.length > 0 && (
+          <div className="max-w-5xl mx-auto mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold text-slate-600">Pilih Sesi:</span>
+            <select
+              value={selectedSessionId}
+              onChange={(e) => fetchSessionData(e.target.value)}
+              className="px-4 py-2 bg-slate-100 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl text-sm font-bold text-slate-700 outline-none cursor-pointer transition-all min-w-[200px]"
             >
-              Semua Sesi
-            </button>
-            {sessions.map((s: any) => (
-              <button
-                key={s.id}
-                onClick={() => setSelectedSessionId(s.id)}
-                className={`px-3 py-1.5 rounded-full text-sm font-bold transition-colors ${selectedSessionId === s.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                {s.title}
-              </button>
-            ))}
+              <option value="all">Sesi Hari Ini</option>
+              {allSessions.map((s: any) => (
+                <option key={s.id} value={s.id}>
+                  {s.title} ({new Date(s.start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}) {s.is_currently_active ? '🟢' : '⚪'}
+                </option>
+              ))}
+            </select>
           </div>
         )}
       </div>
