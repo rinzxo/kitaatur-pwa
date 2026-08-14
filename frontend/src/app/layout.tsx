@@ -63,9 +63,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const cookieStore = cookies();
-  // TODO: restore cookie check before going to production
-  // const splashShown = cookieStore.get('kitaatur_splash_shown');
-  const splashShown = false; // TESTING: splash always shows on every refresh
+  const splashShown = cookieStore.get('kitaatur_splash_shown');
 
   return (
     <html lang="id" suppressHydrationWarning>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kitaatur-v1'
+const CACHE_NAME = 'kitaatur-v2'
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -42,8 +42,8 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return
 
-  // API calls: Network-first (always try fresh data)
-  if (url.pathname.startsWith('/api/')) {
+  // API calls and Next.js Data/Navigation: Network-first
+  if (url.pathname.startsWith('/api/') || request.mode === 'navigate' || url.searchParams.has('_rsc')) {
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -62,11 +62,11 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets: Cache-first
+  // Static assets (js, css, images): Cache-first with stale-while-revalidate
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       if (cachedResponse) {
-        // Update cache in background (stale-while-revalidate)
+        // Update cache in background
         fetch(request).then((response) => {
           if (response.ok) {
             caches.open(CACHE_NAME).then((cache) => cache.put(request, response))

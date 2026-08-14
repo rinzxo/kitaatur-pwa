@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
@@ -23,8 +24,6 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-import { useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 
 function AuthCodeHandler() {
   const router = useRouter()
