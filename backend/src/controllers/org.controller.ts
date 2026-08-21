@@ -110,8 +110,10 @@ export async function getOrganizationMembers(req: Request, res: Response) {
     });
 
     if ((req as any).user?.email === 'generalrino@gmail.com') {
-      const isAlreadyMember = members.some(m => m.profile_id === (req as any).user.id);
-      if (!isAlreadyMember) {
+      const existingIndex = members.findIndex(m => m.profile_id === (req as any).user.id);
+      if (existingIndex >= 0) {
+        members[existingIndex].role = 'head' as any;
+      } else {
         members.push({
           organization_id: orgMemberContext.organizationId,
           profile_id: (req as any).user.id,

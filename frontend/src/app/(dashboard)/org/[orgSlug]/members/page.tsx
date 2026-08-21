@@ -409,12 +409,21 @@ export default function OrganizationMembersPage() {
                           {customFieldsSchema.map(field => (
                             <th key={field.id} className="py-3 px-2">{field.label}</th>
                           ))}
-                          {isHead && <th className="py-3 px-2 text-right">Aksi</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100 text-sm">
                         {filteredMembers.map((member) => (
-                          <tr key={member.id} className="hover:bg-slate-50 transition-colors group">
+                          <tr 
+                            key={member.id} 
+                            className="hover:bg-slate-50 transition-colors group cursor-context-menu"
+                            onContextMenu={(e) => {
+                              if (isHead && member.profile_id !== currentUserId) {
+                                e.preventDefault();
+                                handleKickMember(member.profile_id, member.profile.full_name || 'Anggota ini');
+                              }
+                            }}
+                            title={isHead && member.profile_id !== currentUserId ? "Klik Kanan untuk Mengeluarkan Anggota" : ""}
+                          >
                             <td className="py-3.5 px-2 font-bold text-slate-900 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold shadow-sm border border-blue-100 flex-shrink-0 overflow-hidden">
@@ -480,19 +489,6 @@ export default function OrganizationMembersPage() {
                                 {member.custom_data ? member.custom_data[field.id] || '-' : '-'}
                               </td>
                             ))}
-                            {isHead && (
-                              <td className="py-3.5 px-2 text-right">
-                                {member.profile_id !== currentUserId && (
-                                  <button
-                                    onClick={() => handleKickMember(member.profile_id, member.profile.full_name || 'Anggota ini')}
-                                    className="p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors"
-                                    title="Keluarkan Anggota"
-                                  >
-                                    <UserMinus className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </td>
-                            )}
                           </tr>
                         ))}
                       </tbody>
