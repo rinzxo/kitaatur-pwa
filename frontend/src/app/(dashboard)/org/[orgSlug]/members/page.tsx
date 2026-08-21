@@ -502,7 +502,6 @@ export default function OrganizationMembersPage() {
               )
             })()}
           </div>
-        </div>
       </main>
 
       {/* Invite Modal */}
