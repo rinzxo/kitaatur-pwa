@@ -11,6 +11,8 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [maintenance, setMaintenance] = useState(false)
   const [updating, setUpdating] = useState(false)
+  const [appVersion, setAppVersion] = useState('')
+  const [updatingVersion, setUpdatingVersion] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -25,6 +27,10 @@ export default function AdminDashboardPage() {
       const maintSet = setRes.data.find((s: any) => s.key === 'maintenance_mode')
       if (maintSet) {
         setMaintenance(typeof maintSet.value === 'string' ? JSON.parse(maintSet.value) : maintSet.value)
+      }
+      const versionSet = setRes.data.find((s: any) => s.key === 'app_version')
+      if (versionSet) {
+        setAppVersion(typeof versionSet.value === 'string' ? versionSet.value.replace(/"/g, '') : versionSet.value)
       }
     } catch (err: any) {
       if (err.response?.status === 403) {
@@ -47,6 +53,22 @@ export default function AdminDashboardPage() {
       alert('Gagal mengubah mode maintenance')
     } finally {
       setUpdating(false)
+    }
+  }
+
+  const handleUpdateVersion = async () => {
+    if (!appVersion.trim()) return
+    setUpdatingVersion(true)
+    try {
+      await api.put('/admin/settings/app_version', {
+        value: appVersion,
+        description: 'Versi aplikasi saat ini.'
+      })
+      alert('Versi aplikasi berhasil diupdate')
+    } catch (err) {
+      alert('Gagal mengubah versi aplikasi')
+    } finally {
+      setUpdatingVersion(false)
     }
   }
 
@@ -120,6 +142,32 @@ export default function AdminDashboardPage() {
         >
           {maintenance ? 'Matikan Maintenance' : 'Aktifkan Maintenance'}
         </button>
+      </div>
+
+      <div className="mt-6 p-6 bg-white border border-slate-200 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Zap className="w-5 h-5 text-amber-500" />
+            Versi Aplikasi
+          </h2>
+          <p className="text-sm text-slate-500 mt-1 max-w-xl">Ubah versi aplikasi yang ditampilkan kepada pengguna.</p>
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <input 
+            type="text" 
+            value={appVersion}
+            onChange={(e) => setAppVersion(e.target.value)}
+            placeholder="Misal: 1.0.5"
+            className="px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-200 focus:border-blue-500 outline-none w-full md:w-48"
+          />
+          <button 
+            onClick={handleUpdateVersion}
+            disabled={updatingVersion || !appVersion.trim()}
+            className="px-6 py-2 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+          >
+            {updatingVersion ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </div>
       </div>
 
     </div>

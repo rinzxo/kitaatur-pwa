@@ -5,9 +5,11 @@ import toast from 'react-hot-toast'
 import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Clock, RefreshCw, Filter, X, History } from 'lucide-react'
+import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download } from 'lucide-react'
 import Link from 'next/link'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 
 export default function AttendanceHistoryPage() {
   const params = useParams()
@@ -111,6 +113,106 @@ export default function AttendanceHistoryPage() {
   }
 
   const isEditor = currentUserRole === 'head' || currentUserRole === 'sekretaris'
+
+  const handleExportExcel = async () => {
+    if (records.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+
+    const sessionName = selectedSession ? (sessions.find(s => s.id === selectedSession)?.title || 'Sesi') : 'Semua Agenda';
+    
+    // Inisialisasi Workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Rekap Absensi');
+
+    // Styling Header
+    worksheet.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Agenda / Sesi', key: 'agenda', width: 25 },
+      { header: 'Nama Anggota', key: 'nama', width: 30 },
+      { header: 'Email', key: 'email', width: 30 },
+      { header: 'Tanggal', key: 'tanggal', width: 20 },
+      { header: 'Waktu Datang', key: 'waktuDatang', width: 15 },
+      { header: 'Waktu Pulang', key: 'waktuPulang', width: 15 },
+      { header: 'Status', key: 'status', width: 25 },
+      { header: 'Catatan', key: 'catatan', width: 35 },
+    ];
+
+    // Format Header (Bold, Centered, Background, Border)
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF2563EB' } // Blue-600
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    
+    // Add Borders to Header
+    headerRow.eachCell((cell) => {
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+    });
+
+    // Populate Data
+    records.forEach((record, index) => {
+      const checkInDate = new Date(record.check_in_time);
+      const checkOutDate = record.check_out_time ? new Date(record.check_out_time) : null;
+      
+      let statusString = '';
+      if (record.status === 'present') statusString = 'Hadir';
+      else if (record.status === 'late') statusString = 'Terlambat';
+      else if (record.status === 'excused') statusString = 'Izin';
+      else if (record.status === 'sick') statusString = 'Sakit';
+      else if (record.status === 'absent') statusString = 'Alpa';
+
+      if (record.session?.session_type === 'in_out' && !record.check_out_time && (record.status === 'present' || record.status === 'late')) {
+        statusString += ' (Belum Pulang)';
+      }
+
+      const row = worksheet.addRow({
+        no: index + 1,
+        agenda: record.session?.title || 'Sesi Tanpa Nama',
+        nama: record.profile?.full_name || record.profile?.email?.split('@')[0] || '-',
+        email: record.profile?.email || '-',
+        tanggal: checkInDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        waktuDatang: checkInDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        waktuPulang: checkOutDate ? checkOutDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-',
+        status: statusString,
+        catatan: record.notes?.replace('[VALIDATED]', '') || '-'
+      });
+
+      // Styling Baris Data (Alignment & Borders)
+      row.alignment = { vertical: 'middle', wrapText: true };
+      
+      // Center align for certain columns
+      row.getCell('no').alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell('tanggal').alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell('waktuDatang').alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell('waktuPulang').alignment = { vertical: 'middle', horizontal: 'center' };
+      row.getCell('status').alignment = { vertical: 'middle', horizontal: 'center' };
+
+      // Set Borders for each cell in the row
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' }
+        };
+      });
+    });
+
+    // Generate File
+    const buffer = await workbook.xlsx.writeBuffer();
+    const fileName = `Rekap_Absensi_${sessionName.replace(/\\s+/g, '_')}_${new Date().getTime()}.xlsx`;
+    saveAs(new Blob([buffer]), fileName);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden">
@@ -249,7 +351,17 @@ export default function AttendanceHistoryPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-xl font-bold text-slate-900">Daftar Kehadiran Terbaru</h3>
             
-            <div className="relative w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+              <button
+                onClick={handleExportExcel}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-sm font-bold transition-colors"
+                title="Unduh ke Excel"
+              >
+                <Download className="w-4 h-4" />
+                Rekap Excel
+              </button>
+              
+              <div className="relative w-full sm:w-auto">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
                 <Filter className="w-4 h-4" />
               </div>
@@ -263,6 +375,7 @@ export default function AttendanceHistoryPage() {
                 ]}
                 className="w-full sm:w-64 pl-8"
               />
+            </div>
             </div>
           </div>
           
