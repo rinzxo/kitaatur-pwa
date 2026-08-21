@@ -242,21 +242,31 @@ export default function OrganizationMembersPage() {
           <p className="text-slate-500 font-medium text-sm mt-0.5">Kelola struktur kepengurusan dan anggota organisasi Anda.</p>
         </div>
 
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-slate-900 transition-all disabled:opacity-50"
-          title="Segarkan Data"
-        >
-          <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-3">
+          {canInvite && (
+            <button
+              onClick={openInviteModal}
+              className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
+            >
+              <LinkIcon className="w-4 h-4" />
+              Link Undangan
+            </button>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2.5 bg-white hover:bg-slate-50 border border-slate-200 shadow-sm rounded-lg text-slate-500 hover:text-slate-900 transition-all disabled:opacity-50"
+            title="Segarkan Data"
+          >
+            <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </header>
 
-      {/* Main Content Grid */}
-      <main className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Main Content */}
+      <main className="relative z-10 max-w-7xl mx-auto space-y-6">
         
-        {/* Left Column: Members Table */}
-        <div className="lg:col-span-2 space-y-6">
+        {/* Members Table */}
           <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h3 className="text-xl font-bold text-slate-900">Pengurus & Anggota</h3>
@@ -493,35 +503,6 @@ export default function OrganizationMembersPage() {
             })()}
           </div>
         </div>
-
-        {/* Right Column: Invite Member CTA (Only visible to Head) */}
-        <div className="space-y-6">
-
-
-          {canInvite ? (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <LinkIcon className="w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Link Undangan</h3>
-              <p className="text-slate-500 font-medium text-xs mb-6 leading-relaxed">
-                Bagikan link khusus untuk memungkinkan siapapun bergabung ke workspace ini secara instan.
-              </p>
-              <button 
-                onClick={openInviteModal}
-                className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-200 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                <LinkIcon className="w-4 h-4" />
-                Dapatkan Link
-              </button>
-            </div>
-          ) : (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center text-slate-500 font-medium text-sm">
-              Anda tidak memiliki wewenang untuk menambahkan anggota atau membagikan link invite.
-            </div>
-          )}
-        </div>
-
       </main>
 
       {/* Invite Modal */}
