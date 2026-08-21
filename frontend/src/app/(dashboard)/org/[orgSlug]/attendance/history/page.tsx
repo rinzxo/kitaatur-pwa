@@ -159,8 +159,15 @@ export default function AttendanceHistoryPage() {
       };
     });
 
+    // Sort records alphabetically by member name
+    const sortedRecords = [...records].sort((a, b) => {
+      const nameA = (a.profile?.full_name || a.profile?.email || '').toLowerCase();
+      const nameB = (b.profile?.full_name || b.profile?.email || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
     // Populate Data
-    records.forEach((record, index) => {
+    sortedRecords.forEach((record, index) => {
       const checkInDate = new Date(record.check_in_time);
       const checkOutDate = record.check_out_time ? new Date(record.check_out_time) : null;
       
@@ -178,7 +185,7 @@ export default function AttendanceHistoryPage() {
       const row = worksheet.addRow({
         no: index + 1,
         agenda: record.session?.title || 'Sesi Tanpa Nama',
-        nama: record.profile?.full_name || record.profile?.email?.split('@')[0] || '-',
+        nama: (record.profile?.full_name || record.profile?.email?.split('@')[0] || '-').toUpperCase(),
         email: record.profile?.email || '-',
         tanggal: checkInDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         waktuDatang: checkInDate.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),

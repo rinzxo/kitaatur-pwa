@@ -1071,7 +1071,7 @@ export async function getAttendanceRecords(req: any, res: Response) {
           select: { full_name: true, email: true }
         },
         session: {
-          select: { session_type: true }
+          select: { session_type: true, title: true }
         }
       },
       orderBy: {
