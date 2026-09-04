@@ -4,7 +4,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://kitatur-production.up.railway.app/api/:path*',
+        destination: 'https://kitaatur-sept-production.up.railway.app/api/:path*',
       },
       {
         source: '/m/:slug',
