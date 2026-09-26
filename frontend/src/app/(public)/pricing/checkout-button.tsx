@@ -29,7 +29,7 @@ export default function CheckoutButton({ planType, amount }: CheckoutButtonProps
     }
 
     try {
-      // 2. Memanggil Backend API untuk membuat sesi pembayaran Pakasir yang nyata
+      // 2. Memanggil Backend API untuk membuat sesi pembayaran KitaPay
       const response = await fetch(`${backendUrl}/api/payment/checkout`, {
         method: 'POST',
         headers: {
@@ -49,20 +49,40 @@ export default function CheckoutButton({ planType, amount }: CheckoutButtonProps
       }
 
       // 3. Menampilkan log untuk developer jika ingin mengetes simulasi webhook lokal
-      console.log(`[Webhook Tester] Anda bisa kirim POST ke http://localhost:5000/api/webhooks/pakasir dengan payload:
+      console.log(`[Webhook Tester] Anda bisa kirim POST ke http://localhost:5000/api/webhooks/kitapay dengan payload:
       {
         "event": "payment.success",
         "data": {
-          "user_id": "${user.id}",
-          "subscription_id": "${data.orderId}",
-          "plan": "${planType}",
-          "amount": ${amount}
+          "transaction_id": "${data.transactionId}",
+          "external_id": "${data.orderId}",
+          "amount": ${amount},
+          "status": "PAID"
         }
       }`)
 
-      toast.success('Mengarahkan ke Payment Gateway Pakasir.com...')
-      // 4. Redirect ke URL Checkout resmi dari Pakasir
-      window.location.href = data.checkoutUrl
+      toast.success('Membuka Payment Gateway KitaPay...')
+      
+      // 4. Buka Snap UI Popup
+      const kitapayUrl = process.env.NEXT_PUBLIC_KITAPAY_URL || 'http://localhost:3000'
+      const snapUrl = `${kitapayUrl}/snap/${data.transactionId}`
+      const popup = window.open(snapUrl, "KitaPaySnap", "width=400,height=650")
+
+      // 5. Dengarkan event postMessage dari popup
+      const handleMessage = (event: MessageEvent) => {
+        if (event.origin !== kitapayUrl) return
+        try {
+          const msg = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+          if (msg.type === 'KITAPAY_SNAP_SUCCESS') {
+            toast.success('Pembayaran Berhasil!')
+            router.push(`/payment/${data.subscriptionId}`)
+            window.removeEventListener('message', handleMessage)
+            if (popup) popup.close()
+          }
+        } catch (e) {}
+      }
+      
+      window.addEventListener("message", handleMessage)
+      
     } catch (err) {
       console.error('Error initiating checkout:', err)
       toast.error('Gagal memulai transaksi pembayaran')

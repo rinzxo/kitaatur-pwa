@@ -1,9 +1,9 @@
 import { Router } from 'express'
-import { handlePakasirWebhook } from '../controllers/webhook.controller'
+import { handleKitapayWebhook } from '../controllers/webhook.controller'
 
 const router = Router()
 
-// Webhook dipanggil secara publik oleh server Pakasir.com
-router.post('/pakasir', handlePakasirWebhook)
+// Webhook dipanggil secara publik oleh server KitaPay
+router.post('/kitapay', handleKitapayWebhook)
 
 export default router

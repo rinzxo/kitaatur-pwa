@@ -251,7 +251,7 @@ export default function UpgradePage() {
               </div>
 
               <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg mb-6 leading-relaxed">
-                Anda akan dialihkan ke payment gateway aman (Pakasir) untuk menyelesaikan pembayaran.
+                Anda akan dialihkan ke payment gateway aman (KitaPay) untuk menyelesaikan pembayaran.
               </div>
 
               <div className="flex gap-3">

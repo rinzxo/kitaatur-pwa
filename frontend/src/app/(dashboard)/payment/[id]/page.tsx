@@ -69,7 +69,7 @@ export default function PaymentPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="bg-slate-900 p-6 text-white text-center">
             <h2 className="text-xl font-bold mb-1">Tagihan Langganan</h2>
-            <p className="text-slate-400 text-sm">Order ID: {sub.pakasir_subscription_id}</p>
+            <p className="text-slate-400 text-sm">Order ID: {sub.kitapay_transaction_id}</p>
           </div>
 
           <div className="p-6">
@@ -104,7 +104,7 @@ export default function PaymentPage() {
                     <iframe 
                       src={sub.payment_url} 
                       className="w-full h-[600px] border-none"
-                      title="Pembayaran Pakasir"
+                      title="Pembayaran KitaPay"
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                     />
                   </div>

@@ -229,7 +229,7 @@ model goal_transactions {
 model subscriptions {
   id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   profile_id              String               @db.Uuid
-  pakasir_subscription_id String?              @unique
+  kitapay_transaction_id String?              @unique
   status                  subscription_status? @default(active)
   plan_type               String
   amount_paid             Decimal?             @db.Decimal
