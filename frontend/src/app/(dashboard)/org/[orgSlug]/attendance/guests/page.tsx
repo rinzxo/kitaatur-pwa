@@ -5,9 +5,6 @@ import { api } from '@/lib/api'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Upload, Download, ScanLine, Printer, Users, CheckCircle2, XCircle, Search, Clock } from 'lucide-react'
-import * as XLSX from 'xlsx'
-import ExcelJS from 'exceljs'
-import { saveAs } from 'file-saver'
 
 function GuestsContent() {
   const params = useParams()
@@ -49,6 +46,9 @@ function GuestsContent() {
   }
 
   const downloadTemplate = async () => {
+    const ExcelJS = (await import('exceljs')).default
+    const { saveAs } = (await import('file-saver')).default
+
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Template')
 
@@ -86,6 +86,7 @@ function GuestsContent() {
     const reader = new FileReader()
     reader.onload = async (evt) => {
       try {
+        const XLSX = await import('xlsx')
         const bstr = evt.target?.result
         const wb = XLSX.read(bstr, { type: 'binary' })
         const wsname = wb.SheetNames[0]

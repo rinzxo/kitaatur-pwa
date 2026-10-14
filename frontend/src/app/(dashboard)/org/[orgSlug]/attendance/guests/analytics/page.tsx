@@ -5,8 +5,6 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BarChart2, Users, CheckCircle, Clock, AlertTriangle, Search, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
-import ExcelJS from 'exceljs'
-import { saveAs } from 'file-saver'
 
 interface GuestStat {
   id: string
@@ -61,6 +59,9 @@ export default function GuestAnalyticsPage() {
     if (!data) return
 
     try {
+      const ExcelJS = (await import('exceljs')).default
+      const { saveAs } = (await import('file-saver')).default
+
       const sortedList = [...data.guestList].sort((a, b) => a.name.localeCompare(b.name))
       
       const workbook = new ExcelJS.Workbook()

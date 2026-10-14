@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { api, supabase } from '@/lib/api'
+import { api } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 import TransactionForm from './transaction-form'
 import { User, Bell, ChevronUp, ChevronDown, Plus, Wallet, Target, Info, ArrowUpRight, ArrowDownRight, X, Calendar, Clock, ChevronRight, BadgeCheck } from 'lucide-react'
 
@@ -33,9 +34,7 @@ interface Goal {
 
 export default function PersonalDashboard() {
   const router = useRouter()
-  const [userName, setUserName] = useState('Pengguna')
-  const [userAvatar, setUserAvatar] = useState<string|null>(null)
-  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
+  const store = useDashboardStore()
   const [summary, setSummary] = useState<Summary>({ income: 0, expense: 0, balance: 0 })
   const [records, setRecords] = useState<Record[]>([])
   const [goals, setGoals] = useState<Goal[]>([])
@@ -44,8 +43,14 @@ export default function PersonalDashboard() {
   const [agendas, setAgendas] = useState<any[]>([])
   const [activeHero, setActiveHero] = useState<number>(0)
   const [currentAgendaIndex, setCurrentAgendaIndex] = useState<number>(0)
-  const [unreadNotifs, setUnreadNotifs] = useState(0)
-  const [isVerified, setIsVerified] = useState(false)
+  const [avatarError, setAvatarError] = useState(false)
+
+  // Derive from store instead of independent fetches
+  const userName = store.user?.name || 'Pengguna'
+  const userAvatar = store.user?.avatar_url || null
+  const isVerified = store.isVerified
+  const hasSchoolPlan = store.hasSchoolPlan
+  const unreadNotifs = store.unreadNotifs
 
   const formatRupiah = (value: number | string) => {
     const num = typeof value === 'string' ? parseFloat(value) : value
@@ -56,89 +61,52 @@ export default function PersonalDashboard() {
     }).format(num)
   }
 
-  const fetchData = async () => {
+  // Only fetch page-specific data (summary, goals, agendas) — user/org/sub data comes from store
+  const fetchPageData = async () => {
     try {
-      const summaryRes = await api.get('/personal/summary')
-      setSummary(summaryRes.data.summary)
-      setRecords(summaryRes.data.records)
+      const [summaryRes, goalsRes] = await Promise.all([
+        api.get('/personal/summary').catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 }, records: [] } })),
+        api.get('/personal/goals').catch(() => ({ data: [] })),
+      ])
 
-      const goalsRes = await api.get('/personal/goals')
-      setGoals(goalsRes.data)
+      if (summaryRes?.data) {
+        setSummary(summaryRes.data.summary || { income: 0, expense: 0, balance: 0 })
+        setRecords(summaryRes.data.records || [])
+      }
+      if (goalsRes?.data) setGoals(goalsRes.data)
 
-      try {
-        const orgsRes = await api.get('/org/me/list')
-        const orgsList = orgsRes.data || [];
-        
-        // Fetch agendas from all joined orgs
+      // Fetch agendas from orgs (uses store.orgs when ready)
+      const orgsList = store.orgs
+      if (orgsList.length > 0) {
         const agendaPromises = orgsList.map((org: any) => 
           api.get(`/org-attendance/${org.slug}/agenda`).catch(() => ({ data: [] }))
-        );
-        const agendaResponses = await Promise.all(agendaPromises);
-        
-        let allAgendas: any[] = [];
+        )
+        const agendaResponses = await Promise.all(agendaPromises)
+        let allAgendas: any[] = []
         agendaResponses.forEach((res, index) => {
           if (res.data && res.data.length > 0) {
             const orgAgendas = res.data.map((a: any) => ({
               ...a,
               orgSlug: orgsList[index].slug,
               orgName: orgsList[index].name
-            }));
-            allAgendas = allAgendas.concat(orgAgendas);
+            }))
+            allAgendas = allAgendas.concat(orgAgendas)
           }
-        });
-        
-        allAgendas.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-        setAgendas(allAgendas);
-      } catch (err) {
-        console.error('Failed to fetch org agendas', err)
-      }
-
-      try {
-        const notifRes = await api.get('/notifications')
-        const unread = notifRes.data.filter((n: any) => !n.is_read)
-        setUnreadNotifs(unread.length)
-      } catch (e) {
-        console.error('Failed to load notifs')
-      }
-
-      try {
-        const subRes = await api.get('/subscription/me')
-        setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
-        setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
-      } catch (e) {
-        console.error('Failed to fetch subs', e)
+        })
+        allAgendas.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+        setAgendas(allAgendas)
       }
     } catch (err) {
       console.error('Error loading dashboard data:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
   useEffect(() => {
-    const init = async () => {
-      setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        try {
-          const profileRes = await api.get('/personal/profile')
-          const profile = profileRes.data
-          
-          if (!profile?.full_name) {
-            window.location.href = '/onboarding'
-            return
-          }
-          
-          setUserName(profile.full_name)
-          setUserAvatar(profile.avatar_url || null)
-        } catch (e) {
-          window.location.href = '/onboarding'
-          return
-        }
-      }
-      await fetchData()
-      setLoading(false)
-    }
-    init()
-  }, [router])
+    setLoading(true)
+    fetchPageData()
+  }, [store.orgs])
 
   useEffect(() => {
     if (agendas.length > 0) {
@@ -207,12 +175,12 @@ export default function PersonalDashboard() {
         {/* Desktop Greeting & Bell */}
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-            {userAvatar ? (
+            {userAvatar && !avatarError ? (
               <img 
                 src={userAvatar} 
                 alt="Profile" 
                 className="w-6 h-6 rounded-full object-cover" 
-                onError={() => setUserAvatar(null)}
+                onError={() => setAvatarError(true)}
               />
             ) : (
               <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">
@@ -436,7 +404,7 @@ export default function PersonalDashboard() {
             >
               <X className="w-5 h-5" />
             </button>
-            <TransactionForm onSuccess={() => { fetchData(); setShowFormModal(false); }} />
+            <TransactionForm onSuccess={() => { fetchPageData(); setShowFormModal(false); }} />
           </div>
         </div>
       )}

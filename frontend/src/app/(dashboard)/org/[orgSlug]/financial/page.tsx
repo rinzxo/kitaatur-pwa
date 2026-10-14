@@ -71,17 +71,16 @@ export default function OrgFinancialPage() {
 
   const fetchData = async () => {
     try {
-      // 1. Get Financial Summary & Chart Data
-      const summaryRes = await api.get(`/org-financial/${orgSlug}/summary`)
+      const [summaryRes, recordsRes, orgRes] = await Promise.all([
+        api.get(`/org-financial/${orgSlug}/summary`),
+        api.get(`/org-financial/${orgSlug}`),
+        api.get(`/org/${orgSlug}`).catch(() => ({ data: null }))
+      ])
+
       setSummary(summaryRes.data.summary)
       setChartData(summaryRes.data.chartData)
-
-      // 2. Get Financial Records
-      const recordsRes = await api.get(`/org-financial/${orgSlug}`)
       setRecords(recordsRes.data)
 
-      // 3. Get Org Detail
-      const orgRes = await api.get(`/org/${orgSlug}`)
       if (orgRes.data && orgRes.data.name) {
         setOrgName(orgRes.data.name)
       } else {
@@ -96,26 +95,47 @@ export default function OrgFinancialPage() {
   }
 
   const checkRoleAndLoad = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-    setCurrentUserId(user.id)
-
     try {
-      // Dapatkan keanggotaan user di org ini untuk mengetahui role-nya
-      const membersRes = await api.get(`/org/${orgSlug}/members`)
+      const [
+        { data: { user } },
+        membersRes,
+        summaryRes,
+        recordsRes,
+        orgRes
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        api.get(`/org/${orgSlug}/members`),
+        api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 }, chartData: [] } })),
+        api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] })),
+        api.get(`/org/${orgSlug}`).catch(() => ({ data: null }))
+      ])
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+      setCurrentUserId(user.id)
+
       const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
       if (currentMember) {
         setCurrentUserRole(currentMember.role)
       } else {
-        // Jika tidak terdaftar, lempar ke dashboard utama
         router.push('/personal/dashboard')
         return
       }
 
-      await fetchData()
+      if (summaryRes?.data) {
+        setSummary(summaryRes.data.summary || { income: 0, expense: 0, balance: 0 })
+        setChartData(summaryRes.data.chartData || [])
+      }
+      if (recordsRes?.data) {
+        setRecords(recordsRes.data || [])
+      }
+      if (orgRes?.data?.name) {
+        setOrgName(orgRes.data.name)
+      } else {
+        setOrgName(orgSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
+      }
     } catch (err: any) {
       console.error('Error verifying org access:', err)
       if (err.response?.status === 403) {
@@ -123,7 +143,6 @@ export default function OrgFinancialPage() {
         router.push('/personal/dashboard')
       } else {
         toast.error('Terjadi kesalahan saat memuat data organisasi: ' + (err.response?.data?.error || err.message))
-        setLoading(false) // Don't redirect, let them see the empty state or retry
       }
     } finally {
       setLoading(false)

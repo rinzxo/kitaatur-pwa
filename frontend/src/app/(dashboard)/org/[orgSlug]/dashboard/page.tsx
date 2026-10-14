@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -34,23 +35,29 @@ export default function OrgDashboardPage() {
   const params = useParams()
   const router = useRouter()
   const orgSlug = params.orgSlug as string
+  const store = useDashboardStore()
 
   const [goals, setGoals] = useState<Goal[]>([])
   const [records, setRecords] = useState<FinancialRecord[]>([])
-  const [userName, setUserName] = useState('Pengguna')
-  const [userAvatar, setUserAvatar] = useState<string | null>(null)
-  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
-  const [isVerified, setIsVerified] = useState(false)
-  const [unreadNotifs, setUnreadNotifs] = useState(0)
   const [financialSummary, setFinancialSummary] = useState({ income: 0, expense: 0, balance: 0 })
   const [loading, setLoading] = useState(true)
-  const [orgData, setOrgData] = useState<any>(null)
   const [myTunggakan, setMyTunggakan] = useState<number>(0)
   const [targetAmount, setTargetAmount] = useState<number>(0)
   const [agendas, setAgendas] = useState<any[]>([])
   const [activeHero, setActiveHero] = useState<number>(0)
   const [currentAgendaIndex, setCurrentAgendaIndex] = useState<number>(0)
   const [membersCount, setMembersCount] = useState<number>(0)
+  const [orgLogoError, setOrgLogoError] = useState(false)
+  const [userAvatarError, setUserAvatarError] = useState(false)
+
+  // Derive shared data from store
+  const userName = store.user?.name || 'Pengguna'
+  const userAvatar = store.user?.avatar_url || null
+  const isVerified = store.isVerified
+  const hasSchoolPlan = store.hasSchoolPlan
+  const unreadNotifs = store.unreadNotifs
+  const currentOrg = store.orgs.find(o => o.slug === orgSlug)
+  const orgData = currentOrg || { name: orgSlug, logo_url: null }
 
   const formatRupiah = (value: number | string) => {
     const num = typeof value === 'string' ? parseFloat(value) : value
@@ -62,78 +69,46 @@ export default function OrgDashboardPage() {
   }
 
   useEffect(() => {
+    let isMounted = true
     const fetchData = async () => {
       try {
-        const [goalsRes, finRes, recordsRes, orgsRes, notifRes, settingsRes, membersRes, { data: { user } }] = await Promise.all([
-          api.get(`/org/${orgSlug}/goals`),
-          api.get(`/org-financial/${orgSlug}/summary`),
-          api.get(`/org-financial/${orgSlug}`),
-          api.get('/org/me/list'),
-          api.get('/notifications').catch(() => ({ data: [] })),
-          api.get(`/org/${orgSlug}/settings`),
-          api.get(`/org/${orgSlug}/members`),
-          supabase.auth.getUser()
+        const [
+          goalsRes, finRes, recordsRes, settingsRes, membersRes, agendaRes
+        ] = await Promise.all([
+          api.get(`/org/${orgSlug}/goals`).catch(() => ({ data: [] })),
+          api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 } } })),
+          api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] })),
+          api.get(`/org/${orgSlug}/settings`).catch(() => ({ data: null })),
+          api.get(`/org/${orgSlug}/members`).catch(() => ({ data: [] })),
+          api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] })),
         ])
         
-        setGoals(goalsRes.data)
-        setFinancialSummary(finRes.data.summary)
-        setRecords(recordsRes.data)
+        if (!isMounted) return
+
+        setGoals(goalsRes.data || [])
+        setFinancialSummary(finRes.data?.summary || { income: 0, expense: 0, balance: 0 })
+        setRecords(recordsRes.data || [])
         const validMembers = (membersRes.data || []).filter((m: any) => m.role !== 'auditor')
         setMembersCount(validMembers.length)
         
-        const orgsList = orgsRes.data || [];
-        
-        // Fetch agenda from THIS org only
-        const agendaRes = await api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] }));
-        let orgAgendas: any[] = [];
+        // Process agenda for THIS org
+        let orgAgendas: any[] = []
         if (agendaRes.data && agendaRes.data.length > 0) {
-          const currentOrg = orgsList.find((o: any) => o.slug === orgSlug) || { name: orgSlug };
+          const orgName = currentOrg?.name || orgSlug
           orgAgendas = agendaRes.data.map((a: any) => ({
             ...a,
             orgSlug: orgSlug,
-            orgName: currentOrg.name
-          }));
-          orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
+            orgName: orgName
+          }))
+          orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
         }
-        setAgendas(orgAgendas); // Store this org's agendas
-        
-        const unread = notifRes.data.filter((n: any) => !n.is_read)
-        setUnreadNotifs(unread.length)
-
-        const currentOrg = orgsRes.data.find((o: any) => o.slug === orgSlug)
-        if (currentOrg) {
-          setOrgData(currentOrg)
-        }
+        setAgendas(orgAgendas)
 
         const targetAmt = settingsRes.data?.dues_target_amount ? parseFloat(settingsRes.data.dues_target_amount) : 0
         setTargetAmount(targetAmt)
 
-        try {
-          const subRes = await api.get('/subscription/me')
-          setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
-          setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
-        } catch (e) {
-          console.error('Failed to fetch subs', e)
-        }
-
-        if (user) {
-          try {
-            const profileRes = await api.get('/personal/profile')
-            const profile = profileRes.data
-            
-            if (!profile?.full_name) {
-              router.push('/onboarding')
-              return
-            }
-            
-            setUserName(profile.full_name)
-            setUserAvatar(profile.avatar_url || null)
-          } catch (e) {
-            router.push('/onboarding')
-            return
-          }
-          
-          const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
+        if (store.user?.id) {
+          const currentMember = (membersRes.data || []).find((m: any) => m.profile_id === store.user?.id)
           if (currentMember && currentMember.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
             const joined = new Date(currentMember.joined_at)
             const now = new Date()
@@ -142,8 +117,8 @@ export default function OrgDashboardPage() {
             
             const expected = months * targetAmt
             let paid = 0
-            recordsRes.data.forEach((r: any) => {
-              if (r.profile_id === user.id && r.category === 'Uang Kas') {
+            ;(recordsRes.data || []).forEach((r: any) => {
+              if (r.profile_id === store.user?.id && r.category === 'Uang Kas') {
                 paid += parseFloat(r.amount)
               }
             })
@@ -155,14 +130,15 @@ export default function OrgDashboardPage() {
       } catch (err) {
         console.error('Error fetching org dashboard data:', err)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
 
     if (orgSlug) {
       fetchData()
     }
-  }, [orgSlug])
+    return () => { isMounted = false }
+  }, [orgSlug, store.user?.id, currentOrg?.name])
 
   useEffect(() => {
     if (agendas.length > 0) {
@@ -225,12 +201,12 @@ export default function OrgDashboardPage() {
         <div className="flex justify-between items-center w-full md:w-auto">
           <div className="flex items-center gap-3">
             <Link href={`/org/${orgSlug}/members`} className="w-10 h-10 rounded-full bg-slate-200 border-2 border-white shadow-sm flex items-center justify-center text-blue-600 hover:scale-105 transition-transform overflow-hidden" title="Kelola Anggota & Organisasi">
-              {orgData?.logo_url ? (
+              {orgData?.logo_url && !orgLogoError ? (
                 <img 
                   src={orgData.logo_url} 
                   alt="Logo" 
                   className="w-full h-full object-cover" 
-                  onError={() => setOrgData((prev: any) => prev ? { ...prev, logo_url: null } : null)}
+                  onError={() => setOrgLogoError(true)}
                 />
               ) : (
                 <Settings className="w-5 h-5" />
@@ -245,12 +221,12 @@ export default function OrgDashboardPage() {
         {/* Desktop Greeting & Bell */}
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-            {userAvatar ? (
+            {userAvatar && !userAvatarError ? (
               <img 
                 src={userAvatar} 
                 alt="Profile" 
                 className="w-6 h-6 rounded-full object-cover" 
-                onError={() => setUserAvatar(null)}
+                onError={() => setUserAvatarError(true)}
               />
             ) : (
               <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">

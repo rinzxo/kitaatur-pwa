@@ -3,7 +3,8 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Wallet, Target, Home, User, Plus, Building2, QrCode, LogOut, ChevronRight, Settings, Package, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { supabase, api } from '@/lib/api'
+import { api } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -11,6 +12,7 @@ interface DashboardShellProps {
 
 export default function DashboardShell({ children }: DashboardShellProps) {
   const pathname = usePathname()
+  const store = useDashboardStore()
 
   // Tentukan apakah kita berada di Personal Space atau Organization Space
   const isPersonal = pathname?.startsWith('/personal') || false
@@ -25,50 +27,20 @@ export default function DashboardShell({ children }: DashboardShellProps) {
     return <>{children}</>
   }
 
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
-  const [currentUserInfo, setCurrentUserInfo] = useState<{name: string, email: string, avatar_url: string|null} | null>(null)
-  const [currentOrgInfo, setCurrentOrgInfo] = useState<{name: string, logo_url: string|null} | null>(null)
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null)
 
+  // Fetch members for current org when navigating to org pages
   useEffect(() => {
-    const fetchInfo = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          let profile = null;
-          try {
-            const res = await api.get('/personal/profile');
-            profile = res.data;
-          } catch (e) {
-            console.error('API profile fetch error in shell:', e);
-          }
-
-          setCurrentUserInfo({
-            name: profile?.full_name || 'Tanpa Nama',
-            email: user.email || '',
-            avatar_url: profile?.avatar_url || null
-          })
-
-          if (currentOrgSlug) {
-            const membersRes = await api.get(`/org/${currentOrgSlug}/members`)
-            const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-            if (currentMember) {
-              setCurrentUserRole(currentMember.role)
-            }
-
-            const orgsRes = await api.get('/org/me/list')
-            const orgData = orgsRes.data.find((o: any) => o.slug === currentOrgSlug)
-            if (orgData) {
-              setCurrentOrgInfo({ name: orgData.name, logo_url: orgData.logo_url })
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch info', err)
+    if (currentOrgSlug) {
+      // Only fetch if not already cached in the store
+      if (!store.getMembersForOrg(currentOrgSlug)) {
+        store.refreshMembers(currentOrgSlug)
       }
     }
+  }, [currentOrgSlug])
 
-    // Fetch active announcement
+  // Fetch active announcement (low priority, non-blocking)
+  useEffect(() => {
     api.get('/admin/announcements/active')
       .then(res => {
         if (res.data && res.data.length > 0) {
@@ -76,9 +48,14 @@ export default function DashboardShell({ children }: DashboardShellProps) {
         }
       })
       .catch(() => {})
+  }, [])
 
-    fetchInfo()
-  }, [currentOrgSlug])
+  // Derive data from store instead of independent API calls
+  const currentUserRole = store.getCurrentRole(currentOrgSlug)
+  const currentUserInfo = store.user
+  const currentOrgInfo = currentOrgSlug
+    ? store.orgs.find(o => o.slug === currentOrgSlug)
+    : null
 
   let fabHref = '/personal/wallet/create'
   if (isOrg && currentOrgSlug) {
@@ -135,7 +112,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                     src={currentOrgInfo.logo_url} 
                     alt={currentOrgInfo.name} 
                     className="w-full h-full object-cover" 
-                    onError={() => setCurrentOrgInfo((prev: any) => prev ? { ...prev, logo_url: null } : null)}
                   />
                 ) : (
                   <div className="w-full h-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg">{currentOrgInfo.name.charAt(0).toUpperCase()}</div>
@@ -166,6 +142,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
                     <Link
                       key={item.name}
                       href={item.href}
+                      prefetch={true}
                       className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                         isActive
                           ? 'bg-blue-50 text-blue-600'
@@ -215,7 +192,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           {activeBottomNavItems.slice(0, 2).map((item) => {
             const isActive = pathname === item.href
             return (
-              <Link key={item.name} href={item.href} className={`flex items-center justify-center p-2 rounded-2xl transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+              <Link key={item.name} href={item.href} prefetch={true} className={`flex items-center justify-center p-2 rounded-2xl transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
                 <item.icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               </Link>
             )
@@ -230,6 +207,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
             ) : (
               <Link 
                 href={fabHref}
+                prefetch={true}
                 className="bg-gradient-to-tr from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-xl shadow-blue-500/40 hover:scale-105 active:scale-95 transition-all block"
               >
                 <Plus className="w-6 h-6 stroke-[2.5px]" />
@@ -240,7 +218,7 @@ export default function DashboardShell({ children }: DashboardShellProps) {
           {activeBottomNavItems.slice(2, 4).map((item) => {
             const isActive = pathname === item.href
             return (
-              <Link key={item.name} href={item.href} className={`flex items-center justify-center p-2 rounded-2xl transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
+              <Link key={item.name} href={item.href} prefetch={true} className={`flex items-center justify-center p-2 rounded-2xl transition-all ${isActive ? 'bg-blue-50 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}>
                 <item.icon className={`w-6 h-6 ${isActive ? 'stroke-[2.5px]' : 'stroke-2'}`} />
               </Link>
             )

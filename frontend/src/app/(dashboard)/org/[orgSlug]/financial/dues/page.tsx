@@ -7,7 +7,6 @@ import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Users, CheckCircle, Search, Check, Settings, X, Receipt, Plus, Download } from 'lucide-react'
-import * as XLSX from 'xlsx'
 
 interface Member {
   id: string
@@ -280,7 +279,7 @@ export default function OrgDuesCollectionPage() {
     return breakdown.reverse() // show latest first
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     const dataToExport = members.map(m => {
       const tunggakan = getTunggakan(m)
       const isUnpaid = tunggakan > 0
@@ -304,6 +303,7 @@ export default function OrgDuesCollectionPage() {
       return rowData
     })
 
+    const XLSX = await import('xlsx')
     const worksheet = XLSX.utils.json_to_sheet(dataToExport)
     const workbook = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(workbook, worksheet, "Data Tunggakan Kas")

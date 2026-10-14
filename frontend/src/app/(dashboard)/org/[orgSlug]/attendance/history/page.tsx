@@ -8,8 +8,6 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download } from 'lucide-react'
 import Link from 'next/link'
 import { CustomSelect } from '@/components/ui/CustomSelect'
-import ExcelJS from 'exceljs'
-import { saveAs } from 'file-saver'
 
 export default function AttendanceHistoryPage() {
   const params = useParams()
@@ -122,6 +120,9 @@ export default function AttendanceHistoryPage() {
 
     const sessionName = selectedSession ? (sessions.find(s => s.id === selectedSession)?.title || 'Sesi') : 'Semua Agenda';
     
+    const ExcelJS = (await import('exceljs')).default
+    const { saveAs } = (await import('file-saver')).default
+
     // Inisialisasi Workbook
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Rekap Absensi');

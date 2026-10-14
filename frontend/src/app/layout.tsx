@@ -1,10 +1,19 @@
 import type { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
+import { SplashScreen } from '@/components/ui/SplashScreen';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://kitatur.rinzgroup.web.id'),
   title: "KitaAtur - Absensi & Keuangan Organisasi",
   description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
   keywords: ["kitaatur", "absensi online", "manajemen keuangan", "organisasi", "sistem kas", "absensi qr"],
@@ -54,7 +63,6 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-import { SplashScreen } from '@/components/ui/SplashScreen';
 import { cookies } from 'next/headers';
 
 export default function RootLayout({
@@ -66,18 +74,15 @@ export default function RootLayout({
   const splashShown = cookieStore.get('kitaatur_splash_shown');
 
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning className={inter.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="KitaAtur" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body suppressHydrationWarning>
+      <body className={inter.className} suppressHydrationWarning>
         <SplashScreen hasSeenSplash={!!splashShown}>
           <ConfirmProvider>
             {children}
@@ -100,3 +105,4 @@ export default function RootLayout({
     </html>
   );
 }
+

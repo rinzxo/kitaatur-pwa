@@ -21,32 +21,38 @@ export default function AttendanceDashboardPage() {
   const [isSchool, setIsSchool] = useState(false)
 
   const initRoleAndData = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
     try {
-      const membersRes = await api.get(`/org/${orgSlug}/members`)
+      const [
+        { data: { user } },
+        membersRes,
+        agendaRes,
+        settingsRes,
+        collabRes
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        api.get(`/org/${orgSlug}/members`).catch((err) => {
+          if (err.response?.status === 403) throw err
+          return { data: [] }
+        }),
+        api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] })),
+        api.get(`/org/${orgSlug}/settings`).catch(() => ({ data: null })),
+        api.get(`/org-attendance/${orgSlug}/pending-collaborations`).catch(() => ({ data: [] }))
+      ])
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
       const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
       if (currentMember) {
         setCurrentUserRole(currentMember.role)
         setCanDelegate(!!currentMember.custom_data?.can_take_attendance)
+        setAgendas(agendaRes.data || [])
+        setIsSchool(settingsRes.data?.is_edu || false)
 
         if (currentMember.role === 'head' || currentMember.role === 'sekretaris') {
-          const collabRes = await api.get(`/org-attendance/${orgSlug}/pending-collaborations`)
           setPendingCollabs(collabRes.data || [])
-        }
-
-        const agendaRes = await api.get(`/org-attendance/${orgSlug}/agenda`)
-        setAgendas(agendaRes.data || [])
-
-        try {
-          const settingsRes = await api.get(`/org/${orgSlug}/settings`)
-          setIsSchool(settingsRes.data?.is_edu || false)
-        } catch (e) {
-          // Ignore if settings fetch fails
         }
       } else {
         router.push('/personal/dashboard')
@@ -63,7 +69,7 @@ export default function AttendanceDashboardPage() {
 
   useEffect(() => {
     initRoleAndData()
-  }, [orgSlug, router])
+  }, [orgSlug])
 
   if (loading) {
     return (

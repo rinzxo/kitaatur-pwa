@@ -36,7 +36,26 @@ export async function verifyToken(token: string) {
     return cached.user
   }
 
-  // 2. Jika tidak ada di cache atau expired, tembak Supabase API
+  // 2. Cek verifikasi lokal JWT secara instan tanpa latensi jaringan
+  if (jwtSecret) {
+    try {
+      const decoded = jwt.verify(token, jwtSecret) as any
+      if (decoded && decoded.sub) {
+        const user = {
+          id: decoded.sub,
+          email: decoded.email || '',
+          user_metadata: decoded.user_metadata || {},
+          role: decoded.role
+        }
+        tokenCache.set(token, { user, expiresAt: now + 5 * 60 * 1000 })
+        return user
+      }
+    } catch (jwtErr) {
+      // Fallback ke Supabase API jika decoding jwt lokal gagal
+    }
+  }
+
+  // 3. Jika tidak ada di cache atau expired, tembak Supabase API
   const { data: { user }, error } = await supabase.auth.getUser(token)
 
   if (error || !user) {
@@ -44,7 +63,7 @@ export async function verifyToken(token: string) {
     return null
   }
 
-  // 3. Simpan di cache untuk 5 menit ke depan
+  // 4. Simpan di cache untuk 5 menit ke depan
   tokenCache.set(token, { user, expiresAt: now + 5 * 60 * 1000 })
   return user
 }
