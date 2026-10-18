@@ -6,7 +6,20 @@ import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, CheckCircle, Search, Check, Settings, X, Receipt, Plus, Download } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Users, 
+  CheckCircle, 
+  MagnifyingGlass as Search, 
+  Check, 
+  GearSix as Settings, 
+  X, 
+  Receipt, 
+  Plus, 
+  DownloadSimple as Download,
+  Compass
+} from '@phosphor-icons/react'
+import { SpotlightTour, type TourStep } from '@/components/ui/SpotlightTour'
 
 interface Member {
   id: string
@@ -69,6 +82,31 @@ export default function OrgDuesCollectionPage() {
   })
   const [processing, setProcessing] = useState<string | null>(null)
   const [activeModalTab, setActiveModalTab] = useState<'bayar' | 'rincian'>('rincian')
+
+  // Spotlight Walkthrough Tour
+  const [showTour, setShowTour] = useState(false)
+  const duesTourSteps: TourStep[] = [
+    {
+      target: '[data-tour="tour-target-header"]',
+      title: 'Target Kas Bulanan',
+      description: 'Lihat target iuran kas per anggota per bulan. Pengurus dapat mengubah target nominal kapan saja melalui ikon pengaturan.'
+    },
+    {
+      target: '[data-tour="tour-dues-tabs"]',
+      title: 'Daftar Nunggak vs Lunas',
+      description: 'Pantau siapa saja anggota yang masih memiliki tunggakan kas bulan ini, dan siapa yang sudah lunas terverifikasi.'
+    },
+    {
+      target: '[data-tour="tour-tagih-btn"]',
+      title: 'Kirim Tagihan & Catat Pembayaran',
+      description: 'Klik kartu anggota untuk membuka opsi: kirim pesan tagihan otomatis ke WhatsApp siswa, atau catat nominal uang kas yang telah diterima.'
+    },
+    {
+      target: '[data-tour="tour-export-excel"]',
+      title: 'Ekspor Laporan Kas',
+      description: 'Unduh rekapitulasi data pembayaran kas seluruh anggota dalam format Excel untuk laporan pertanggungjawaban bendahara.'
+    }
+  ]
 
   // User States
   const [currentUserId, setCurrentUserId] = useState<string>('')
@@ -371,13 +409,22 @@ export default function OrgDuesCollectionPage() {
               <Receipt className="h-6 w-6 text-blue-600" />
               Tagih Kas
             </h1>
-            <p className="text-slate-500 font-medium text-xs mt-1">
+            <p data-tour="tour-target-header" className="text-slate-500 font-medium text-xs mt-1">
               Target: <strong className="text-blue-600">{formatCurrency(targetAmount)}</strong> / bulan
             </p>
           </div>
           {isEditor && (
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <button
+                type="button"
+                onClick={() => setShowTour(true)}
+                className="p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-full transition-colors shadow-sm"
+                title="Panduan Interaktif Fitur"
+              >
+                <Compass className="h-5 w-5" />
+              </button>
+              <button
+                data-tour="tour-export-excel"
                 onClick={handleExportExcel}
                 className="p-2.5 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-full text-emerald-600 transition-colors shadow-sm"
                 title="Export Excel"
@@ -411,7 +458,7 @@ export default function OrgDuesCollectionPage() {
             />
           </div>
 
-          <div className="flex bg-slate-200/50 p-1 rounded-xl">
+          <div data-tour="tour-dues-tabs" className="flex bg-slate-200/50 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab('unpaid')}
               className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${
@@ -437,8 +484,8 @@ export default function OrgDuesCollectionPage() {
 
         {/* Info Helper Text */}
         {activeTab === 'unpaid' && unpaidMembers.length > 0 && (
-          <p className="text-sm font-medium text-slate-500 text-center animate-pulse">
-            👇 Klik tombol <strong>Tagih</strong> pada anggota di bawah ini.
+          <p className="text-xs font-medium text-slate-500 text-center">
+            Pilih tombol <strong>Tagih</strong> pada anggota di bawah ini untuk mencatat kas.
           </p>
         )}
 
@@ -446,13 +493,14 @@ export default function OrgDuesCollectionPage() {
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden">
           {activeTab === 'unpaid' && (
             <div className="divide-y divide-slate-100">
-              {unpaidMembers.map(member => {
+              {unpaidMembers.map((member, index) => {
                 const paid = paidTotals[member.profile.id] || 0
                 const tunggakan = getTunggakan(member)
                 
                 return (
                   <button
                     key={member.id}
+                    data-tour={index === 0 ? "tour-tagih-btn" : undefined}
                     onClick={() => {
                       if (!isEditor) return;
                       setSelectedMember(member)
@@ -480,7 +528,7 @@ export default function OrgDuesCollectionPage() {
                         </div>
                       </div>
                       {isEditor && (
-                        <div className="bg-blue-600 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm group-hover:shadow-md group-hover:bg-blue-500 transition-all shrink-0">
+                        <div className="bg-[#0087FF] text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-sm group-hover:shadow-md group-hover:bg-blue-500 transition-all shrink-0">
                           Tagih
                         </div>
                       )}
@@ -490,7 +538,7 @@ export default function OrgDuesCollectionPage() {
               })}
               {unpaidMembers.length === 0 && (
                 <div className="p-8 text-center text-slate-400 text-sm font-medium italic">
-                  Semua anggota sudah lunas bulan ini! 🎉
+                  Semua anggota sudah lunas bulan ini.
                 </div>
               )}
             </div>
@@ -793,7 +841,7 @@ export default function OrgDuesCollectionPage() {
               <button
                 onClick={handleSaveSettings}
                 disabled={savingSettings}
-                className="flex-1 py-2.5 font-bold text-sm text-white bg-blue-600 hover:bg-blue-500 rounded-xl shadow-md shadow-blue-600/20 transition-all disabled:opacity-50"
+                className="flex-1 py-2.5 font-bold text-sm text-white bg-[#0087FF] hover:bg-[#0077E6] rounded-xl shadow-sm transition-all disabled:opacity-50"
               >
                 {savingSettings ? 'Menyimpan...' : 'Simpan'}
               </button>
@@ -801,6 +849,14 @@ export default function OrgDuesCollectionPage() {
           </div>
         </div>
       )}
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        tourKey="financial_dues"
+        steps={duesTourSteps}
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
+
     </div>
   )
 }

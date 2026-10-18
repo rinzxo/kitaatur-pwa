@@ -76,7 +76,7 @@ export default function OrgTransactionForm({ orgSlug, onSuccess }: OrgTransactio
       <h3 className="text-xl font-bold text-slate-900 mb-4">Catat Keuangan Baru</h3>
       
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
+        <div data-tour="tour-tx-type">
           <label className="block text-slate-700 text-xs font-bold uppercase tracking-wider mb-2">
             Jenis Transaksi
           </label>
@@ -106,7 +106,7 @@ export default function OrgTransactionForm({ orgSlug, onSuccess }: OrgTransactio
           </div>
         </div>
 
-        <div>
+        <div data-tour="tour-tx-amount">
           <label htmlFor="amount" className="block text-slate-700 text-xs font-bold uppercase tracking-wider mb-2">
             Nominal (Rupiah)
           </label>
@@ -125,7 +125,7 @@ export default function OrgTransactionForm({ orgSlug, onSuccess }: OrgTransactio
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div data-tour="tour-tx-category" className="grid grid-cols-2 gap-4">
           <div>
             <label htmlFor="category" className="block text-slate-700 text-xs font-bold uppercase tracking-wider mb-2">
               Kategori
@@ -193,7 +193,7 @@ export default function OrgTransactionForm({ orgSlug, onSuccess }: OrgTransactio
           />
         </div>
 
-        <div>
+        <div data-tour="tour-tx-receipt">
           <label className="block text-slate-700 text-xs font-bold uppercase tracking-wider mb-2">
             Bukti Transaksi (Opsional)
           </label>
@@ -229,9 +229,10 @@ export default function OrgTransactionForm({ orgSlug, onSuccess }: OrgTransactio
         )}
 
         <button
+          data-tour="tour-tx-submit"
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white disabled:text-slate-400 font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all duration-300"
+          className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 text-white disabled:text-slate-400 font-bold rounded-xl shadow-sm transition-all duration-300 active:scale-[0.98]"
         >
           {loading ? 'Menyimpan...' : 'Simpan Transaksi Kas'}
         </button>

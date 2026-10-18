@@ -6,7 +6,24 @@ import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Edit2, Trash2, ArrowRight, Wallet, AlertTriangle, Plus, CreditCard, ChevronRight, Check, Target, Minus, ArrowRightLeft, RefreshCw, Calendar, History } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  PencilSimple as Edit2, 
+  Trash as Trash2, 
+  ArrowRight, 
+  Wallet, 
+  Warning as AlertTriangle, 
+  Plus, 
+  CreditCard, 
+  CaretRight as ChevronRight, 
+  Check, 
+  Target, 
+  Minus, 
+  ArrowsLeftRight as ArrowRightLeft, 
+  ArrowsClockwise as RefreshCw, 
+  CalendarDots as Calendar, 
+  ClockCounterClockwise as History 
+} from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 
 interface Goal {
@@ -165,8 +182,34 @@ export default function GoalDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[80vh] items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 relative animate-pulse">
+        <div className="max-w-4xl mx-auto p-4 md:p-8 space-y-6">
+          <div>
+            <div className="h-4 w-32 bg-slate-200 rounded-md mb-4" />
+            <div className="h-8 w-64 bg-slate-300 rounded-xl mb-2" />
+            <div className="h-4 w-44 bg-slate-200 rounded-md" />
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="flex justify-between items-center">
+              <div className="h-6 w-32 bg-slate-200 rounded-md" />
+              <div className="h-6 w-20 bg-slate-200 rounded-full" />
+            </div>
+            <div className="h-10 w-52 bg-slate-300 rounded-xl" />
+            <div className="h-4 w-full bg-slate-100 rounded-full" />
+            <div className="flex justify-between pt-2">
+              <div className="h-4 w-32 bg-slate-200 rounded-md" />
+              <div className="h-4 w-32 bg-slate-200 rounded-md" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 p-6 space-y-4 shadow-sm">
+            <div className="h-6 w-40 bg-slate-200 rounded-lg mb-4" />
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-16 bg-slate-50 rounded-2xl" />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -193,7 +236,7 @@ export default function GoalDetailPage() {
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-[#E0F4FE] text-[#0087FF] flex items-center justify-center">
                   <Target className="w-5 h-5" />
                 </div>
                 <h1 className="text-2xl font-bold text-slate-900">{goal.title}</h1>
@@ -202,7 +245,7 @@ export default function GoalDetailPage() {
                     {goal.type === 'saving' ? 'Tabungan' : 'Anggaran'}
                   </span>
                   {goal.budget_category && (
-                    <span className="px-3 py-1 bg-violet-50 text-violet-600 text-xs font-semibold rounded-full border border-violet-100">
+                    <span className="px-3 py-1 bg-[#E0F4FE] text-[#0087FF] text-xs font-semibold rounded-full border border-[#b9e5fa]">
                       {goal.budget_category}
                     </span>
                   )}
@@ -237,11 +280,11 @@ export default function GoalDetailPage() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Target: {formatRupiah(goal.target_amount)}</span>
-                  <span className="font-bold text-violet-600">{progressPercentage}%</span>
+                  <span className="font-bold text-[#0087FF]">{progressPercentage}%</span>
                 </div>
                 <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
                   <div 
-                    className="bg-violet-600 h-3 rounded-full transition-all duration-500" 
+                    className="bg-[#0087FF] h-3 rounded-full transition-all duration-500" 
                     style={{ width: `${progressPercentage}%` }}
                   ></div>
                 </div>
@@ -417,7 +460,7 @@ export default function GoalDetailPage() {
                   inputMode="numeric"
                   value={amount ? new Intl.NumberFormat('id-ID').format(parseInt(amount, 10)) : ''}
                   onChange={e => setAmount(e.target.value.replace(/\D/g, ''))}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 font-semibold text-lg"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0087FF] font-semibold text-lg"
                   placeholder="0"
                   required
                 />
@@ -437,7 +480,7 @@ export default function GoalDetailPage() {
                         value="kas" 
                         checked={incomeSource === 'kas'} 
                         onChange={() => setIncomeSource('kas')}
-                        className="text-violet-600 focus:ring-violet-500" 
+                        className="text-[#0087FF] focus:ring-[#0087FF]" 
                       />
                       <span className="text-sm text-slate-700">Potong Kas Utama</span>
                     </label>
@@ -448,7 +491,7 @@ export default function GoalDetailPage() {
                         value="eksternal" 
                         checked={incomeSource === 'eksternal'} 
                         onChange={() => setIncomeSource('eksternal')}
-                        className="text-violet-600 focus:ring-violet-500" 
+                        className="text-[#0087FF] focus:ring-[#0087FF]" 
                       />
                       <span className="text-sm text-slate-700">Dana Eksternal</span>
                     </label>
@@ -477,7 +520,7 @@ export default function GoalDetailPage() {
                 <textarea 
                   value={description}
                   onChange={e => setDescription(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-violet-500 text-sm"
+                  className="w-full border border-slate-300 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#0087FF] text-sm"
                   placeholder={manageAction === 'expense' ? "Beli perlengkapan acara..." : "Keterangan opsional..."}
                   rows={2}
                   required={manageAction === 'expense'}
@@ -498,7 +541,7 @@ export default function GoalDetailPage() {
                   className={`flex-1 py-2.5 font-semibold rounded-xl text-sm transition-colors text-white ${
                     manageAction === 'income' ? 'bg-emerald-600 hover:bg-emerald-700' :
                     manageAction === 'expense' ? 'bg-rose-600 hover:bg-rose-700' :
-                    'bg-violet-600 hover:bg-violet-700'
+                    'bg-[#0087FF] hover:bg-[#0077E6]'
                   } ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
                   {isSubmitting ? 'Menyimpan...' : 'Konfirmasi'}

@@ -6,7 +6,15 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api, supabase } from '@/lib/api'
-import { ArrowLeft, Search, Paperclip, TrendingUp, TrendingDown, Trash2, Wallet } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  MagnifyingGlass as Search, 
+  Paperclip, 
+  TrendUp as TrendingUp, 
+  TrendDown as TrendingDown, 
+  Trash as Trash2, 
+  Wallet 
+} from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 
@@ -75,7 +83,13 @@ export default function FinancialHistoryPage() {
   }, [orgSlug])
 
   const handleDeleteRecord = async (recordId: string) => {
-    if (!await await confirm('Konfirmasi', 'Apakah Anda yakin ingin menghapus catatan transaksi ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Transaksi',
+      message: 'Apakah Anda yakin ingin menghapus catatan transaksi ini?',
+      confirmText: 'Ya, Hapus',
+      variant: 'danger'
+    })
+    if (!ok) return
     try {
       await api.delete(`/org-financial/${orgSlug}/${recordId}`)
       await fetchData(true)

@@ -6,9 +6,24 @@ import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, UserPlus, Shield, UserMinus, RefreshCw, Link as LinkIcon, Copy, RotateCcw, X, Search } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Users, 
+  UserPlus, 
+  Shield, 
+  UserMinus, 
+  ArrowsClockwise as RefreshCw, 
+  ArrowsCounterClockwise as RotateCcw,
+  Link as LinkIcon, 
+  Copy, 
+  X, 
+  MagnifyingGlass as Search,
+  Compass,
+  QrCode
+} from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { SpotlightTour, type TourStep } from '@/components/ui/SpotlightTour'
 
 interface Profile {
   id: string
@@ -21,7 +36,7 @@ export interface Member {
   id: string
   organization_id: string
   profile_id: string
-  role: 'head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
+  role: 'head' | 'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
   joined_at: string
   custom_data: any
   profile: Profile
@@ -35,7 +50,27 @@ export default function OrganizationMembersPage() {
 
   const [members, setMembers] = useState<Member[]>([])
   const [currentUserId, setCurrentUserId] = useState<string>('')
-  const [currentUserRole, setCurrentUserRole] = useState<'head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
+  const [currentUserRole, setCurrentUserRole] = useState<'head' | 'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
+
+  // Spotlight Walkthrough Tour
+  const [showTour, setShowTour] = useState(false)
+  const membersTourSteps: TourStep[] = [
+    {
+      target: '[data-tour="tour-invite-btn"]',
+      title: 'Undang Anggota & Siswa',
+      description: 'Dapatkan tautan dan kode undangan organisasi untuk dibagikan langsung ke grup WhatsApp kelas atau ekstrakurikuler.'
+    },
+    {
+      target: '[data-tour="tour-members-table"]',
+      title: 'Daftar Pengurus & Anggota',
+      description: 'Pantau seluruh anggota yang telah terdaftar lengkap dengan peran jabatan, email, dan tanggal bergabung.'
+    },
+    {
+      target: '[data-tour="tour-role-change"]',
+      title: 'Ubah Peran & Hak Akses',
+      description: 'Ketua organisasi dapat mengatur wewenang anggota menjadi Wakil Ketua, Sekretaris, Bendahara, atau delegasi presensi.'
+    }
+  ]
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   
@@ -44,7 +79,7 @@ export default function OrganizationMembersPage() {
   // Form State
   const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
-  const [newRole, setNewRole] = useState<'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
+  const [newRole, setNewRole] = useState<'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'>('member')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
@@ -59,7 +94,44 @@ export default function OrganizationMembersPage() {
   const [searchQuery, setSearchQuery] = useState('')
 
   const isHead = currentUserRole === 'head'
-  const canInvite = currentUserRole === 'head' || currentUserRole === 'sekretaris'
+  const isViceHead = currentUserRole === 'vice_head'
+  const isLeader = isHead || isViceHead
+  const canInvite = isLeader || currentUserRole === 'sekretaris'
+
+  const canEditMemberRole = (member: Member) => {
+    if (member.profile_id === currentUserId) return false
+    if (member.role === 'head') return false
+    if (isHead) return true
+    if (isViceHead && member.role !== 'vice_head') return true
+    return false
+  }
+
+  const canKickMember = (member: Member) => {
+    if (member.profile_id === currentUserId) return false
+    if (member.role === 'head') return false
+    if (isHead) return true
+    if (isViceHead && member.role !== 'vice_head') return true
+    return false
+  }
+
+  const getRoleOptions = () => {
+    if (isHead) {
+      return [
+        { label: 'Anggota (Member)', value: 'member' },
+        { label: 'Wakil Ketua', value: 'vice_head' },
+        { label: 'Bendahara', value: 'bendahara' },
+        { label: 'Sekretaris', value: 'sekretaris' },
+        { label: 'Auditor', value: 'auditor' },
+        { label: 'Ketua (Transfer Kepemilikan)', value: 'head' }
+      ]
+    }
+    return [
+      { label: 'Anggota (Member)', value: 'member' },
+      { label: 'Bendahara', value: 'bendahara' },
+      { label: 'Sekretaris', value: 'sekretaris' },
+      { label: 'Auditor', value: 'auditor' }
+    ]
+  }
 
   const fetchMembers = async (overrideUserId?: string) => {
     try {
@@ -175,7 +247,13 @@ export default function OrganizationMembersPage() {
   }
 
   const resetInviteCode = async () => {
-    if (!await await confirm('Konfirmasi', 'Link invite lama akan hangus dan tidak bisa digunakan lagi. Lanjutkan?')) return
+    const ok = await confirm({
+      title: 'Reset Kode Undangan',
+      message: 'Link invite lama akan hangus dan tidak bisa digunakan lagi. Lanjutkan?',
+      confirmText: 'Ya, Buat Kode Baru',
+      variant: 'warning'
+    })
+    if (!ok) return
     setInviteLoading(true)
     try {
       const res = await api.post(`/org/${orgSlug}/invite-code/reset`)
@@ -242,9 +320,28 @@ export default function OrganizationMembersPage() {
           <p className="text-slate-500 font-medium text-sm mt-0.5">Kelola struktur kepengurusan dan anggota organisasi Anda.</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTour(true)}
+            className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold rounded-lg shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
+            title="Panduan Interaktif Fitur"
+          >
+            <Compass className="w-4 h-4 text-blue-600" />
+            <span>Panduan Fitur</span>
+          </button>
+          {['head', 'vice_head', 'sekretaris'].includes(currentUserRole) && (
+            <Link
+              href={`/org/${orgSlug}/members/qr`}
+              className="px-3.5 py-2 bg-[#0087FF] hover:bg-[#0077E6] text-white text-xs font-bold rounded-lg shadow-md shadow-[#0087FF]/20 transition-all flex items-center gap-1.5 active:scale-95"
+            >
+              <QrCode size={16} weight="bold" />
+              <span>Cetak QR Anggota</span>
+            </Link>
+          )}
           {canInvite && (
             <button
+              data-tour="tour-invite-btn"
               onClick={openInviteModal}
               className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-bold rounded-lg shadow-md transition-all flex items-center gap-2"
             >
@@ -267,7 +364,7 @@ export default function OrganizationMembersPage() {
       <main className="relative z-10 max-w-7xl mx-auto space-y-6">
         
         {/* Members Table */}
-          <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
+          <div data-tour="tour-members-table" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <h3 className="text-xl font-bold text-slate-900">Pengurus & Anggota</h3>
               <div className="relative w-full md:w-64">
@@ -303,7 +400,7 @@ export default function OrganizationMembersPage() {
                 <>
                   {/* Mobile View: Cards */}
                   <div className="grid grid-cols-1 gap-4 md:hidden">
-                    {filteredMembers.map((member) => (
+                    {filteredMembers.map((member, index) => (
                       <div key={member.id} className="relative border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:border-blue-200 hover:shadow-md transition-all group bg-white">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex gap-3 items-center w-full pr-8">
@@ -328,7 +425,7 @@ export default function OrganizationMembersPage() {
                           </div>
                         </div>
                         
-                        {isHead && member.profile_id !== currentUserId && (
+                        {canKickMember(member) && (
                           <button
                             onClick={() => handleKickMember(member.profile_id, member.profile.full_name || 'Anggota ini')}
                             className="absolute top-4 right-4 p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 rounded-lg transition-colors"
@@ -338,33 +435,29 @@ export default function OrganizationMembersPage() {
                           </button>
                         )}
                         
-                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
+                        <div data-tour={index === 0 ? "tour-role-change" : undefined} className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100">
                           <span className="text-xs font-medium text-slate-500">Role:</span>
-                          {isHead && member.profile_id !== currentUserId ? (
+                          {canEditMemberRole(member) ? (
                             <CustomSelect
                               value={member.role}
                               onChange={(val) => handleRoleChange(member.profile_id, val)}
-                              options={[
-                                { label: 'Anggota (Member)', value: 'member' },
-                                { label: 'Bendahara', value: 'bendahara' },
-                                { label: 'Sekretaris', value: 'sekretaris' },
-                                { label: 'Auditor', value: 'auditor' },
-                                { label: 'Head (Transfer)', value: 'head' }
-                              ]}
+                              options={getRoleOptions()}
                               className="max-w-[140px]"
                             />
                           ) : (
                             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
                               member.role === 'head'
-                                ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                                ? 'bg-[#E0F4FE] text-[#007AE6] border border-[#b9e5fa]'
+                                : member.role === 'vice_head'
+                                ? 'bg-sky-50 text-sky-700 border border-sky-200'
                                 : member.role === 'bendahara'
-                                ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                 : member.role === 'sekretaris'
-                                ? 'bg-purple-50 text-purple-600 border border-purple-200'
+                                ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                 : 'bg-slate-100 text-slate-600 border border-slate-200'
                             }`}>
-                              {member.role === 'head' && <Shield className="h-3 w-3" />}
-                              {member.role}
+                              {(member.role === 'head' || member.role === 'vice_head') && <Shield className="h-3 w-3" />}
+                              {member.role === 'vice_head' ? 'Wakil Ketua' : member.role === 'head' ? 'Ketua' : member.role}
                             </span>
                           )}
                         </div>
@@ -378,7 +471,7 @@ export default function OrganizationMembersPage() {
                             <span className="font-medium text-[11px] uppercase tracking-wider text-slate-400">Delegasi Absen</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                               <input type="checkbox" className="sr-only peer" checked={!!member.custom_data?.can_take_attendance} onChange={() => handleToggleDelegation(member)} />
-                              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0087FF]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0087FF]"></div>
                             </label>
                           </div>
                         )}
@@ -417,12 +510,12 @@ export default function OrganizationMembersPage() {
                             key={member.id} 
                             className="hover:bg-slate-50 transition-colors group cursor-context-menu"
                             onContextMenu={(e) => {
-                              if (isHead && member.profile_id !== currentUserId) {
+                              if (canKickMember(member)) {
                                 e.preventDefault();
                                 handleKickMember(member.profile_id, member.profile.full_name || 'Anggota ini');
                               }
                             }}
-                            title={isHead && member.profile_id !== currentUserId ? "Klik Kanan untuk Mengeluarkan Anggota" : ""}
+                            title={canKickMember(member) ? "Klik Kanan untuk Mengeluarkan Anggota" : ""}
                           >
                             <td className="py-3.5 px-2 font-bold text-slate-900 whitespace-nowrap">
                               <div className="flex items-center gap-3">
@@ -445,30 +538,26 @@ export default function OrganizationMembersPage() {
                             </td>
                             <td className="py-3.5 px-2 text-slate-500 font-medium whitespace-nowrap">{member.profile.email}</td>
                             <td className="py-3.5 px-2 whitespace-nowrap">
-                              {isHead && member.profile_id !== currentUserId ? (
+                              {canEditMemberRole(member) ? (
                                 <CustomSelect
                                   value={member.role}
                                   onChange={(val) => handleRoleChange(member.profile_id, val)}
-                                  options={[
-                                    { label: 'Anggota (Member)', value: 'member' },
-                                    { label: 'Bendahara', value: 'bendahara' },
-                                    { label: 'Sekretaris', value: 'sekretaris' },
-                                    { label: 'Auditor', value: 'auditor' },
-                                    { label: 'Head (Transfer Kepemilikan)', value: 'head' }
-                                  ]}
+                                  options={getRoleOptions()}
                                 />
                               ) : (
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
                                   member.role === 'head'
-                                    ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                                    ? 'bg-[#E0F4FE] text-[#007AE6] border border-[#b9e5fa]'
+                                    : member.role === 'vice_head'
+                                    ? 'bg-sky-50 text-sky-700 border border-sky-200'
                                     : member.role === 'bendahara'
-                                    ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                     : member.role === 'sekretaris'
-                                    ? 'bg-purple-50 text-purple-600 border border-purple-200'
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
                                     : 'bg-slate-100 text-slate-600 border border-slate-200'
                                 }`}>
-                                  {member.role === 'head' && <Shield className="h-3 w-3" />}
-                                  {member.role}
+                                  {(member.role === 'head' || member.role === 'vice_head') && <Shield className="h-3 w-3" />}
+                                  {member.role === 'vice_head' ? 'Wakil Ketua' : member.role === 'head' ? 'Ketua' : member.role}
                                 </span>
                               )}
                             </td>
@@ -477,7 +566,7 @@ export default function OrganizationMembersPage() {
                                 {member.profile_id !== currentUserId ? (
                                   <label className="relative inline-flex items-center cursor-pointer">
                                     <input type="checkbox" className="sr-only peer" checked={!!member.custom_data?.can_take_attendance} onChange={() => handleToggleDelegation(member)} />
-                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-[#0087FF]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0087FF]"></div>
                                   </label>
                                 ) : (
                                   <span className="text-xs text-slate-400">-</span>
@@ -549,6 +638,14 @@ export default function OrganizationMembersPage() {
           </div>
         </div>
       )}
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        tourKey="members_management"
+        steps={membersTourSteps}
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
+
     </div>
   )
 }

@@ -43,7 +43,7 @@ export default function EduPinVerifyPage() {
       </Link>
 
       <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-xl shadow-slate-200/50 border border-slate-100">
-        <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 bg-[#E0F4FE] text-[#0087FF] rounded-full flex items-center justify-center mx-auto mb-6">
           <Lock className="w-10 h-10" />
         </div>
         
@@ -59,7 +59,7 @@ export default function EduPinVerifyPage() {
               placeholder="Masukkan PIN"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              className="w-full text-center tracking-[0.5em] text-3xl font-black p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all text-slate-900 placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-base placeholder:font-medium"
+              className="w-full text-center tracking-[0.5em] text-3xl font-black p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:bg-white transition-all text-slate-900 placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-base placeholder:font-medium"
               required
             />
           </div>
@@ -67,7 +67,7 @@ export default function EduPinVerifyPage() {
           <button
             type="submit"
             disabled={loading || !pin}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-2xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/20 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-[#0087FF] text-white font-bold py-4 rounded-2xl hover:bg-[#0077E6] transition-all shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Buka Akses Siswa'}
           </button>
@@ -77,7 +77,7 @@ export default function EduPinVerifyPage() {
           <p className="text-sm text-slate-500 mb-3">Anda seorang guru / pengajar?</p>
           <Link 
             href={`/school/${orgId}/monitor`}
-            className="inline-flex w-full items-center justify-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold py-3 rounded-xl transition-colors border border-indigo-100"
+            className="inline-flex w-full items-center justify-center gap-2 bg-[#E0F4FE] hover:bg-[#E0F4FE]/80 text-[#007AE6] font-bold py-3 rounded-xl transition-colors border border-[#0087FF]/20"
           >
             Masuk ke Monitor Kelas
           </Link>

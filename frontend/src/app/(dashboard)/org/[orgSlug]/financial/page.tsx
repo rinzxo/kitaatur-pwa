@@ -9,10 +9,25 @@ import Link from 'next/link'
 import FinancialChart from './financial-chart'
 import OrgTransactionForm from './org-transaction-form'
 import { 
-  ArrowLeft, Wallet, TrendingUp, TrendingDown, FileSpreadsheet, 
-  Trash2, RefreshCw, AlertCircle, Search, Filter, Paperclip 
-} from 'lucide-react'
+  ArrowLeft, 
+  Wallet, 
+  TrendUp as TrendingUp, 
+  TrendDown as TrendingDown, 
+  FileXls as FileSpreadsheet, 
+  Trash as Trash2, 
+  ArrowsClockwise as RefreshCw, 
+  WarningCircle as AlertCircle, 
+  MagnifyingGlass as Search, 
+  Funnel as Filter, 
+  Paperclip,
+  ChartBar,
+  Target,
+  CaretRight,
+  Receipt,
+  Compass
+} from '@phosphor-icons/react'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { SpotlightTour, type TourStep } from '@/components/ui/SpotlightTour'
 
 interface Summary {
   income: number
@@ -46,6 +61,36 @@ export default function OrgFinancialPage() {
   // User States
   const [currentUserId, setCurrentUserId] = useState('')
   const [currentUserRole, setCurrentUserRole] = useState<string>('member')
+  const isEditor = currentUserRole === 'bendahara'
+
+  // Spotlight Walkthrough Tour
+  const [showTour, setShowTour] = useState(false)
+  const financialTourSteps: TourStep[] = [
+    {
+      target: '[data-tour="tour-financial-summary"]',
+      title: 'Kartu Saldo & Arus Kas',
+      description: 'Pantau saldo kas aktif organisasi, total pemasukan, dan akumulasi pengeluaran kegiatan secara real-time.'
+    },
+    {
+      target: '[data-tour="tour-dues-link"]',
+      title: 'Uang Kas & Tagihan WhatsApp',
+      description: 'Modul tagih kas: pantau siapa yang masih nunggak kas dan kirim pengingat tagihan otomatis ke WhatsApp siswa dalam 1-klik.'
+    },
+    {
+      target: '[data-tour="tour-transaction-box"]',
+      title: isEditor ? 'Pencatatan Kas Baru' : 'Transparansi Kas Terbuka',
+      description: isEditor 
+        ? 'Bendahara dapat mencatat setiap pemasukan atau pengeluaran kas lengkap dengan kategori dan lampiran nota/struk.'
+        : 'Seluruh mutasi kas dicatat secara transparan oleh Bendahara dan dapat dipantau langsung oleh seluruh anggota.',
+      position: 'left'
+    },
+    {
+      target: '[data-tour="tour-export-report"]',
+      title: 'Ekspor Buku Kas Excel',
+      description: 'Unduh laporan pembukuan kas organisasi dalam format Excel yang rapi untuk arsip pertanggungjawaban.',
+      position: 'bottom'
+    }
+  ]
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [orgName, setOrgName] = useState<string>('')
@@ -160,7 +205,13 @@ export default function OrgFinancialPage() {
   }
 
   const handleDeleteRecord = async (recordId: string) => {
-    if (!await await confirm('Konfirmasi', 'Apakah Anda yakin ingin menghapus catatan transaksi ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Transaksi',
+      message: 'Apakah Anda yakin ingin menghapus catatan transaksi ini?',
+      confirmText: 'Ya, Hapus',
+      variant: 'danger'
+    })
+    if (!ok) return
 
     try {
       await api.delete(`/org-financial/${orgSlug}/${recordId}`)
@@ -361,8 +412,6 @@ export default function OrgFinancialPage() {
     )
   }
 
-  const isEditor = currentUserRole === 'bendahara'
-
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden">
       {/* Glow background */}
@@ -382,39 +431,56 @@ export default function OrgFinancialPage() {
           <p className="text-slate-500 text-sm mt-0.5 font-medium">Pantau laporan kas masuk dan keluar secara terstruktur.</p>
         </div>
 
-        <div className="grid grid-cols-2 md:flex md:flex-wrap items-center gap-2 md:gap-3 w-full md:w-auto mt-4 md:mt-0">
-          <Link
-            href={`/org/${orgSlug}/financial/analysis`}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-[11px] sm:text-xs md:text-sm shadow-sm transition-all duration-300 justify-center whitespace-nowrap"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bar-chart-3 md:w-4 md:h-4"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-            Analisis
-          </Link>
+        <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-2.5 w-full md:w-auto mt-4 md:mt-0 justify-start md:justify-end">
+          {/* Sub-feature Navigation Group */}
+          <div className="inline-flex items-center p-1 bg-white border border-slate-200/90 rounded-2xl shadow-2xs gap-0.5 text-xs font-bold text-slate-600">
+            <Link
+              href={`/org/${orgSlug}/financial/analysis`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-all"
+            >
+              <ChartBar size={15} weight="duotone" className="text-indigo-600" />
+              <span>Grafik</span>
+            </Link>
 
-          <Link
-            href={`/org/${orgSlug}/financial/goals`}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:py-2.5 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-lg text-[11px] sm:text-xs md:text-sm shadow-sm transition-all duration-300 justify-center whitespace-nowrap"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-target md:w-4 md:h-4"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-            Anggaran
-          </Link>
+            <Link
+              href={`/org/${orgSlug}/financial/goals`}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 hover:text-purple-600 transition-all"
+            >
+              <Target size={15} weight="duotone" className="text-purple-600" />
+              <span>Target</span>
+            </Link>
 
-          <Link
-            href={`/org/${orgSlug}/financial/dues`}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg text-[11px] sm:text-xs md:text-sm shadow-sm transition-all duration-300 justify-center whitespace-nowrap"
-          >
-            <Wallet className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            Tagihan
-          </Link>
-          
-          <button
-            onClick={handleExportToExcel}
-            className="flex items-center gap-1.5 md:gap-2 px-3 py-2 md:py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-[11px] sm:text-xs md:text-sm shadow-sm transition-all duration-300 justify-center whitespace-nowrap"
-          >
-            <FileSpreadsheet className="h-3.5 w-3.5 md:h-4 md:w-4" />
-            <span className="hidden sm:inline">Ekspor Excel</span>
-            <span className="sm:hidden">Ekspor</span>
-          </button>
+            <Link
+              href={`/org/${orgSlug}/financial/dues`}
+              data-tour="tour-dues-link"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 hover:text-emerald-600 transition-all"
+            >
+              <Wallet size={15} weight="duotone" className="text-emerald-600" />
+              <span>Iuran Kas</span>
+            </Link>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              data-tour="tour-export-report"
+              onClick={handleExportToExcel}
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl text-xs shadow-sm active:scale-95 transition-all"
+            >
+              <FileSpreadsheet size={15} weight="bold" />
+              <span>Ekspor Laporan</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowTour(true)}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-50 border border-blue-200/80 text-blue-700 font-bold rounded-xl text-xs hover:bg-blue-100 transition-all"
+              title="Panduan Interaktif Fitur"
+            >
+              <Compass size={15} weight="bold" />
+              <span>Panduan</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -425,7 +491,7 @@ export default function OrgFinancialPage() {
         <div className="lg:col-span-2 space-y-8">
           
           {/* Status cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div data-tour="tour-financial-summary" className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Balance */}
             <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-5 relative overflow-hidden">
               <span className="text-slate-500 text-xs font-bold uppercase tracking-wider block mb-1">
@@ -490,7 +556,7 @@ export default function OrgFinancialPage() {
                 className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg"
               >
                 Lihat Riwayat Lengkap
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                <CaretRight size={14} weight="bold" />
               </Link>
             </div>
               
@@ -531,7 +597,7 @@ export default function OrgFinancialPage() {
                           </a>
                         )}
                         <a href={`/invoice/${record.id}`} className="text-slate-400 hover:text-emerald-600 bg-slate-50 hover:bg-emerald-50 p-1.5 rounded-lg transition" title="Kwitansi Digital">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-receipt"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg>
+                          <Receipt size={16} weight="duotone" />
                         </a>
                       </div>
                     </div>
@@ -544,11 +610,11 @@ export default function OrgFinancialPage() {
         </div>
 
         {/* Right column: CTA (Form separated to another page) */}
-        <div className="space-y-6">
+        <div className="space-y-6 lg:self-start">
           {isEditor ? (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center">
+            <div data-tour="tour-transaction-box" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center">
               <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Wallet className="w-8 h-8" />
+                <Wallet size={32} weight="duotone" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 mb-2">Pencatatan Kas Baru</h3>
               <p className="text-slate-500 text-sm mb-6 leading-relaxed">
@@ -556,23 +622,54 @@ export default function OrgFinancialPage() {
               </p>
               <Link 
                 href={`/org/${orgSlug}/financial/create`}
-                className="block w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98]"
+                className="block w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98]"
               >
                 Catat Transaksi Sekarang
               </Link>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center text-slate-500 text-sm font-medium">
-              <AlertCircle className="h-8 w-8 text-slate-400 mx-auto mb-3" />
-              Anda masuk dengan peran **{currentUserRole.toUpperCase()}**.
-              <p className="text-xs text-slate-400 mt-2 leading-relaxed font-bold">
-                Anda hanya diizinkan untuk melihat laporan kas keuangan. Pencatatan kas baru hanya bisa dilakukan oleh **Head** dan **Bendahara**.
-              </p>
+            <div data-tour="tour-transaction-box" className="bg-white border border-slate-200 shadow-sm rounded-2xl p-6 text-center space-y-4">
+              <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+                <Receipt size={28} weight="duotone" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Transparansi Kas Terbuka</h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Seluruh mutasi pemasukan dan pengeluaran kas ditampilkan secara terbuka demi transparansi anggota.
+                </p>
+              </div>
+
+              <div className="p-3.5 bg-slate-50 border border-slate-100 rounded-xl text-left space-y-2 text-xs">
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Pencatatan Transaksi</span>
+                  <span className="font-bold text-slate-800">Oleh Bendahara</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-600">
+                  <span>Hak Audit Data</span>
+                  <span className="font-bold text-emerald-600">Terbuka untuk Semua Anggota</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleExportToExcel}
+                className="w-full py-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-2"
+              >
+                <FileSpreadsheet size={16} weight="duotone" />
+                <span>Unduh Rekap Buku Kas (Excel)</span>
+              </button>
             </div>
           )}
         </div>
 
       </main>
+      {/* Spotlight Tour */}
+      <SpotlightTour
+        tourKey="financial_overview"
+        steps={financialTourSteps}
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
+
     </div>
   )
 }

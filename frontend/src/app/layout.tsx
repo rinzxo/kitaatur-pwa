@@ -1,26 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import { SplashScreen } from '@/components/ui/SplashScreen';
+import { cookies } from 'next/headers';
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://kitatur.rinzgroup.web.id'),
-  title: "KitaAtur - Absensi & Keuangan Organisasi",
-  description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
-  keywords: ["kitaatur", "absensi online", "manajemen keuangan", "organisasi", "sistem kas", "absensi qr"],
+  title: "KitaAtur - Presensi & Keuangan Organisasi",
+  description: "Platform SaaS Manajemen Presensi QR dan Arus Kas Organisasi Terintegrasi",
+  keywords: ["kitaatur", "presensi online", "manajemen keuangan", "organisasi", "sistem kas", "presensi qr"],
   authors: [{ name: "RinzGroup" }],
   openGraph: {
-    title: "KitaAtur - Absensi & Keuangan Organisasi",
-    description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+    title: "KitaAtur - Presensi & Keuangan Organisasi",
+    description: "Platform SaaS Manajemen Presensi QR dan Arus Kas Organisasi Terintegrasi",
     url: "https://kitatur.rinzgroup.web.id",
     siteName: "KitaAtur",
     images: [
@@ -36,8 +31,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "KitaAtur - Absensi & Keuangan Organisasi",
-    description: "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
+    title: "KitaAtur - Presensi & Keuangan Organisasi",
+    description: "Platform SaaS Manajemen Presensi QR dan Arus Kas Organisasi Terintegrasi",
     images: ["/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp"],
   },
   manifest: '/manifest.json',
@@ -63,8 +58,6 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-import { cookies } from 'next/headers';
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -74,15 +67,21 @@ export default function RootLayout({
   const splashShown = cookieStore.get('kitaatur_splash_shown');
 
   return (
-    <html lang="id" suppressHydrationWarning className={inter.variable}>
+    <html lang="id" suppressHydrationWarning>
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="KitaAtur" />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <SplashScreen hasSeenSplash={!!splashShown}>
           <ConfirmProvider>
             {children}
@@ -90,17 +89,6 @@ export default function RootLayout({
           </ConfirmProvider>
         </SplashScreen>
         <ServiceWorkerRegistration />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js');
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

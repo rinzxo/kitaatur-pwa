@@ -12,7 +12,7 @@ export default function MaintenancePage() {
         <p className="text-slate-500 mb-8">
           Kami sedang melakukan pemeliharaan sistem rutin untuk meningkatkan layanan. Harap kembali lagi beberapa saat lagi.
         </p>
-        <Link href="/" className="inline-block bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
+        <Link href="/" className="inline-block bg-[#0087FF] text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors">
           Kembali ke Beranda
         </Link>
       </div>

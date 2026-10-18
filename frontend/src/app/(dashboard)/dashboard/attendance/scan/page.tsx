@@ -60,9 +60,9 @@ export default function ScanAttendancePage() {
             <div className="mx-auto bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mb-4 border border-blue-100">
               <Camera className="w-6 h-6 text-blue-600" />
             </div>
-            <h3 className="text-xl font-bold text-slate-900">Scan Absensi</h3>
+            <h3 className="text-xl font-bold text-slate-900">Scan Presensi</h3>
             <p className="text-slate-500 text-sm mt-1 font-medium">
-              Arahkan kamera ke QR Code absensi organisasi Anda.
+              Arahkan kamera ke QR Code presensi organisasi Anda.
             </p>
           </div>
           <div className="p-6 flex flex-col items-center justify-center">
@@ -78,9 +78,10 @@ export default function ScanAttendancePage() {
             )}
 
             {loading && (
-              <div className="flex flex-col items-center justify-center py-12">
-                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
-                <p className="text-sm text-slate-500 font-medium">Memproses absensi...</p>
+              <div className="w-full rounded-xl overflow-hidden border border-slate-200 bg-slate-100 aspect-square shadow-sm flex flex-col items-center justify-center p-6 animate-pulse">
+                <div className="w-3/4 h-3/4 border-2 border-dashed border-slate-300 rounded-xl flex items-center justify-center">
+                  <p className="text-sm text-slate-500 font-bold">Memvalidasi QR...</p>
+                </div>
               </div>
             )}
 
@@ -104,7 +105,7 @@ export default function ScanAttendancePage() {
                     <h3 className="text-xl font-bold text-slate-900 mb-2">Berhasil!</h3>
                     <p className="text-slate-500 font-medium mb-6">{result.message}</p>
                     <Link href="/dashboard" passHref className="w-full">
-                      <button className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all">
+                      <button className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all">
                         Kembali ke Dashboard
                       </button>
                     </Link>
@@ -122,7 +123,7 @@ export default function ScanAttendancePage() {
                         Coba Lagi
                       </button>
                       <Link href="/dashboard" passHref className="flex-1">
-                        <button className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all">
+                        <button className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all">
                           Dashboard
                         </button>
                       </Link>

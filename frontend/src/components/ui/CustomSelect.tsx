@@ -1,7 +1,7 @@
 'use client'
 import React, { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronDown, Check } from 'lucide-react'
+import { CaretDown, Check } from '@phosphor-icons/react'
 
 interface Option {
   label: string
@@ -120,7 +120,7 @@ export function CustomSelect({ options, value, onChange, placeholder = "Pilih...
         className="w-full sm:w-auto min-w-[140px] px-4 py-2.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between gap-3 transition-colors shadow-sm"
       >
         <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <CaretDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {mounted && isOpen && createPortal(dropdownMenu, document.body)}

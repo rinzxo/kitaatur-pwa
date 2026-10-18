@@ -6,11 +6,11 @@ import { org_member_role } from '@prisma/client'
 export interface OrganizationRequest extends AuthenticatedRequest {
   orgMember?: {
     organizationId: string
-    role: org_member_role | 'auditor'
+    role: org_member_role | 'auditor' | 'vice_head'
   }
 }
 
-export function requireOrgRole(allowedRoles: (org_member_role | 'auditor')[]) {
+export function requireOrgRole(allowedRoles: (org_member_role | 'auditor' | 'vice_head')[]) {
   return async (req: OrganizationRequest, res: Response, next: NextFunction) => {
     const userId = req.user?.id
     const orgIdOrSlug = req.params.orgIdOrSlug
@@ -58,13 +58,18 @@ export function requireOrgRole(allowedRoles: (org_member_role | 'auditor')[]) {
 
       const membership = results[0]
 
-      if (allowedRoles.length > 0 && !allowedRoles.includes(membership.role)) {
+      const isAllowed = 
+        allowedRoles.length === 0 || 
+        allowedRoles.includes(membership.role) || 
+        (membership.role === 'vice_head' && allowedRoles.includes('head'))
+
+      if (!isAllowed) {
         return res.status(403).json({ error: 'Access denied: Insufficient permission' })
       }
 
       req.orgMember = {
         organizationId: membership.organization_id,
-        role: membership.role as (org_member_role | 'auditor')
+        role: membership.role as (org_member_role | 'auditor' | 'vice_head')
       }
 
       next()

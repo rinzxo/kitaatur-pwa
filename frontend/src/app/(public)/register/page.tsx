@@ -9,7 +9,7 @@ function SubmitButton({ pending }: { pending: boolean }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+      className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 text-white font-bold rounded-2xl shadow-sm transition-all active:scale-[0.98] flex items-center justify-center gap-2"
     >
       {pending ? (
         <svg className="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
@@ -90,7 +90,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       {/* Left Pane (Hero Branding) - Hidden on Mobile */}
-      <div className="hidden md:flex md:w-1/2 bg-blue-600 p-12 flex-col justify-between relative overflow-hidden text-white">
+      <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-[#0087FF] via-[#007AE6] to-[#01C4FB] p-12 flex-col justify-between relative overflow-hidden text-white">
         <div className="relative z-10">
           <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center p-1.5 shadow-xl mb-6">
             <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
@@ -99,19 +99,19 @@ export default function RegisterPage() {
             Mulai Perjalanan<br/>Lebih Teratur.
           </h1>
           <p className="text-blue-100 text-lg max-w-md">
-            Buat akun sekarang dan nikmati kemudahan mengelola keuangan serta absensi bersama tim Anda.
+            Buat akun sekarang dan nikmati kemudahan mengelola keuangan serta presensi bersama tim Anda.
           </p>
         </div>
 
         {/* Decorative Shapes */}
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-500 rounded-full blur-3xl opacity-50"></div>
-        <div className="absolute top-10 -right-10 w-64 h-64 bg-indigo-500 rounded-full blur-3xl opacity-50"></div>
+        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute top-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
       </div>
 
       {/* Right Pane (Form) */}
       <div className="flex-1 flex items-center justify-center p-4 md:p-12 relative">
         {/* Mobile Header Branding */}
-        <div className="md:hidden absolute top-0 left-0 right-0 h-64 bg-blue-600 rounded-b-[40px] flex items-start justify-center pt-10">
+        <div className="md:hidden absolute top-0 left-0 right-0 h-64 bg-gradient-to-r from-[#0087FF] to-[#01C4FB] rounded-b-[40px] flex items-start justify-center pt-10">
           <div className="flex items-center gap-2 text-white font-bold text-xl">
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center p-1 shadow-sm">
               <img src="/logo.png" alt="KitaAtur" className="w-full h-full object-contain" />
@@ -128,14 +128,14 @@ export default function RegisterPage() {
           
           {success ? (
             <div className="text-center p-6 bg-emerald-50 rounded-2xl border border-emerald-100">
-              <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle className="w-8 h-8" />
               </div>
               <h3 className="text-emerald-800 font-bold text-lg mb-2">Pendaftaran Berhasil!</h3>
-              <p className="text-emerald-600 text-sm mb-6">
+              <p className="text-emerald-700 text-sm mb-6">
                 Silakan periksa kotak masuk email Anda untuk melakukan verifikasi akun.
               </p>
-              <Link href="/login" className="inline-block px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm">
+              <Link href="/login" className="inline-block px-6 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors shadow-sm">
                 Kembali ke Login
               </Link>
             </div>
@@ -151,7 +151,7 @@ export default function RegisterPage() {
                   type="text"
                   required
                   placeholder="John Doe"
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:border-[#0087FF] focus:bg-white transition-all font-medium"
                 />
               </div>
               <div>
@@ -164,7 +164,7 @@ export default function RegisterPage() {
                   type="email"
                   required
                   placeholder="nama@email.com"
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:border-[#0087FF] focus:bg-white transition-all font-medium"
                 />
               </div>
               <div>
@@ -179,7 +179,7 @@ export default function RegisterPage() {
                   type="password"
                   required
                   placeholder="Minimal 6 karakter"
-                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all font-medium"
+                  className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:border-[#0087FF] focus:bg-white transition-all font-medium"
                 />
               </div>
               
@@ -223,7 +223,7 @@ export default function RegisterPage() {
           
           <p className="text-slate-500 text-center text-sm mt-8 font-medium">
             Sudah punya akun?{' '}
-            <Link href="/login" className="text-blue-600 hover:text-blue-700 transition-colors font-bold">
+            <Link href="/login" className="text-[#0087FF] hover:text-[#0077E6] transition-colors font-bold">
               Masuk Sekarang
             </Link>
           </p>

@@ -33,7 +33,25 @@ function PrintGuestsContent() {
   }
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Memuat...</div>
+    return (
+      <div className="min-h-screen bg-slate-50 p-6 md:p-10 animate-pulse">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-slate-200">
+            <div className="h-6 w-32 bg-slate-200 rounded-lg" />
+            <div className="h-10 w-28 bg-slate-200 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center space-y-3">
+                <div className="w-32 h-32 bg-slate-100 rounded-xl" />
+                <div className="h-4 w-24 bg-slate-200 rounded-md" />
+                <div className="h-3 w-16 bg-slate-100 rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -49,7 +67,7 @@ function PrintGuestsContent() {
         </button>
         <button 
           onClick={() => window.print()}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm"
+          className="bg-[#0087FF] hover:bg-[#0077E6] text-white px-6 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm"
         >
           <Printer className="w-4 h-4" />
           Cetak Dokumen
@@ -89,7 +107,25 @@ function PrintGuestsContent() {
 
 export default function PrintGuestsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 p-6 md:p-10 animate-pulse">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="flex justify-between items-center pb-4 border-b border-slate-200">
+            <div className="h-6 w-32 bg-slate-200 rounded-lg" />
+            <div className="h-10 w-28 bg-slate-200 rounded-xl" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col items-center space-y-3">
+                <div className="w-32 h-32 bg-slate-100 rounded-xl" />
+                <div className="h-4 w-24 bg-slate-200 rounded-md" />
+                <div className="h-3 w-16 bg-slate-100 rounded-md" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
       <PrintGuestsContent />
     </Suspense>
   )

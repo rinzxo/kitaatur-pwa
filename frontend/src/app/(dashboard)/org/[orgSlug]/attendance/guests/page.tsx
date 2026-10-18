@@ -129,20 +129,20 @@ function GuestsContent() {
               className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-3"
             >
               <ArrowLeft className="h-3 w-3" />
-              {sessionId && sessionId !== 'null' ? 'Kembali ke Sesi' : 'Kembali ke Absensi'}
+              {sessionId && sessionId !== 'null' ? 'Kembali ke Sesi' : 'Kembali ke Presensi'}
             </Link>
             <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Users className="w-6 h-6 text-blue-600" />
+              <Users className="w-6 h-6 text-[#0087FF]" />
               Peserta Eksternal
             </h1>
-            <p className="text-sm text-slate-500 mt-1">Kelola {isSchool ? 'siswa' : 'tamu'} dan hasilkan QR Code absensi</p>
+            <p className="text-sm text-slate-500 mt-1">Kelola {isSchool ? 'siswa' : 'tamu'} dan hasilkan QR Code presensi</p>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => router.push(`/org/${orgSlug}/attendance/guests/analytics`)}
-              className="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all"
+              className="bg-[#E0F4FE] border border-[#b9e5fa] hover:bg-[#cbeafc] text-[#007AE6] px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-sm"
             >
-              <Users className="w-4 h-4" />
+              <Users className="w-4 h-4 text-[#0087FF]" />
               Statistik {isSchool ? 'Siswa' : 'Tamu'}
             </button>
             <button 
@@ -226,7 +226,11 @@ function GuestsContent() {
 
           <div className="p-4 bg-slate-50/50">
             {loading ? (
-              <div className="p-10 text-center text-slate-500">Memuat data...</div>
+              <div className="space-y-3 p-2 animate-pulse">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-14 bg-white border border-slate-200 rounded-xl" />
+                ))}
+              </div>
             ) : guests.length === 0 ? (
               <div className="p-10 text-center text-slate-500 bg-white rounded-xl border border-slate-200">Belum ada peserta eksternal yang diupload.</div>
             ) : (() => {
@@ -291,17 +295,17 @@ function GuestsContent() {
                               {g.check_in_time ? new Date(g.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Terlambat'}
                             </div>
                           ) : g.status === 'izin' ? (
-                            <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-3 py-1 rounded-full text-xs font-bold border border-purple-100">
+                            <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-3 py-1 rounded-full text-xs font-bold border border-amber-200">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Izin
                             </div>
                           ) : g.status === 'sakit' ? (
-                            <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-xs font-bold border border-orange-100">
+                            <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-200">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               Sakit
                             </div>
                           ) : g.status === 'alpha' ? (
-                            <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-100">
+                            <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-200">
                               <XCircle className="w-3.5 h-3.5" />
                               Alpha
                             </div>
@@ -361,17 +365,17 @@ function GuestsContent() {
                                   {g.check_in_time ? new Date(g.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : 'Terlambat'}
                                 </div>
                               ) : g.status === 'izin' ? (
-                                <div className="flex items-center gap-1.5 text-purple-600 bg-purple-50 px-3 py-1 rounded-full text-xs font-bold border border-purple-100">
+                                <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-3 py-1 rounded-full text-xs font-bold border border-amber-200">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   Izin
                                 </div>
                               ) : g.status === 'sakit' ? (
-                                <div className="flex items-center gap-1.5 text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-xs font-bold border border-orange-100">
+                                <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-200">
                                   <CheckCircle2 className="w-3.5 h-3.5" />
                                   Sakit
                                 </div>
                               ) : g.status === 'alpha' ? (
-                                <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-100">
+                                <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-3 py-1 rounded-full text-xs font-bold border border-rose-200">
                                   <XCircle className="w-3.5 h-3.5" />
                                   Alpha
                                 </div>
@@ -399,7 +403,25 @@ function GuestsContent() {
 
 export default function GuestsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 p-4 md:p-8 animate-pulse">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="h-3 w-28 bg-slate-200 rounded-md mb-2" />
+              <div className="h-8 w-60 bg-slate-300 rounded-xl" />
+            </div>
+            <div className="h-10 w-36 bg-slate-200 rounded-xl" />
+          </div>
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-4 shadow-sm">
+            <div className="h-10 bg-slate-100 rounded-xl w-full" />
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="h-14 bg-slate-50 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
       <GuestsContent />
     </Suspense>
   )

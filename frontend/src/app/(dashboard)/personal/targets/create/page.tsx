@@ -44,7 +44,7 @@ export default function CreatePersonalTargetPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
       {/* Decorative Blur */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-100 rounded-full blur-[120px] pointer-events-none opacity-60" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#E0F4FE] rounded-full blur-[120px] pointer-events-none opacity-60" />
 
       <div className="w-full max-w-lg bg-white border border-slate-200 shadow-xl rounded-3xl p-8 relative z-10">
         <Link href="/personal/targets" className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-6">
@@ -53,7 +53,7 @@ export default function CreatePersonalTargetPage() {
         </Link>
 
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2 mb-2">
-          <Target className="h-6 w-6 text-purple-600" />
+          <Target className="h-6 w-6 text-[#0087FF]" />
           Buat Target Finansial
         </h1>
         <p className="text-slate-500 text-sm mb-8">Apa yang ingin Anda capai di masa depan? Tetapkan targetnya sekarang.</p>
@@ -67,7 +67,7 @@ export default function CreatePersonalTargetPage() {
               placeholder="Contoh: Beli Laptop Baru, Liburan..."
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-[#0087FF] outline-none"
             />
           </div>
 
@@ -80,7 +80,7 @@ export default function CreatePersonalTargetPage() {
               placeholder="Contoh: 15000000"
               value={formData.target_amount}
               onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-500 outline-none"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-[#0087FF] outline-none"
             />
           </div>
 
@@ -90,7 +90,7 @@ export default function CreatePersonalTargetPage() {
               type="date"
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-500 outline-none text-slate-700"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-[#0087FF] outline-none text-slate-700"
             />
           </div>
 
@@ -100,7 +100,7 @@ export default function CreatePersonalTargetPage() {
               placeholder="Deskripsi lebih detail terkait target ini..."
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-purple-500 outline-none resize-none h-24"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-medium focus:ring-2 focus:ring-[#0087FF] outline-none resize-none h-24"
             />
           </div>
 
@@ -111,7 +111,7 @@ export default function CreatePersonalTargetPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 mt-4 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all disabled:opacity-50"
+            className="w-full py-4 mt-4 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
           >
             {loading ? 'Membuat Target...' : 'Mulai Menabung!'}
           </button>

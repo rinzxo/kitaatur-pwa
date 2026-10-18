@@ -38,8 +38,8 @@ export const createSchedule = async (req: Request, res: Response) => {
         created_by: (req as any).user!.id,
         title: title || 'Sesi Rutin',
         session_type: session_type || 'in_only',
-        latitude: parseFloat(latitude),
-        longitude: parseFloat(longitude),
+        latitude: !isNaN(parseFloat(latitude)) ? parseFloat(latitude) : 0,
+        longitude: !isNaN(parseFloat(longitude)) ? parseFloat(longitude) : 0,
         radius_meters: parseInt(radius_meters) || 50,
         days_of_week: days_of_week, // Array of Int
         start_time: start_time,

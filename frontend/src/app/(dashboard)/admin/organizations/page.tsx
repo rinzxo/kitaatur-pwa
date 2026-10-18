@@ -1,4 +1,5 @@
 'use client'
+import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
@@ -33,9 +34,9 @@ export default function AdminOrgsPage() {
       try {
         await api.delete(`/admin/orgs/${id}`)
         setOrgs(orgs.filter(o => o.id !== id))
-        alert('Organisasi berhasil dihapus')
+        toast.success('Organisasi berhasil dihapus')
       } catch (err) {
-        alert('Gagal menghapus organisasi')
+        toast.error('Gagal menghapus organisasi')
       }
     }
   }
@@ -51,10 +52,10 @@ export default function AdminOrgsPage() {
         profile_id: promptData.ownerId,
         plan_type: promptData.plan.toLowerCase().trim()
       })
-      alert(`Paket ${promptData.plan} berhasil diberikan kepada owner ${promptData.orgName}`)
+      toast.success(`Paket ${promptData.plan} berhasil diberikan kepada owner ${promptData.orgName}`)
       setPromptData({ isOpen: false, ownerId: '', orgName: '', plan: '' })
     } catch (err) {
-      alert('Gagal memberikan paket')
+      toast.error('Gagal memberikan paket')
     }
   }
 
@@ -85,7 +86,20 @@ export default function AdminOrgsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-10 text-slate-500">Memuat data...</div>
+        <div className="flex flex-col gap-4 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-slate-200 shrink-0" />
+                <div className="space-y-2">
+                  <div className="h-5 w-40 bg-slate-200 rounded-md" />
+                  <div className="h-4 w-24 bg-slate-100 rounded-md" />
+                </div>
+              </div>
+              <div className="h-8 w-24 bg-slate-100 rounded-lg" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           {filtered.map(org => (
@@ -136,7 +150,7 @@ export default function AdminOrgsPage() {
               <p className="text-sm text-slate-600 mb-4">Pilih paket langganan yang akan diberikan gratis ke organisasi <strong>{promptData.orgName}</strong> selama 1 tahun.</p>
               
               <div className="flex flex-col gap-2">
-                {['school', 'enterprise', 'pro'].map(p => (
+                {['family', 'school', 'enterprise', 'pro'].map(p => (
                   <button 
                     key={p} 
                     onClick={() => setPromptData({...promptData, plan: p})}
@@ -149,7 +163,7 @@ export default function AdminOrgsPage() {
               </div>
               <button 
                 onClick={submitGrant}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-6 shadow-sm shadow-blue-600/20 transition-all"
+                className="w-full bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold py-3 rounded-xl mt-6 shadow-sm shadow-blue-600/20 transition-all"
               >
                 Konfirmasi Pemberian
               </button>

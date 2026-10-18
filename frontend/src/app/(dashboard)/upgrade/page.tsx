@@ -12,7 +12,7 @@ export default function UpgradePage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
   const [showModal, setShowModal] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<'plus' | 'pro'>('plus')
+  const [selectedPlan, setSelectedPlan] = useState<'plus' | 'pro' | 'family'>('plus')
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -20,7 +20,7 @@ export default function UpgradePage() {
     })
   }, [])
 
-  const handleSubscribeClick = (plan: 'plus' | 'pro') => {
+  const handleSubscribeClick = (plan: 'plus' | 'pro' | 'family') => {
     if (!userId) return toast.error('Gagal mengambil data user.')
     setSelectedPlan(plan)
     setShowModal(true)
@@ -29,12 +29,13 @@ export default function UpgradePage() {
   const confirmSubscription = async () => {
     setLoading(true)
     try {
-      const isPro = selectedPlan === 'pro';
-      const baseMonthly = isPro ? 110000 : 40000;
-      const baseYearly = isPro ? 1100000 : 400000;
-      const baseAmount = billingCycle === 'yearly' ? baseYearly : baseMonthly;
-      const tax = baseAmount * 0.11;
-      const totalAmount = baseAmount + tax;
+      const isFamily = selectedPlan === 'family'
+      const isPro = selectedPlan === 'pro'
+      const baseMonthly = isFamily ? 250000 : (isPro ? 110000 : 40000)
+      const baseYearly = isFamily ? 2500000 : (isPro ? 1100000 : 400000)
+      const baseAmount = billingCycle === 'yearly' ? baseYearly : baseMonthly
+      const tax = baseAmount * 0.11
+      const totalAmount = baseAmount + tax
 
       const res = await api.post('/payment/checkout', {
         planType: `${selectedPlan}-${billingCycle}`,
@@ -70,7 +71,7 @@ export default function UpgradePage() {
             Tingkatkan ke Premium
           </h1>
           <p className="text-slate-500 text-base max-w-xl mx-auto mb-8">
-            Buka akses penuh ke ekosistem KitaAtur. Kelola organisasi, absensi AI, dan transparansi keuangan secara efisien.
+            Buka akses penuh ke ekosistem KitaAtur. Kelola organisasi, presensi AI, dan transparansi keuangan secara efisien.
           </p>
 
           {/* Billing Cycle Toggle */}
@@ -86,12 +87,12 @@ export default function UpgradePage() {
               className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${billingCycle === 'yearly' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
             >
               Tahunan
-              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Hemat 17%</span>
+              <span className="bg-[#E0F4FE] text-[#007AE6] px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold">Hemat 17%</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-start max-w-7xl mx-auto">
           
           {/* Card: KitaAtur Plus */}
           <div className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm relative group hover:border-slate-300 transition-colors">
@@ -115,7 +116,7 @@ export default function UpgradePage() {
                 'Maksimal 100 anggota organisasi',
                 'Pemindai Kehadiran QR (Internal)',
                 'Akses fitur Validasi Bukti dengan AI',
-                'Laporan Absensi & Keuangan Ekspor ke Excel',
+                'Laporan Presensi & Keuangan Ekspor ke Excel',
                 'Prioritas Layanan Support',
                 'Keamanan Data Tingkat Lanjut'
               ].map((feature, i) => (
@@ -129,7 +130,7 @@ export default function UpgradePage() {
             <button 
               onClick={() => handleSubscribeClick('plus')}
               disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm shadow-md shadow-blue-500/30 disabled:opacity-70"
+              className="w-full py-3 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors text-sm shadow-sm disabled:opacity-70"
             >
               Berlangganan Sekarang
             </button>
@@ -153,7 +154,7 @@ export default function UpgradePage() {
 
             <ul className="space-y-4 mb-10 text-sm">
               <li className="flex items-start gap-3 text-slate-900 font-bold">
-                <Check className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                <Check className="w-4 h-4 text-[#0087FF] flex-shrink-0 mt-0.5" />
                 <span>Semua fitur KitaAtur Plus, ditambah:</span>
               </li>
               {[
@@ -165,7 +166,7 @@ export default function UpgradePage() {
                 'Analitik Kehadiran Real-time'
               ].map((feature, i) => (
                 <li key={i} className="flex items-start gap-3 text-slate-600">
-                  <Check className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <Check className="w-4 h-4 text-[#0087FF] flex-shrink-0 mt-0.5" />
                   <span>{feature}</span>
                 </li>
               ))}
@@ -177,6 +178,55 @@ export default function UpgradePage() {
               className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold rounded-xl transition-colors text-sm disabled:opacity-70"
             >
               Pilih Paket School
+            </button>
+          </div>
+
+          {/* Card: KitaAtur Family */}
+          <div className="bg-white rounded-2xl p-8 border-2 border-[#0087FF] shadow-md relative group hover:shadow-xl transition-all">
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0087FF] text-white text-[10px] uppercase font-bold tracking-wider px-3.5 py-1 rounded-full shadow-sm whitespace-nowrap">
+              Induk & Cabang
+            </span>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-slate-900">KitaAtur Family</h3>
+            </div>
+            
+            <div className="mb-8">
+              {billingCycle === 'yearly' && (
+                <div className="text-slate-400 line-through text-sm font-medium mb-1">Rp 3.000.000 / tahun</div>
+              )}
+              <span className="text-3xl font-bold text-slate-900">
+                {billingCycle === 'monthly' ? 'Rp 250.000' : 'Rp 2.500.000'}
+              </span>
+              <span className="text-slate-500"> {billingCycle === 'monthly' ? '/ bulan' : '/ tahun'}</span>
+            </div>
+
+            <ul className="space-y-4 mb-10 text-sm">
+              <li className="flex items-start gap-3 text-slate-900 font-bold">
+                <Check className="w-4 h-4 text-[#0087FF] flex-shrink-0 mt-0.5" />
+                <span>1 Induk + Cabang Unlimited</span>
+              </li>
+              {[
+                'Tautkan cabang mandiri dengan Kode Keluarga',
+                'Seluruh cabang bebas biaya langganan tambahan',
+                'Sesi Presensi Gabungan otomatis lintas cabang',
+                'Pemilih Cepat Cabang (Fast Switcher)',
+                'Semua fitur KitaAtur School (Anggota unlimited)',
+                'Portal Publik & Manajemen Tamu',
+                'Laporan & Analitik Konsolidasi'
+              ].map((feature, i) => (
+                <li key={i} className="flex items-start gap-3 text-slate-600">
+                  <Check className="w-4 h-4 text-[#0087FF] flex-shrink-0 mt-0.5" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button 
+              onClick={() => handleSubscribeClick('family')}
+              disabled={loading}
+              className="w-full py-3 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors text-sm shadow-sm disabled:opacity-70"
+            >
+              Pilih Paket Family
             </button>
           </div>
 
@@ -231,26 +281,40 @@ export default function UpgradePage() {
             <div className="p-6">
               <div className="space-y-4 text-sm mb-6">
                 <div className="flex justify-between text-slate-600">
-                  <span>Paket KitaAtur {selectedPlan === 'pro' ? 'School' : 'Plus'} ({billingCycle === 'monthly' ? 'Bulanan' : 'Tahunan'})</span>
+                  <span>
+                    Paket KitaAtur {selectedPlan === 'family' ? 'Family' : (selectedPlan === 'pro' ? 'School' : 'Plus')} ({billingCycle === 'monthly' ? 'Bulanan' : 'Tahunan'})
+                  </span>
                   <span className="font-medium text-slate-900">
-                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '110.000' : '1.100.000') : (billingCycle === 'monthly' ? '40.000' : '400.000')}
+                    Rp {selectedPlan === 'family' 
+                      ? (billingCycle === 'monthly' ? '250.000' : '2.500.000') 
+                      : (selectedPlan === 'pro' 
+                          ? (billingCycle === 'monthly' ? '110.000' : '1.100.000') 
+                          : (billingCycle === 'monthly' ? '40.000' : '400.000'))}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>PPN (11%)</span>
                   <span className="font-medium text-slate-900">
-                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '12.100' : '121.000') : (billingCycle === 'monthly' ? '4.400' : '44.000')}
+                    Rp {selectedPlan === 'family' 
+                      ? (billingCycle === 'monthly' ? '27.500' : '275.000') 
+                      : (selectedPlan === 'pro' 
+                          ? (billingCycle === 'monthly' ? '12.100' : '121.000') 
+                          : (billingCycle === 'monthly' ? '4.400' : '44.000'))}
                   </span>
                 </div>
                 <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                   <span className="font-bold text-slate-900">Total Pembayaran</span>
-                  <span className="text-xl font-bold text-blue-600">
-                    Rp {selectedPlan === 'pro' ? (billingCycle === 'monthly' ? '122.100' : '1.221.000') : (billingCycle === 'monthly' ? '44.400' : '444.000')}
+                  <span className="text-xl font-bold text-[#0087FF]">
+                    Rp {selectedPlan === 'family' 
+                      ? (billingCycle === 'monthly' ? '277.500' : '2.775.000') 
+                      : (selectedPlan === 'pro' 
+                          ? (billingCycle === 'monthly' ? '122.100' : '1.221.000') 
+                          : (billingCycle === 'monthly' ? '44.400' : '444.000'))}
                   </span>
                 </div>
               </div>
 
-              <div className="bg-blue-50 text-blue-800 text-xs p-3 rounded-lg mb-6 leading-relaxed">
+              <div className="bg-[#E0F4FE] text-[#007AE6] text-xs p-3 rounded-lg mb-6 leading-relaxed font-medium">
                 Anda akan dialihkan ke payment gateway aman (KitaPay) untuk menyelesaikan pembayaran.
               </div>
 
@@ -265,7 +329,7 @@ export default function UpgradePage() {
                 <button 
                   onClick={confirmSubscription}
                   disabled={loading}
-                  className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-[#0087FF] hover:bg-[#0077E6] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
                 >
                   {loading ? 'Memproses...' : 'Lanjut Bayar'}
                 </button>

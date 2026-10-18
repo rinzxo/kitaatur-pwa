@@ -95,7 +95,7 @@ export default function CheckoutButton({ planType, amount }: CheckoutButtonProps
     <button
       onClick={handleCheckout}
       disabled={loading}
-      className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2"
+      className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all duration-300 flex items-center justify-center gap-2"
     >
       {loading ? (
         <>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown, PlusCircle } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendUp as TrendingUp, TrendDown as TrendingDown, PlusCircle } from '@phosphor-icons/react'
 
 interface FinancialRecord {
   id: string
@@ -35,8 +35,31 @@ export default function PersonalWalletPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-500 font-bold">Memuat dompet Anda...</p>
+      <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden animate-pulse">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div>
+            <div className="h-3 w-28 bg-slate-200 rounded-md mb-3" />
+            <div className="h-8 w-64 bg-slate-300 rounded-xl" />
+            <div className="h-4 w-44 bg-slate-200 rounded-md mt-2" />
+          </div>
+
+          <div className="h-36 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm" />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm h-48 flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 bg-slate-100 rounded-2xl" />
+                  <div className="w-16 h-6 bg-slate-100 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                  <div className="h-7 w-40 bg-slate-300 rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -57,14 +80,14 @@ export default function PersonalWalletPage() {
             Kembali ke Dashboard
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-            <Wallet className="h-8 w-8 text-blue-600" />
+            <Wallet className="h-8 w-8 text-[#0087FF]" />
             Dompet Pribadi
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">Pantau arus kas personal Anda di sini.</p>
         </div>
         <Link 
           href="/personal/wallet/create"
-          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98]"
+          className="flex items-center gap-2 px-5 py-3 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98]"
         >
           <PlusCircle className="h-5 w-5" />
           Catat Transaksi

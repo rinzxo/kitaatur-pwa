@@ -65,8 +65,19 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-400">
-        <Loader2 className="animate-spin h-10 w-10 text-blue-600 mb-4" />
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+        <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl shadow-blue-500/5 animate-pulse space-y-6">
+          <div className="text-center space-y-3">
+            <div className="w-16 h-16 bg-slate-200 rounded-2xl mx-auto" />
+            <div className="h-6 w-48 bg-slate-200 rounded-lg mx-auto" />
+            <div className="h-4 w-64 bg-slate-100 rounded-md mx-auto" />
+          </div>
+          <div className="space-y-4 pt-4">
+            <div className="h-12 bg-slate-100 rounded-xl w-full" />
+            <div className="h-12 bg-slate-100 rounded-xl w-full" />
+            <div className="h-12 bg-slate-200 rounded-xl w-full mt-6" />
+          </div>
+        </div>
       </div>
     )
   }
@@ -75,7 +86,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-xl shadow-blue-500/5">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg shadow-blue-500/30">
+          <div className="w-16 h-16 bg-[#0087FF] rounded-2xl flex items-center justify-center mx-auto mb-4 text-white font-bold text-2xl shadow-lg shadow-blue-500/30">
             K
           </div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Lengkapi Profil</h1>
@@ -108,7 +119,7 @@ export default function OnboardingPage() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full py-4 bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 text-white font-bold rounded-2xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {saving ? (
               <Loader2 className="w-5 h-5 animate-spin" />

@@ -40,7 +40,28 @@ export default function PublicInvoicePrintPage() {
   }, [record])
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center p-10 text-center font-bold text-slate-500 bg-slate-50">Menyiapkan Kwitansi Digital...</div>
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-8 animate-pulse">
+        <div className="max-w-2xl w-full bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-sm space-y-6">
+          <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-slate-200 rounded-lg" />
+              <div className="h-4 w-28 bg-slate-100 rounded-md" />
+            </div>
+            <div className="h-8 w-24 bg-slate-100 rounded-xl" />
+          </div>
+          <div className="space-y-4 py-4">
+            <div className="h-10 bg-slate-50 rounded-xl" />
+            <div className="h-10 bg-slate-50 rounded-xl" />
+            <div className="h-10 bg-slate-50 rounded-xl" />
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+            <div className="h-16 w-16 bg-slate-100 rounded-xl" />
+            <div className="h-8 w-36 bg-slate-200 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!record) {
@@ -250,7 +271,7 @@ export default function PublicInvoicePrintPage() {
         </button>
         <button 
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-lg transition-all"
         >
           <Printer className="h-4 w-4" />
           Cetak Struk

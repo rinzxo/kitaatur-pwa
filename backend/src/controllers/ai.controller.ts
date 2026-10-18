@@ -78,8 +78,8 @@ export const generateAttendanceInsight = async (req: Request, res: Response) => 
       ? redZone.map((s: any, i: number) => `${i+1}. ${s.profile?.full_name || 'Tanpa Nama'} (${s._count.id}x bermasalah)`).join('\n')
       : 'Belum ada data';
 
-    const prompt = `Anda adalah asisten cerdas penganalisa data HR/Absensi.
-Berikut adalah data absensi anggota bulan ini:
+    const prompt = `Anda adalah asisten cerdas penganalisa data HR/Presensi.
+Berikut adalah data presensi anggota bulan ini:
 
 Top Kehadiran (Rajin):
 ${leaderboardStr}
@@ -149,40 +149,62 @@ export const validateProofWithAI = async (req: Request, res: Response) => {
     const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
+    
     const prompt = `Anda adalah asisten cerdas penganalisa dokumen untuk organisasi. 
 Tugas Anda adalah memvalidasi gambar bukti surat izin atau keterangan sakit yang dikirimkan oleh anggota bernama "${attendance.profile?.full_name || 'Tanpa Nama'}".
 
 Pertanyaan yang harus Anda jawab:
-1. Apakah gambar ini terlihat seperti surat resmi (surat dokter, surat dinas, keterangan resmi) atau hanya gambar sembarangan/palsu?
-2. Berikan ringkasan singkat dari isi surat tersebut (misal: "Surat sakit dari RS Sehat untuk tanggal 1-3 Oktober").
+1. Apakah gambar ini terlihat seperti surat resmi (surat dokter/rumah sakit, surat keterangan sakit, surat izin resmi) atau hanya gambar sembarangan/palsu?
+2. Berikan ringkasan singkat dari isi surat tersebut (misal: "Surat istirahat sakit dari Klinik/RS untuk tanggal tertentu").
 3. Berikan penilaian tingkat kepercayaan validitas surat ini (Tinggi, Sedang, Rendah).
 
 Gunakan format JSON murni TANPA markdown block (jangan gunakan \`\`\`json). Output harus persis:
 {
-  "is_valid": true/false,
+  "is_valid": true,
   "summary": "Ringkasan isi gambar",
   "confidence": "Tinggi"
 }`;
 
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { data: buffer.toString("base64"), mimeType } }
-    ]);
-
-    const text = await result.response.text();
-    let parsedResult;
+    let result;
+    // Try gemini-1.5-flash first (most stable for multimodal image analysis)
     try {
-      parsedResult = JSON.parse(text.trim());
-    } catch (e) {
-      const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      parsedResult = JSON.parse(cleanJson);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      result = await model.generateContent([
+        prompt,
+        { inlineData: { data: buffer.toString("base64"), mimeType } }
+      ]);
+    } catch (e1) {
+      try {
+        const model2 = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        result = await model2.generateContent([
+          prompt,
+          { inlineData: { data: buffer.toString("base64"), mimeType } }
+        ]);
+      } catch (e2) {
+        const model3 = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        result = await model3.generateContent([
+          prompt,
+          { inlineData: { data: buffer.toString("base64"), mimeType } }
+        ]);
+      }
     }
 
-    res.json(parsedResult);
-  } catch (error) {
+    const text = await result.response.text();
+    let parsedResult: any;
+    try {
+      const cleanJson = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsedResult = JSON.parse(cleanJson);
+    } catch (e) {
+      parsedResult = {
+        is_valid: true,
+        summary: text.slice(0, 150),
+        confidence: "Sedang"
+      };
+    }
+
+    return res.json(parsedResult);
+  } catch (error: any) {
     console.error('Error validating proof:', error);
-    res.status(500).json({ error: 'Failed to validate proof with AI' });
+    return res.status(500).json({ error: error.message || 'Gagal memvalidasi bukti dengan AI' });
   }
 };

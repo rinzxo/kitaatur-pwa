@@ -9,7 +9,7 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-12 relative overflow-hidden flex flex-col justify-between">
       {/* Background glow effects */}
-      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] bg-blue-100 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-[350px] h-[350px] bg-[#E0F4FE] rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute top-1/3 right-1/4 -translate-y-1/2 w-[350px] h-[350px] bg-indigo-100 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Navigation */}
@@ -26,7 +26,7 @@ export default function PricingPage() {
       {/* Main Content */}
       <div className="max-w-5xl mx-auto w-full relative z-10 flex-grow flex flex-col items-center justify-center">
         <div className="text-center mb-12">
-          <span className="px-4 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-full border border-blue-200 mb-4 inline-block shadow-sm">
+          <span className="px-4 py-1.5 text-xs font-bold text-[#0087FF] bg-blue-50 rounded-full border border-blue-200 mb-4 inline-block shadow-sm">
             Harga & Paket Layanan
           </span>
           <h2 className="text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
@@ -57,7 +57,7 @@ export default function PricingPage() {
         </div>
 
         {/* Pricing Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 w-full max-w-7xl mx-auto">
           
           {/* FREE PLAN */}
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm flex flex-col justify-between hover:shadow-md transition-all duration-300">
@@ -83,7 +83,7 @@ export default function PricingPage() {
                   <span>Membuat dan mengelola organisasi</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-slate-400 text-sm line-through">
-                  <span>Absensi presensi anggota via QR Code</span>
+                  <span>Presensi anggota via QR Code</span>
                 </li>
                 <li className="flex items-start gap-2.5 text-slate-400 text-sm line-through">
                   <span>Ekspor laporan keuangan ke Excel/CSV</span>
@@ -96,7 +96,7 @@ export default function PricingPage() {
 
           {/* PLUS PLAN */}
           <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-xl transition-all duration-300 relative transform lg:-translate-y-4">
-            <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0087FF] text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
               Paling Direkomendasikan
             </span>
 
@@ -121,7 +121,7 @@ export default function PricingPage() {
                   "Maksimal 100 anggota organisasi",
                   "Pemindai Kehadiran QR (Internal)",
                   "Akses fitur Validasi Bukti dengan AI",
-                  "Laporan Absensi & Keuangan Ekspor ke Excel",
+                  "Laporan Presensi & Keuangan Ekspor ke Excel",
                   "Prioritas Layanan Support",
                   "Keamanan Data Tingkat Lanjut"
                 ].map((feature, idx) => (
@@ -155,7 +155,7 @@ export default function PricingPage() {
 
               <ul className="space-y-4 mb-8 font-medium">
                 <li className="flex items-start gap-3 text-slate-900 text-sm font-bold">
-                  <Check className="h-5 w-5 text-blue-600 shrink-0" />
+                  <Check className="h-5 w-5 text-[#0087FF] shrink-0" />
                   <span>Semua fitur KitaAtur Plus, ditambah:</span>
                 </li>
                 {[
@@ -175,6 +175,50 @@ export default function PricingPage() {
             </div>
 
             <CheckoutButton planType={isYearly ? "pro-yearly" : "pro-monthly"} amount={isYearly ? 1100000 : 110000} />
+          </div>
+
+          {/* FAMILY PLAN */}
+          <div className="bg-white border-2 border-[#0087FF] rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-xl transition-all duration-300 relative transform lg:-translate-y-4">
+            <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0087FF] text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
+              Induk & Cabang
+            </span>
+
+            <div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">KitaAtur Family</h3>
+              <p className="text-slate-500 text-xs mb-6 font-medium min-h-[32px]">1 Induk menaungi cabang tanpa batas tanpa biaya tambahan.</p>
+              
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1 flex-wrap">
+                  <span className="text-3xl font-extrabold text-slate-900 leading-none whitespace-nowrap tracking-tight">
+                    {isYearly ? "Rp 2.500.000" : "Rp 250.000"}
+                  </span>
+                  <span className="text-slate-500 text-sm font-bold whitespace-nowrap">
+                    / {isYearly ? "tahun" : "bulan"}
+                  </span>
+                </div>
+              </div>
+
+              <ul className="space-y-4 mb-8 font-medium">
+                <li className="flex items-start gap-3 text-slate-900 text-sm font-bold">
+                  <Check className="h-5 w-5 text-[#0087FF] shrink-0" />
+                  <span>1 Induk + Cabang Tanpa Batas</span>
+                </li>
+                {[
+                  "Tautkan cabang mandiri via Family Code",
+                  "Seluruh cabang gratis lisensi tambahan",
+                  "Sesi Presensi Gabungan lintas cabang",
+                  "Fast Switcher antar cabang di navigasi",
+                  "Semua fitur KitaAtur School"
+                ].map((feature, idx) => (
+                  <li key={idx} className="flex items-start gap-3 text-slate-700 text-sm">
+                    <Check className="h-5 w-5 text-blue-500 shrink-0" />
+                    <span>{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <CheckoutButton planType={isYearly ? "family-yearly" : "family-monthly"} amount={isYearly ? 2500000 : 250000} />
           </div>
 
           {/* ENTERPRISE PLAN */}

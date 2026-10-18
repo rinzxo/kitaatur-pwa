@@ -30,6 +30,10 @@ export async function handleKitapayWebhook(req: Request, res: Response) {
     const finalUserId = existingSub.profile_id
     const planType = existingSub.plan_type
 
+    const isYearly = (planType || '').toLowerCase().includes('yearly')
+    const durationDays = isYearly ? 365 : 30
+    const calculatedExpiry = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
+
     try {
       await prisma.$transaction(async (tx) => {
         // A. Catat atau perbarui record subscription di database
@@ -44,12 +48,12 @@ export async function handleKitapayWebhook(req: Request, res: Response) {
             plan_type: planType,
             amount_paid: amount ? new Prisma.Decimal(amount) : null,
             starts_at: new Date(),
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            expires_at: calculatedExpiry
           },
           update: {
             status: 'active',
             amount_paid: amount ? new Prisma.Decimal(amount) : null,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            expires_at: calculatedExpiry,
             updated_at: new Date()
           }
         })

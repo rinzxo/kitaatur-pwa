@@ -72,8 +72,16 @@ export default function InvitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+        <div className="bg-white rounded-3xl p-8 max-w-md w-full shadow-xl border border-slate-100 text-center animate-pulse space-y-6">
+          <div className="w-20 h-20 rounded-2xl bg-slate-200 mx-auto" />
+          <div className="space-y-3">
+            <div className="h-6 w-3/4 bg-slate-200 rounded-lg mx-auto" />
+            <div className="h-4 w-1/2 bg-slate-100 rounded-md mx-auto" />
+          </div>
+          <div className="h-20 bg-slate-50 rounded-2xl p-4" />
+          <div className="h-12 bg-slate-200 rounded-xl w-full" />
+        </div>
       </div>
     )
   }
@@ -135,7 +143,7 @@ export default function InvitePage() {
                   onChange={(e) => setCustomData({ ...customData, [field.id]: e.target.value })}
                   placeholder={`Masukkan ${field.label}`}
                   required={field.required}
-                  className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-600 outline-none"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-[#0087FF] outline-none"
                 />
               </div>
             ))}
@@ -155,7 +163,7 @@ export default function InvitePage() {
             handleJoin()
           }}
           disabled={joining}
-          className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:pointer-events-none"
+          className="w-full py-4 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2 group disabled:opacity-70 disabled:pointer-events-none"
         >
           {joining ? (
             <Loader2 className="w-5 h-5 animate-spin" />

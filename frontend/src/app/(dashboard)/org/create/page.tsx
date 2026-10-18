@@ -97,7 +97,7 @@ export default function CreateOrganizationPage() {
             )}
 
             <ul className="space-y-3 py-4">
-              {['Penyimpanan data terenkripsi', 'Sistem absensi QR siap pakai', 'Laporan keuangan transparan'].map((feature, i) => (
+              {['Penyimpanan data terenkripsi', 'Sistem presensi QR siap pakai', 'Laporan keuangan transparan'].map((feature, i) => (
                 <li key={i} className="flex items-center gap-3 text-slate-600 font-medium text-sm">
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
                   {feature}

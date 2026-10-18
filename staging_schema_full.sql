@@ -21,7 +21,7 @@ CREATE TYPE "public"."org_member_role" AS ENUM ('head', 'bendahara', 'sekretaris
 CREATE TYPE "public"."financial_type" AS ENUM ('income', 'expense');
 
 -- CreateEnum
-CREATE TYPE "public"."attendance_status" AS ENUM ('present', 'absent', 'late', 'excused');
+CREATE TYPE "public"."attendance_status" AS ENUM ('present', 'absent', 'late', 'excused', 'sick');
 
 -- CreateEnum
 CREATE TYPE "public"."goal_status" AS ENUM ('active', 'completed', 'failed');

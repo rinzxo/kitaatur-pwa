@@ -27,7 +27,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'https://kitaatur-sept-production.up.railway.app/api/:path*',
+        destination: 'https://apikitatur.rinzgroup.web.id/api/:path*',
       },
       {
         source: '/m/:slug',

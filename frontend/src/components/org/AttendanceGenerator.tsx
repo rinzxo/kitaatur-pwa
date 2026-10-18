@@ -20,7 +20,7 @@ export function AttendanceGenerator({ orgId, initialToken }: AttendanceGenerator
       const res = await generateAttendanceToken(orgId);
       if (res.success && res.token) {
         setToken(res.token);
-        setFeedback({ message: "QR Code absensi berhasil diperbarui.", type: "success" });
+        setFeedback({ message: "QR Code presensi berhasil diperbarui.", type: "success" });
       } else {
         setFeedback({ message: res.error || "Gagal memperbarui QR Code.", type: "error" });
       }
@@ -38,7 +38,7 @@ export function AttendanceGenerator({ orgId, initialToken }: AttendanceGenerator
         <div className="mx-auto bg-blue-50 w-12 h-12 rounded-full flex items-center justify-center mb-4 border border-blue-100">
           <QrCode className="w-6 h-6 text-blue-600" />
         </div>
-        <h3 className="text-xl font-bold text-slate-900">QR Code Absensi</h3>
+        <h3 className="text-xl font-bold text-slate-900">QR Code Presensi</h3>
         <p className="text-slate-500 text-sm mt-1 font-medium">
           Minta member untuk scan QR Code ini untuk mencatat kehadiran hari ini.
         </p>

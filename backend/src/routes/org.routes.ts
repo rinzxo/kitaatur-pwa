@@ -24,7 +24,12 @@ import {
   updateOrgCustomFields,
   updateMemberCustomData,
   leaveOrganization,
-  searchOrgs
+  searchOrgs,
+  getFamilyInfo,
+  generateFamilyCode,
+  linkBranchToFamily,
+  unlinkBranchFromFamily,
+  getFamilyBranches
 } from '../controllers/org.controller'
 
 const router = Router()
@@ -92,8 +97,8 @@ router.delete('/:orgIdOrSlug/goals/:goalId', requireOrgRole(['bendahara']), dele
 // F1. Ambil Pengaturan (Termasuk nominal iuran wajib) (Semua Anggota)
 router.get('/:orgIdOrSlug/settings', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrganizationSettings)
 
-// F2. Ubah Pengaturan (Hanya Bendahara untuk Iuran)
-router.patch('/:orgIdOrSlug/settings', requireOrgRole(['bendahara']), updateOrganizationSettings)
+// F2. Ubah Pengaturan (Head & Bendahara untuk Iuran)
+router.patch('/:orgIdOrSlug/settings', requireOrgRole(['head', 'bendahara']), updateOrganizationSettings)
 
 // F3. Ubah Skema Data Tambahan (Hanya Head)
 router.put('/:orgIdOrSlug/custom-fields', requireOrgRole(['head']), updateOrgCustomFields)
@@ -103,5 +108,21 @@ router.put('/:orgIdOrSlug/members/:memberProfileId/custom-data', requireOrgRole(
 
 // F5. Keluar dari Organisasi (Meninggalkan Workspace Mandiri)
 router.delete('/:orgIdOrSlug/leave', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), leaveOrganization)
+
+// G. Keluarga Organisasi & Tautan Cabang (Family Workspace)
+// G1. Info Keluarga Organisasi (Semua Anggota)
+router.get('/:orgIdOrSlug/family', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getFamilyInfo)
+
+// G2. Generate Kode Tautan Keluarga (Hanya Head)
+router.post('/:orgIdOrSlug/family/generate-code', requireOrgRole(['head']), generateFamilyCode)
+
+// G3. Tautkan Cabang ke Induk (Hanya Head)
+router.post('/:orgIdOrSlug/family/link', requireOrgRole(['head']), linkBranchToFamily)
+
+// G4. Putuskan Tautan Cabang (Hanya Head)
+router.post('/:orgIdOrSlug/family/unlink', requireOrgRole(['head']), unlinkBranchFromFamily)
+
+// G5. Daftar Cabang & Induk untuk Fast Switcher (Semua Anggota)
+router.get('/:orgIdOrSlug/family/branches', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getFamilyBranches)
 
 export default router

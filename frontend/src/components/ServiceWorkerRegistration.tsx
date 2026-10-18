@@ -31,21 +31,29 @@ const playNotificationSound = () => {
 export function ServiceWorkerRegistration() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      if (process.env.NODE_ENV !== 'production') {
+        // In local development, unregister service workers to avoid stale cache issues
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const registration of registrations) {
+            registration.unregister()
+          }
+        })
+        return
+      }
+
       navigator.serviceWorker.addEventListener('message', (event) => {
         if (event.data && event.data.type === 'PUSH_RECEIVED') {
-          playNotificationSound();
+          playNotificationSound()
         }
-      });
+      })
 
       navigator.serviceWorker
         .register('/sw.js')
         .then((registration) => {
           console.log('[SW] Service Worker registered with scope:', registration.scope)
-          
-          // Check for updates periodically
           setInterval(() => {
             registration.update()
-          }, 60 * 60 * 1000) // Check every hour
+          }, 60 * 60 * 1000)
         })
         .catch((error) => {
           console.error('[SW] Service Worker registration failed:', error)

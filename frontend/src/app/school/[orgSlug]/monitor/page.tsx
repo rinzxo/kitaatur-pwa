@@ -46,12 +46,12 @@ export default function MonitorPage() {
   if (!authorized) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-[40vh] bg-blue-600 rounded-b-[40px] z-0 shadow-lg"></div>
-        <Link href="/school" className="absolute top-6 left-6 inline-flex items-center gap-2 text-sm font-bold text-blue-100 hover:text-white transition-colors z-10">
+        <div className="absolute top-0 left-0 w-full h-[40vh] bg-[#0087FF] rounded-b-[40px] z-0 shadow-sm"></div>
+        <Link href="/school" className="absolute top-6 left-6 inline-flex items-center gap-2 text-sm font-bold text-white/90 hover:text-white transition-colors z-10">
           <ArrowLeft className="w-4 h-4" /> Kembali
         </Link>
         <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-xl text-center border border-slate-100 z-10">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <div className="w-16 h-16 bg-[#E0F4FE] text-[#0087FF] rounded-2xl flex items-center justify-center mx-auto mb-6">
             <Lock className="w-8 h-8" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 mb-2">Monitor Kehadiran</h1>
@@ -64,7 +64,7 @@ export default function MonitorPage() {
                 placeholder="Masukkan PIN"
                 value={pin}
                 onChange={(e) => setPin(e.target.value)}
-                className="w-full text-center tracking-[0.5em] text-3xl font-black p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-600 focus:bg-white transition-all text-slate-900 placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-base placeholder:font-medium"
+                className="w-full text-center tracking-[0.5em] text-3xl font-black p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:bg-white transition-all text-slate-900 placeholder:text-slate-300 placeholder:tracking-normal placeholder:text-base placeholder:font-medium"
                 required
               />
             </div>
@@ -72,7 +72,7 @@ export default function MonitorPage() {
             <button
               type="submit"
               disabled={!pin || loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-md hover:shadow-lg"
+              className="w-full bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center shadow-sm"
             >
               {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Akses Data'}
             </button>
@@ -96,7 +96,7 @@ export default function MonitorPage() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-3">
-              <button onClick={() => setAuthorized(false)} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-3 py-1.5 rounded-full transition-colors">
+              <button onClick={() => setAuthorized(false)} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-[#0087FF] bg-slate-100 hover:bg-[#E0F4FE] px-3 py-1.5 rounded-full transition-colors">
                 <ArrowLeft className="w-3.5 h-3.5" /> Kembali
               </button>
               <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
@@ -104,7 +104,7 @@ export default function MonitorPage() {
               </div>
             </div>
             <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-              <Users className="w-6 h-6 text-blue-600" />
+              <Users className="w-6 h-6 text-[#0087FF]" />
               {selectedSessionId === 'all' ? 'Rekap Kehadiran Hari Ini' : 'Rekap Kehadiran Sesi'}
             </h1>
             <p className="text-sm text-slate-500 mt-1">Sesi: {sessions.length > 0 ? sessions.map((s:any) => s.title).join(', ') : 'Tidak ada sesi'}</p>
@@ -116,7 +116,7 @@ export default function MonitorPage() {
                placeholder="Cari nama / kelas..."
                value={searchQuery}
                onChange={(e) => setSearchQuery(e.target.value)}
-               className="w-full md:w-64 pl-9 pr-4 py-2 bg-slate-100 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-sm transition-colors outline-none"
+               className="w-full md:w-64 pl-9 pr-4 py-2 bg-slate-100 border border-transparent focus:border-[#0087FF] focus:bg-white rounded-xl text-sm transition-colors outline-none"
              />
           </div>
         </div>
@@ -127,12 +127,12 @@ export default function MonitorPage() {
             <select
               value={selectedSessionId}
               onChange={(e) => fetchSessionData(e.target.value)}
-              className="px-4 py-2 bg-slate-100 border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 rounded-xl text-sm font-bold text-slate-700 outline-none cursor-pointer transition-all min-w-[200px]"
+              className="px-4 py-2 bg-slate-100 border border-slate-200 focus:border-[#0087FF] focus:ring-2 focus:ring-[#E0F4FE] rounded-xl text-sm font-bold text-slate-700 outline-none cursor-pointer transition-all min-w-[200px]"
             >
               <option value="all">Sesi Hari Ini</option>
               {allSessions.map((s: any) => (
                 <option key={s.id} value={s.id}>
-                  {s.title} ({new Date(s.start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}) {s.is_currently_active ? '🟢' : '⚪'}
+                  {s.title} ({new Date(s.start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}) {s.is_currently_active ? '[Aktif]' : '[Selesai]'}
                 </option>
               ))}
             </select>
@@ -185,7 +185,7 @@ export default function MonitorPage() {
                       </div>
                     ) : status === 'sakit' ? (
                       <div className="flex flex-col items-end">
-                        <div className="flex items-center gap-1.5 text-amber-600 bg-amber-50 px-4 py-2 rounded-xl text-sm font-bold border border-amber-100">
+                        <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-4 py-2 rounded-xl text-sm font-bold border border-rose-200">
                           <AlertCircle className="w-4 h-4" /> Sakit
                         </div>
                         {notes && <span className="text-xs text-slate-400 mt-1">{notes}</span>}

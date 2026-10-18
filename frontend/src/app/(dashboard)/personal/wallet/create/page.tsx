@@ -52,7 +52,7 @@ export default function CreatePersonalTransactionPage() {
         </Link>
 
         <h1 className="text-2xl font-extrabold text-slate-900 flex items-center gap-2 mb-8">
-          <PlusCircle className="h-6 w-6 text-blue-600" />
+          <PlusCircle className="h-6 w-6 text-[#0087FF]" />
           Catat Transaksi Personal
         </h1>
 
@@ -135,7 +135,7 @@ export default function CreatePersonalTransactionPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all disabled:opacity-50"
+            className="w-full py-4 mt-4 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-sm transition-all disabled:opacity-50"
           >
             {loading ? 'Menyimpan...' : 'Simpan Transaksi'}
           </button>

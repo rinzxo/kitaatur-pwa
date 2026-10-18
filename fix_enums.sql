@@ -11,7 +11,7 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN
-    CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late', 'excused');
+    CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late', 'excused', 'sick');
 EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 DO $$ BEGIN

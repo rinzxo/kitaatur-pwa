@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect, Suspense } from 'react'
 import { api } from '@/lib/api'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { ArrowLeft, ScanLine } from 'lucide-react'
 import { Scanner } from '@yudiel/react-qr-scanner'
 
@@ -39,7 +40,7 @@ function ScanGuestsContent() {
           setSessionId(res.data.id)
           fetchStats(res.data.id)
         } else {
-          toast.error('Tidak ada sesi absensi yang sedang aktif.')
+          toast.error('Tidak ada sesi presensi yang sedang aktif.')
           router.push(`/org/${orgSlug}/attendance`)
         }
       }).catch(() => {
@@ -70,7 +71,11 @@ function ScanGuestsContent() {
       const res = await api.post(`/org-attendance/${orgSlug}/sessions/${sessionId}/guests/scan`, {
         qrToken
       })
-      toast.success(res.data.message || 'Berhasil check-in!')
+      if (res.data?.alreadyRecorded) {
+        toast(res.data.message || 'Presensi sudah tercatat sebelumnya.', { icon: 'ℹ️' })
+      } else {
+        toast.success(res.data.message || 'Berhasil check-in!')
+      }
       if (sessionId) {
         fetchStats(sessionId)
       }
@@ -88,8 +93,19 @@ function ScanGuestsContent() {
 
   if (!sessionId) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-between p-6 animate-pulse">
+        <div className="w-full flex justify-between items-center max-w-sm">
+          <div className="h-6 w-20 bg-slate-800 rounded-lg" />
+          <div className="h-6 w-36 bg-slate-800 rounded-lg" />
+        </div>
+        <div className="w-full max-w-sm aspect-square bg-slate-800 rounded-3xl border-4 border-slate-700/50 flex items-center justify-center">
+          <div className="w-3/4 h-3/4 border-2 border-dashed border-slate-600 rounded-2xl" />
+        </div>
+        <div className="w-full max-w-sm grid grid-cols-3 gap-3">
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+        </div>
       </div>
     )
   }
@@ -106,16 +122,22 @@ function ScanGuestsContent() {
           <ArrowLeft className="w-5 h-5" />
           Kembali
         </button>
-        <div className="flex-1 text-center font-extrabold text-slate-800 mr-8">
-          Scan QR {isSchool ? 'Siswa' : 'Tamu'}
+        <div className="flex-1 text-center font-extrabold text-slate-800">
+          Scan QR Presensi (Anggota & {isSchool ? 'Siswa' : 'Tamu'})
         </div>
+        <Link
+          href={`/org/${orgSlug}/attendance/sessions?tab=izin&mode=scan`}
+          className="text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-xl transition-all"
+        >
+          Tab Bantu Absen
+        </Link>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
         {sessionTitle && (
           <div className="mb-6 text-center animate-fade-in">
             <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Scanning Sesi</p>
-            <h2 className="text-xl font-extrabold text-white bg-blue-600 px-6 py-2 rounded-full border border-blue-500 shadow-lg shadow-blue-500/30">{sessionTitle}</h2>
+            <h2 className="text-xl font-extrabold text-white bg-[#0087FF] px-6 py-2 rounded-full border border-blue-500 shadow-lg shadow-blue-500/30">{sessionTitle}</h2>
           </div>
         )}
 
@@ -141,9 +163,11 @@ function ScanGuestsContent() {
           />
           
           {loading && (
-            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10">
-              <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-              <p className="font-bold text-lg text-blue-800 animate-pulse">Memproses...</p>
+            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10 animate-pulse">
+              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mb-4">
+                <div className="w-8 h-8 bg-[#0087FF] rounded-xl" />
+              </div>
+              <p className="font-bold text-lg text-blue-800">Memproses...</p>
             </div>
           )}
         </div>
@@ -182,7 +206,7 @@ function ScanGuestsContent() {
                 <ScanLine className="w-6 h-6 text-blue-600" />
               </div>
               <p className="text-sm font-medium text-slate-600 text-left leading-relaxed">
-                Arahkan kamera ke QR Code milik {isSchool ? 'siswa' : 'tamu'} untuk melakukan absensi otomatis.
+                Arahkan kamera ke QR Code milik anggota atau {isSchool ? 'siswa' : 'tamu'} untuk melakukan presensi otomatis.
               </p>
             </div>
           </div>
@@ -194,7 +218,22 @@ function ScanGuestsContent() {
 
 export default function ScanGuestsPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"></div></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-between p-6 animate-pulse">
+        <div className="w-full flex justify-between items-center max-w-sm">
+          <div className="h-6 w-20 bg-slate-800 rounded-lg" />
+          <div className="h-6 w-36 bg-slate-800 rounded-lg" />
+        </div>
+        <div className="w-full max-w-sm aspect-square bg-slate-800 rounded-3xl border-4 border-slate-700/50 flex items-center justify-center">
+          <div className="w-3/4 h-3/4 border-2 border-dashed border-slate-600 rounded-2xl" />
+        </div>
+        <div className="w-full max-w-sm grid grid-cols-3 gap-3">
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+          <div className="h-20 bg-slate-800 rounded-2xl" />
+        </div>
+      </div>
+    }>
       <ScanGuestsContent />
     </Suspense>
   )

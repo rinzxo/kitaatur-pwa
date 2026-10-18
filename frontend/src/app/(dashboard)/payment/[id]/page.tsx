@@ -51,7 +51,22 @@ export default function PaymentPage() {
     return () => clearInterval(interval)
   }, [sub])
   if (loading) {
-    return <div className="p-10 text-center text-slate-500">Memuat tagihan...</div>
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center pt-12 p-6 animate-pulse">
+        <div className="w-full max-w-md space-y-6">
+          <div className="h-4 w-32 bg-slate-200 rounded-md mb-6" />
+          <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="h-6 w-36 bg-slate-200 rounded-lg" />
+              <div className="h-6 w-20 bg-slate-100 rounded-full" />
+            </div>
+            <div className="h-10 w-48 bg-slate-300 rounded-xl" />
+            <div className="w-48 h-48 bg-slate-100 rounded-2xl mx-auto" />
+            <div className="h-12 bg-slate-200 rounded-xl w-full" />
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!sub) {

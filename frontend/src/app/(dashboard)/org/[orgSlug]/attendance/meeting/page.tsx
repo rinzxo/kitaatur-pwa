@@ -52,7 +52,7 @@ export default function MeetingNotesPage() {
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2"
           >
             <ArrowLeft className="h-3 w-3" />
-            Kembali ke Absensi
+            Kembali ke Presensi
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileText className="h-8 w-8 text-indigo-600" />
@@ -83,9 +83,9 @@ export default function MeetingNotesPage() {
               </p>
             </div>
 
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-6 mb-8">
-              <h4 className="text-sm font-bold text-indigo-900 mb-4 uppercase tracking-wider">Ringkasan AI</h4>
-              <div className="prose prose-slate max-w-none text-indigo-900/80 whitespace-pre-wrap">
+            <div className="bg-[#E0F4FE]/60 border border-[#b9e5fa] rounded-xl p-6 mb-8">
+              <h4 className="text-sm font-bold text-slate-900 mb-4 uppercase tracking-wider">Ringkasan AI</h4>
+              <div className="prose prose-slate max-w-none text-slate-700 whitespace-pre-wrap">
                 {result.ai_summary || "AI gagal membuat ringkasan, namun catatan asli tetap tersimpan."}
               </div>
             </div>
@@ -101,7 +101,7 @@ export default function MeetingNotesPage() {
               </button>
               <Link
                 href={`/org/${orgSlug}/attendance/meeting/history`}
-                className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30 text-center"
+                className="flex-1 py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-all shadow-sm text-center"
               >
                 Lihat Riwayat
               </Link>
@@ -118,7 +118,7 @@ export default function MeetingNotesPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Contoh: Rapat Evaluasi Bulanan"
-                  className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none text-lg font-semibold"
+                  className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0087FF] outline-none text-lg font-semibold"
                   required
                 />
               </div>
@@ -129,7 +129,7 @@ export default function MeetingNotesPage() {
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
                   placeholder="Ketik poin-poin rapat di sini. Jangan khawatir soal kerapihan..."
-                  className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 outline-none min-h-[300px]"
+                  className="w-full p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0087FF] outline-none min-h-[300px]"
                   required
                 />
               </div>
@@ -138,7 +138,7 @@ export default function MeetingNotesPage() {
                 <button 
                   type="submit"
                   disabled={loading}
-                  className="flex items-center justify-center gap-2 py-4 px-8 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-500/30"
+                  className="flex items-center justify-center gap-2 py-4 px-8 bg-[#0087FF] hover:bg-[#0077E6] disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm"
                 >
                   {loading ? (
                     <>

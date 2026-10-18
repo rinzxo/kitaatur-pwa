@@ -1,5 +1,3 @@
-import { Loader2 } from 'lucide-react'
-
 export default function DashboardGlobalLoading() {
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10 flex flex-col relative overflow-hidden">
@@ -64,11 +62,6 @@ export default function DashboardGlobalLoading() {
            </div>
         </div>
 
-      </div>
-      
-      {/* Central Spinner for extra feedback */}
-      <div className="absolute inset-0 flex items-center justify-center z-0 pointer-events-none opacity-20">
-        <Loader2 className="w-16 h-16 text-slate-400 animate-spin" />
       </div>
     </div>
   )

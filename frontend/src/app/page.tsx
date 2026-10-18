@@ -18,10 +18,22 @@ import {
   GraduationCap
 } from "lucide-react";
 
+import { createClient } from '@/lib/supabase/client'
+
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isYearly, setIsYearly] = useState(false);
+
+  // Auto-redirect logged-in users directly to /app
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        window.location.href = '/app'
+      }
+    })
+  }, [])
 
   // Fallback for auth redirect
   useEffect(() => {
@@ -69,7 +81,7 @@ export default function Home() {
             <Link href="/login" className="text-sm font-bold text-slate-700 hover:text-blue-600 transition-colors px-4 py-2">
               Masuk
             </Link>
-            <Link href="/register" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95">
+            <Link href="/register" className="bg-[#0087FF] hover:bg-[#0077E6] text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-lg shadow-blue-600/20 transition-all hover:scale-105 active:scale-95">
               Mulai Gratis
             </Link>
           </div>
@@ -94,7 +106,7 @@ export default function Home() {
           </div>
           <div className="flex flex-col gap-3 mt-8">
             <Link href="/login" className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3.5 rounded-xl">Masuk</Link>
-            <Link href="/register" className="w-full text-center bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/20">Mulai Gratis</Link>
+            <Link href="/register" className="w-full text-center bg-[#0087FF] text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-600/20">Mulai Gratis</Link>
           </div>
         </div>
       )}
@@ -113,11 +125,11 @@ export default function Home() {
           </h1>
           
           <p className="text-base sm:text-lg md:text-xl text-slate-600 mb-10 max-w-2xl mx-auto font-medium animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200">
-            Tinggalkan kertas. Mulai dari absensi digital yang terintegrasi, pencatatan uang kas transparan, hingga manajemen anggota dalam satu aplikasi yang ramah lingkungan.
+            Tinggalkan kertas. Mulai dari presensi digital yang terintegrasi, pencatatan uang kas transparan, hingga manajemen anggota dalam satu aplikasi yang ramah lingkungan.
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-            <Link href="/register" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white text-base font-bold px-8 py-4 rounded-full shadow-xl shadow-blue-600/20 transition-all hover:-translate-y-1 group flex items-center justify-center gap-2">
+            <Link href="/register" className="w-full sm:w-auto bg-[#0087FF] hover:bg-[#0077E6] text-white text-base font-bold px-8 py-4 rounded-full shadow-xl shadow-blue-600/20 transition-all hover:-translate-y-1 group flex items-center justify-center gap-2">
               Mulai Sekarang Gratis
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Link>
@@ -147,7 +159,7 @@ export default function Home() {
                     <ClipboardCheck className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-500 uppercase">Absen Berhasil</p>
+                    <p className="text-xs font-bold text-slate-500 uppercase">Presensi Berhasil</p>
                     <p className="font-bold text-slate-900">+1 Kehadiran</p>
                   </div>
                 </div>
@@ -185,22 +197,22 @@ export default function Home() {
 
           <div className="flex flex-col gap-24 md:gap-32 pb-12">
             
-            {/* Feature 1: Absensi */}
+            {/* Feature 1: Presensi */}
             <div className="flex flex-col md:flex-row items-center gap-12 md:gap-16">
               <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left">
                 <div className="w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mb-6 shadow-lg shadow-emerald-100/50">
                   <ClipboardCheck className="w-8 h-8" />
                 </div>
-                <h4 className="text-2xl sm:text-3xl font-black text-slate-900 mb-4">Absensi Bebas Kertas</h4>
+                <h4 className="text-2xl sm:text-3xl font-black text-slate-900 mb-4">Presensi Bebas Kertas</h4>
                 <p className="text-slate-600 text-base sm:text-lg font-medium leading-relaxed">
-                  Buat sesi kehadiran dan rekam jejak absensi secara digital. Tersedia fitur delegasi absen (Bantu Absen) tanpa batasan lokasi untuk memudahkan pencatatan, tanpa perlu buang kertas percuma.
+                  Buat sesi kehadiran dan rekam jejak presensi secara digital. Tersedia fitur delegasi (Bantu Presensi) tanpa batasan lokasi untuk memudahkan pencatatan, tanpa perlu buang kertas percuma.
                 </p>
               </div>
               <div className="w-full md:w-1/2 relative flex justify-center">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-emerald-200/40 rounded-full blur-3xl -z-10" />
                 <img 
                   src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" 
-                  alt="Absensi QR" 
+                  alt="Presensi QR" 
                   className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
                 />
               </div>
@@ -261,7 +273,7 @@ export default function Home() {
                 Biar Kita Yang Atur!
               </h4>
               <p className="text-blue-50 font-medium text-base sm:text-lg md:text-xl leading-relaxed max-w-xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-                Anda fokus capai tujuan organisasi. Urusan administrasi, absensi, dan keuangan, biar sistem otomatis kami yang selesaikan.
+                Anda fokus capai tujuan organisasi. Urusan administrasi, presensi, dan keuangan, biar sistem otomatis kami yang selesaikan.
               </p>
             </div>
           </div>
@@ -395,7 +407,7 @@ export default function Home() {
 
             {/* PLUS PLAN */}
             <div className="bg-white border-2 border-blue-500 rounded-2xl p-8 shadow-md flex flex-col justify-between hover:shadow-xl transition-all duration-300 relative transform lg:-translate-y-4">
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-blue-600 text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0087FF] text-white text-[10px] uppercase font-bold tracking-wider px-4 py-1.5 rounded-full shadow-sm whitespace-nowrap">
                 Paling Direkomendasikan
               </span>
 
@@ -420,7 +432,7 @@ export default function Home() {
                     "Maksimal 100 anggota organisasi",
                     "Pemindai Kehadiran QR (Internal)",
                     "Akses fitur Validasi Bukti dengan AI",
-                    "Laporan Absensi & Keuangan Ekspor ke Excel",
+                    "Laporan Presensi & Keuangan Ekspor ke Excel",
                     "Prioritas Layanan Support",
                     "Keamanan Data Tingkat Lanjut"
                   ].map((feature, idx) => (
@@ -434,7 +446,7 @@ export default function Home() {
 
               <Link
                 href="/register"
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
+                className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
               >
                 Berlangganan Sekarang
               </Link>
@@ -549,14 +561,14 @@ export default function Home() {
               <p className="text-slate-600 font-medium leading-relaxed">
                 Selain fitur, perbedaannya ada pada batasan dan harga langganan:
                 <br/><br/>
-                - <strong>Paket Plus (Rp 40.000/bulan):</strong> Cocok untuk komunitas/UKM dengan batas maksimal 100 anggota dan memiliki fitur dasar QR Absensi internal.
+                - <strong>Paket Plus (Rp 40.000/bulan):</strong> Cocok untuk komunitas/UKM dengan batas maksimal 100 anggota dan memiliki fitur dasar QR Presensi internal.
                 <br/>
                 - <strong>Paket School (Rp 110.000/bulan):</strong> Bebas mendaftarkan anggota tanpa batas (unlimited), dilengkapi fitur ekstra seperti Portal Publik Edukasi, Import Data Massal via Excel, dan PIN khusus untuk wali murid.
               </p>
             </div>
 
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-              <h4 className="text-lg font-bold text-slate-900 mb-2">Bagaimana sistem Absensi QR bekerja?</h4>
+              <h4 className="text-lg font-bold text-slate-900 mb-2">Bagaimana sistem Presensi QR bekerja?</h4>
               <p className="text-slate-600 font-medium leading-relaxed">
                 Setiap anggota memiliki kode QR unik. Untuk menjaga validitas, proses pemindaian (scanning) <strong>hanya dapat dilakukan oleh pengurus berwenang</strong> (Ketua, Sekretaris, atau Delegasi/Panitia yang ditunjuk) menggunakan smartphone mereka untuk merekam kehadiran peserta secara cepat dan real-time.
               </p>
@@ -573,7 +585,7 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 relative overflow-hidden bg-blue-600">
+      <section className="py-24 relative overflow-hidden bg-[#0087FF]">
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 pointer-events-none opacity-90" />
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-white/10 rounded-full blur-3xl pointer-events-none translate-x-1/3 -translate-y-1/3" />
         

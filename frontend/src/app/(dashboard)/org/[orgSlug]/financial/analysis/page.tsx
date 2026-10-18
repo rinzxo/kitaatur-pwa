@@ -270,8 +270,31 @@ export default function FinancialAnalysisPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-24 relative animate-pulse">
+        <div className="bg-white border-b border-slate-200 px-4 md:px-6 py-4 shadow-sm">
+          <div className="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="h-3 w-28 bg-slate-200 rounded-md mb-2" />
+              <div className="h-8 w-60 bg-slate-300 rounded-xl" />
+            </div>
+            <div className="h-10 w-44 bg-slate-200 rounded-xl" />
+          </div>
+        </div>
+
+        <main className="max-w-5xl mx-auto px-4 md:px-6 mt-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="h-36 bg-slate-200 rounded-2xl" />
+            <div className="h-36 bg-slate-200 rounded-2xl" />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 h-24" />
+            ))}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 h-72 shadow-sm" />
+        </main>
       </div>
     )
   }
@@ -283,13 +306,13 @@ export default function FinancialAnalysisPage() {
           <div>
             <Link 
               href={`/org/${orgSlug}/financial`}
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 transition-colors mb-2"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0087FF] transition-colors mb-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Kembali ke Keuangan
             </Link>
             <h1 className="text-xl md:text-2xl font-extrabold text-slate-900 flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-indigo-600" />
+              <BarChart3 className="h-6 w-6 text-[#0087FF]" />
               Analisis Keuangan Bulanan
             </h1>
           </div>
@@ -432,7 +455,7 @@ export default function FinancialAnalysisPage() {
                       </div>
                       <button
                         onClick={handleGenerateAiInsight}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-transform active:scale-95"
+                        className="bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 shadow-sm transition-transform active:scale-95"
                       >
                         <Sparkles className="w-4 h-4" />
                         Tanya Gemini AI

@@ -189,7 +189,7 @@ export default function TransactionForm({ onSuccess }: TransactionFormProps) {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-500/20 disabled:bg-slate-200 text-white disabled:text-slate-400 font-bold rounded-xl transition-all duration-300"
+          className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] shadow-sm disabled:bg-slate-200 text-white disabled:text-slate-400 font-bold rounded-xl transition-all duration-300 active:scale-[0.98]"
         >
           {loading ? 'Menyimpan...' : 'Simpan Transaksi'}
         </button>

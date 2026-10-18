@@ -51,7 +51,11 @@ export async function createCheckout(req: Request, res: Response) {
       throw new Error('Gagal mendapatkan respon pembayaran dari KitaPay')
     }
 
-    const { transactionId, qrisString: qrString, expiresAt: expires_at } = result
+    const { transactionId, qrisString: qrString } = result
+
+    const isYearly = (planType || '').toLowerCase().includes('yearly')
+    const durationDays = isYearly ? 365 : 30
+    const subscriptionExpiry = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000)
 
     const newSub = await prisma.subscriptions.create({
       data: {
@@ -61,7 +65,7 @@ export async function createCheckout(req: Request, res: Response) {
         plan_type: planType,
         amount_paid: new Prisma.Decimal(amount),
         starts_at: new Date(),
-        expires_at: expires_at ? new Date(expires_at) : new Date(Date.now() + 24 * 60 * 60 * 1000),
+        expires_at: subscriptionExpiry,
         payment_url: qrString || ''
       }
     })

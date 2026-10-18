@@ -10,8 +10,8 @@ export async function createMeetingMinutes(req: any, res: Response) {
   const userId = req.user?.id;
   const { session_id, title, content } = req.body;
 
-  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
-    return res.status(403).json({ error: 'Hanya Ketua dan Sekretaris yang bisa membuat notulensi' });
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
+    return res.status(403).json({ error: 'Hanya Ketua, Wakil Ketua, dan Sekretaris yang bisa membuat notulensi' });
   }
 
   try {

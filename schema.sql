@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE user_global_role AS ENUM ('developer', 'head', 'user');
 CREATE TYPE org_member_role AS ENUM ('head', 'bendahara', 'sekretaris', 'member');
 CREATE TYPE financial_type AS ENUM ('income', 'expense');
-CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late', 'excused');
+CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'late', 'excused', 'sick');
 CREATE TYPE goal_status AS ENUM ('active', 'completed', 'failed');
 CREATE TYPE subscription_status AS ENUM ('active', 'past_due', 'canceled', 'unpaid');
 

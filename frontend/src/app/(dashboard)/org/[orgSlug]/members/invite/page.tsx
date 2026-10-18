@@ -14,7 +14,7 @@ export default function InviteMemberPage() {
 
   const [newEmail, setNewEmail] = useState('')
   const [newName, setNewName] = useState('')
-  const [newRole, setNewRole] = useState<'bendahara' | 'sekretaris' | 'member'>('member')
+  const [newRole, setNewRole] = useState<'vice_head' | 'bendahara' | 'sekretaris' | 'member'>('member')
   const [formLoading, setFormLoading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -53,7 +53,7 @@ export default function InviteMemberPage() {
             Kembali ke Anggota
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-            <UserPlus className="h-7 w-7 text-blue-600" />
+            <UserPlus className="h-7 w-7 text-[#0087FF]" />
             Tambah Anggota
           </h1>
           <p className="text-slate-500 font-medium text-xs mt-2">
@@ -73,7 +73,7 @@ export default function InviteMemberPage() {
               placeholder="Nama Lengkap Anggota"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:bg-white transition-all"
             />
           </div>
 
@@ -88,7 +88,7 @@ export default function InviteMemberPage() {
               placeholder="email@anggota.com"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:bg-white transition-all"
             />
           </div>
 
@@ -101,6 +101,7 @@ export default function InviteMemberPage() {
               onChange={(val) => setNewRole(val as any)}
               options={[
                 { label: 'Anggota (Member)', value: 'member' },
+                { label: 'Wakil Ketua', value: 'vice_head' },
                 { label: 'Bendahara', value: 'bendahara' },
                 { label: 'Sekretaris', value: 'sekretaris' }
               ]}
@@ -117,7 +118,7 @@ export default function InviteMemberPage() {
           <button
             type="submit"
             disabled={formLoading}
-            className="w-full py-3.5 mt-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white disabled:text-slate-400 font-bold rounded-xl shadow-md shadow-blue-500/20 transition-all duration-300"
+            className="w-full py-3.5 mt-2 bg-[#0087FF] hover:bg-[#0077E6] disabled:bg-slate-300 text-white disabled:text-slate-400 font-bold rounded-xl shadow-sm transition-all duration-300 active:scale-[0.98]"
           >
             {formLoading ? 'Menambahkan...' : 'Tambah ke Organisasi'}
           </button>

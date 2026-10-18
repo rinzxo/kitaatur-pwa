@@ -83,6 +83,8 @@ router.get('/:orgIdOrSlug/guests', requireOrgRole(['head', 'sekretaris', 'member
 router.post('/:orgIdOrSlug/guests', requireOrgRole(['head', 'sekretaris']), uploadGuests)
 router.get('/:orgIdOrSlug/guests/analytics', requireOrgRole(['head', 'sekretaris', 'member']), getGuestAnalytics)
 router.post('/:orgIdOrSlug/sessions/:sessionId/guests/scan', requireOrgRole(['head', 'sekretaris']), scanGuestQR)
+router.post('/:orgIdOrSlug/sessions/:sessionId/members/scan', requireOrgRole(['head', 'sekretaris']), scanGuestQR)
+router.post('/:orgIdOrSlug/sessions/:sessionId/scan', requireOrgRole(['head', 'sekretaris']), scanGuestQR)
 router.get('/:orgIdOrSlug/sessions/:sessionId/guests/stats', requireOrgRole(['head', 'sekretaris', 'member']), getGuestStats)
 
 
@@ -108,7 +110,7 @@ router.put('/:orgIdOrSlug/attendance/:attendanceId/validate', requireOrgRole(['h
 // ========================
 // AI Analysis
 // ========================
-router.post('/:orgIdOrSlug/ai-insight', requireOrgRole(['head', 'sekretaris']), generateAttendanceInsight)
-router.post('/:orgIdOrSlug/validate-proof', requireOrgRole(['head', 'sekretaris']), validateProofWithAI)
+router.post('/:orgIdOrSlug/ai-insight', requireOrgRole(['head', 'vice_head', 'sekretaris']), generateAttendanceInsight)
+router.post('/:orgIdOrSlug/validate-proof', requireOrgRole(['head', 'vice_head', 'sekretaris']), validateProofWithAI)
 
 export default router

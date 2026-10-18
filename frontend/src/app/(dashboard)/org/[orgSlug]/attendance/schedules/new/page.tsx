@@ -97,7 +97,7 @@ export default function NewSchedulePage() {
             Kembali
           </button>
           <h1 className="text-3xl font-extrabold text-slate-900">Buat Jadwal Baru</h1>
-          <p className="text-slate-500 mt-1">Sistem akan otomatis membuka sesi absensi sesuai jadwal ini.</p>
+          <p className="text-slate-500 mt-1">Sistem akan otomatis membuka sesi presensi sesuai jadwal ini.</p>
         </header>
 
         <form onSubmit={handleSave} className="bg-white p-6 md:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8">
@@ -127,7 +127,7 @@ export default function NewSchedulePage() {
                     key={d.id}
                     type="button"
                     onClick={() => toggleDay(d.id)}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${days.includes(d.id) ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${days.includes(d.id) ? 'bg-[#0087FF] text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                   >
                     {d.name}
                   </button>
@@ -214,7 +214,7 @@ export default function NewSchedulePage() {
                 min="10"
                 value={radius}
                 onChange={e => setRadius(parseInt(e.target.value))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all outline-none"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0087FF] transition-all outline-none"
               />
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function NewSchedulePage() {
             <button 
               type="submit" 
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-md disabled:opacity-50"
+              className="w-full flex items-center justify-center gap-2 py-4 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-all shadow-sm disabled:opacity-50"
             >
               {saving ? 'Menyimpan...' : <><Save className="w-5 h-5" /> Simpan Jadwal</>}
             </button>

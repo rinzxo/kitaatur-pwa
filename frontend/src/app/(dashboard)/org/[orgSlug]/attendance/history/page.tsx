@@ -5,9 +5,10 @@ import toast from 'react-hot-toast'
 import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download } from 'lucide-react'
+import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download, Compass } from 'lucide-react'
 import Link from 'next/link'
 import { CustomSelect } from '@/components/ui/CustomSelect'
+import SpotlightTour, { TourStep } from '@/components/ui/SpotlightTour'
 
 export default function AttendanceHistoryPage() {
   const params = useParams()
@@ -23,6 +24,34 @@ export default function AttendanceHistoryPage() {
   const [selectedSession, setSelectedSession] = useState<string>('')
   const [personalHistory, setPersonalHistory] = useState<any[]>([])
   const [personalStats, setPersonalStats] = useState<any>(null)
+  const [showTour, setShowTour] = useState(false)
+
+  const historyTourSteps: TourStep[] = [
+    {
+      target: '[data-tour="tour-hist-summary"]',
+      title: 'Statistik Kehadiran Anda',
+      description: 'Pantau akumulasi kehadiran pribadi Anda: jumlah hadir tepat waktu, keterlambatan, izin, sakit, hingga alpa.',
+      position: 'bottom'
+    },
+    {
+      target: '[data-tour="tour-hist-filter"]',
+      title: 'Filter Agenda & Sesi',
+      description: 'Pilih sesi kegiatan tertentu untuk melihat siapa saja yang hadir pada agenda tersebut secara spesifik.',
+      position: 'bottom'
+    },
+    {
+      target: '[data-tour="tour-hist-export"]',
+      title: 'Unduh Rekap Excel',
+      description: 'Ekspor seluruh data kehadiran ke format spreadsheet Excel (.xlsx) rapi dengan satu klik untuk arsip laporan resmi.',
+      position: 'bottom'
+    },
+    {
+      target: '[data-tour="tour-hist-table"]',
+      title: 'Tabel Presensi Lengkap',
+      description: 'Lihat daftar lengkap anggota yang hadir beserta jam kedatangan, kepulangan, bukti foto/surat izin, dan catatan.',
+      position: 'top'
+    }
+  ]
 
   const fetchData = async () => {
     try {
@@ -110,7 +139,7 @@ export default function AttendanceHistoryPage() {
     )
   }
 
-  const isEditor = currentUserRole === 'head' || currentUserRole === 'sekretaris'
+  const isEditor = currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'sekretaris'
 
   const handleExportExcel = async () => {
     if (records.length === 0) {
@@ -125,7 +154,7 @@ export default function AttendanceHistoryPage() {
 
     // Inisialisasi Workbook
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Rekap Absensi');
+    const worksheet = workbook.addWorksheet('Rekap Presensi');
 
     // Styling Header
     worksheet.columns = [
@@ -218,7 +247,7 @@ export default function AttendanceHistoryPage() {
 
     // Generate File
     const buffer = await workbook.xlsx.writeBuffer();
-    const fileName = `Rekap_Absensi_${sessionName.replace(/\\s+/g, '_')}_${new Date().getTime()}.xlsx`;
+    const fileName = `Rekap_Presensi_${sessionName.replace(/\\s+/g, '_')}_${new Date().getTime()}.xlsx`;
     saveAs(new Blob([buffer]), fileName);
   };
 
@@ -233,16 +262,23 @@ export default function AttendanceHistoryPage() {
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2"
           >
             <ArrowLeft className="h-3 w-3" />
-            Kembali ke Absensi
+            Kembali ke Presensi
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <Clock className="h-8 w-8 text-blue-600" />
-            Riwayat Absensi
+            Riwayat Presensi
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">Pantau rekam jejak kehadiran anggota.</p>
         </div>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowTour(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 rounded-xl text-xs font-bold transition-colors"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Panduan Fitur</span>
+          </button>
           <button
             onClick={handleRefresh}
             disabled={refreshing}
@@ -256,7 +292,7 @@ export default function AttendanceHistoryPage() {
 
       <main className="relative z-10 max-w-4xl mx-auto">
         {/* PERSONAL ATTENDANCE SUMMARY & HISTORY */}
-      <section className="relative z-10 max-w-7xl mx-auto mt-10">
+      <section data-tour="tour-hist-summary" className="relative z-10 max-w-7xl mx-auto mt-10">
         <h2 className="text-xl font-bold text-slate-900 mb-6 flex items-center gap-2">
           <History className="h-5 w-5 text-slate-500" />
           Riwayat Kehadiran Anda
@@ -304,7 +340,7 @@ export default function AttendanceHistoryPage() {
         <div className="bg-white border border-slate-200 shadow-sm rounded-2xl overflow-hidden w-full max-w-full">
           {personalHistory.length === 0 ? (
             <div className="p-8 text-center text-slate-500">
-              Belum ada riwayat absensi.
+              Belum ada riwayat presensi.
             </div>
           ) : (
             <div className="overflow-x-auto w-full">
@@ -330,16 +366,16 @@ export default function AttendanceHistoryPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
-                          record.status === 'present' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-                          record.status === 'late' ? 'bg-amber-50 text-amber-600 border border-amber-200' :
-                          record.status === 'sick' ? 'bg-indigo-50 text-indigo-600 border border-indigo-200' :
-                          record.status === 'excused' ? 'bg-blue-50 text-blue-600 border border-blue-200' :
-                          'bg-rose-50 text-rose-600 border border-rose-200'
+                          record.status === 'present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          record.status === 'late' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                          record.status === 'excused' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                          record.status === 'sick' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                          'bg-rose-50 text-rose-700 border border-rose-200'
                         }`}>
                           {record.status === 'present' ? 'Hadir' : 
                            record.status === 'late' ? 'Telat' : 
-                           record.status === 'sick' ? 'Sakit' : 
-                           record.status === 'excused' ? 'Izin' : 'Alpha'}
+                           record.status === 'excused' ? 'Izin' : 
+                           record.status === 'sick' ? 'Sakit' : 'Alpa'}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-slate-500 text-xs truncate max-w-[200px]" title={record.notes || ''}>
@@ -361,6 +397,7 @@ export default function AttendanceHistoryPage() {
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
               <button
+                data-tour="tour-hist-export"
                 onClick={handleExportExcel}
                 className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-sm font-bold transition-colors"
                 title="Unduh ke Excel"
@@ -369,16 +406,16 @@ export default function AttendanceHistoryPage() {
                 Rekap Excel
               </button>
               
-              <div className="relative w-full sm:w-auto">
+              <div data-tour="tour-hist-filter" className="relative w-full sm:w-auto">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-slate-400 pointer-events-none">
                 <Filter className="w-4 h-4" />
               </div>
               <CustomSelect
                 value={selectedSession}
                 onChange={val => setSelectedSession(val)}
-                placeholder="Semua Agenda Absensi"
+                placeholder="Semua Agenda Presensi"
                 options={[
-                  { label: 'Semua Agenda Absensi', value: '' },
+                  { label: 'Semua Agenda Presensi', value: '' },
                   ...sessions.map(s => ({ label: s.title, value: s.id }))
                 ]}
                 className="w-full sm:w-64 pl-8"
@@ -389,10 +426,10 @@ export default function AttendanceHistoryPage() {
           
           {records.length === 0 ? (
             <div className="py-12 text-center text-slate-500 text-sm font-medium">
-              Belum ada data absensi yang tercatat.
+              Belum ada data presensi yang tercatat.
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div data-tour="tour-hist-table" className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[600px]">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500 text-xs font-bold uppercase">
@@ -431,13 +468,13 @@ export default function AttendanceHistoryPage() {
                           </span>
                         )}
                         {record.status === 'late' && (
-                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-600">
+                          <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                             Terlambat
                           </span>
                         )}
-                        {record.status === 'excused' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-600">Izin</span>}
-                        {record.status === 'sick' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-cyan-50 text-cyan-600">Sakit</span>}
-                        {record.status === 'absent' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-red-50 text-red-600">Alpa</span>}
+                        {record.status === 'excused' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">Izin</span>}
+                        {record.status === 'sick' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">Sakit</span>}
+                        {record.status === 'absent' && <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">Alpa</span>}
                         
                         {/* Tambahan Status Pulang */}
                         {record.session?.session_type === 'in_out' && !record.check_out_time && (
@@ -485,6 +522,13 @@ export default function AttendanceHistoryPage() {
           </div>
         </div>
       )}
+
+      <SpotlightTour
+        tourKey="attendance_history"
+        steps={historyTourSteps}
+        isOpen={showTour}
+        onClose={() => setShowTour(false)}
+      />
     </div>
   )
 }

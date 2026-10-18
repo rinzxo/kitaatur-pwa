@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useRef } from 'react'
-import { ImagePlus, Loader2, X, UploadCloud } from 'lucide-react'
+import { ImageSquare, CircleNotch, X, CloudArrowUp } from '@phosphor-icons/react'
 
 interface CustomUploadProps {
   onUpload: (url: string) => void
@@ -86,7 +86,7 @@ export function CustomUpload({ onUpload, label = "Unggah Gambar", preset = "appw
           disabled={loading}
           className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700 transition-colors disabled:opacity-70 z-10"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImagePlus className="w-4 h-4" />}
+          {loading ? <CircleNotch className="w-4 h-4 animate-spin" /> : <ImageSquare size={16} weight="bold" />}
         </button>
         <input
           ref={inputRef}
@@ -130,13 +130,13 @@ export function CustomUpload({ onUpload, label = "Unggah Gambar", preset = "appw
         
         {loading ? (
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+            <CircleNotch className="w-8 h-8 text-blue-500 animate-spin" />
             <span className="text-sm font-medium text-slate-500">Mengunggah...</span>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3 cursor-pointer">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${error ? 'bg-rose-100 text-rose-500' : 'bg-blue-100 text-blue-600'}`}>
-              <UploadCloud className="w-6 h-6" />
+              <CloudArrowUp size={24} weight="duotone" />
             </div>
             <div className="text-center">
               <span className={`text-sm font-bold ${error ? 'text-rose-600' : 'text-slate-700'}`}>

@@ -130,9 +130,29 @@ export default function GuestAnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
-        <p className="text-slate-600 font-medium">Memuat Statistik...</p>
+      <div className="min-h-screen bg-slate-50 text-slate-900 pb-20 animate-pulse">
+        <div className="bg-white border-b border-slate-200 pt-6 pb-4 px-4 sticky top-0 z-10">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="h-3 w-28 bg-slate-200 rounded-md mb-2" />
+              <div className="h-8 w-64 bg-slate-300 rounded-xl" />
+            </div>
+            <div className="h-10 w-36 bg-slate-200 rounded-xl" />
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto px-4 mt-8 space-y-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm h-32 space-y-3">
+                <div className="h-4 w-20 bg-slate-200 rounded-md" />
+                <div className="h-8 w-24 bg-slate-300 rounded-lg" />
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 h-80 shadow-sm" />
+        </div>
       </div>
     )
   }
@@ -154,7 +174,7 @@ export default function GuestAnalyticsPage() {
             <BarChart2 className="w-6 h-6 text-indigo-600" />
             Statistik Kehadiran {isSchool ? 'Siswa' : 'Tamu'}
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Rekapitulasi kehadiran {isSchool ? 'siswa' : 'tamu'} dari seluruh sesi absensi otomatis.</p>
+          <p className="text-sm text-slate-500 mt-1">Rekapitulasi kehadiran {isSchool ? 'siswa' : 'tamu'} dari seluruh sesi presensi otomatis.</p>
         </div>
       </div>
 
@@ -192,23 +212,23 @@ export default function GuestAnalyticsPage() {
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-purple-50 text-purple-600 rounded-xl">
+          <div className="bg-white p-5 rounded-2xl border border-amber-100 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-purple-600 font-bold uppercase">Total Izin</p>
-              <p className="text-2xl font-black text-purple-900">{data.overall.izin}</p>
+              <p className="text-xs text-amber-600 font-bold uppercase">Total Izin</p>
+              <p className="text-2xl font-black text-amber-900">{data.overall.izin}</p>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl border border-orange-100 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl">
+          <div className="bg-white p-5 rounded-2xl border border-rose-100 shadow-sm flex items-center gap-4">
+            <div className="p-3 bg-rose-50 text-rose-600 rounded-xl">
               <AlertTriangle className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-xs text-orange-600 font-bold uppercase">Total Sakit</p>
-              <p className="text-2xl font-black text-orange-900">{data.overall.sakit}</p>
+              <p className="text-xs text-rose-600 font-bold uppercase">Total Sakit</p>
+              <p className="text-2xl font-black text-rose-900">{data.overall.sakit}</p>
             </div>
           </div>
 
@@ -278,7 +298,7 @@ export default function GuestAnalyticsPage() {
                         <div>
                           <h4 className="font-bold text-slate-900 text-lg leading-tight">{guest.name}</h4>
                           <div className="flex gap-2 items-center mt-1">
-                            {guest.kelas && <span className="text-xs font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded">{guest.kelas}</span>}
+                            {guest.kelas && <span className="text-xs font-bold bg-[#E0F4FE] text-[#0087FF] px-2 py-0.5 rounded">{guest.kelas}</span>}
                             <span className="text-sm text-slate-500 font-mono">{guest.identifier}</span>
                           </div>
                         </div>
@@ -347,12 +367,12 @@ export default function GuestAnalyticsPage() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <span className="inline-block px-2 py-1 bg-purple-50 text-purple-700 font-bold text-sm rounded-lg border border-purple-100 min-w-[40px]">
+                              <span className="inline-block px-2 py-1 bg-amber-50 text-amber-700 font-bold text-sm rounded-lg border border-amber-100 min-w-[40px]">
                                 {guest.stats.izin}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-center">
-                              <span className="inline-block px-2 py-1 bg-orange-50 text-orange-700 font-bold text-sm rounded-lg border border-orange-100 min-w-[40px]">
+                              <span className="inline-block px-2 py-1 bg-rose-50 text-rose-700 font-bold text-sm rounded-lg border border-rose-100 min-w-[40px]">
                                 {guest.stats.sakit}
                               </span>
                             </td>

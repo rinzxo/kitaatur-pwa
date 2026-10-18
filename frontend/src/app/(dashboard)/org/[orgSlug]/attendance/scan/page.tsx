@@ -1,24 +1,40 @@
 'use client'
+
 import toast from 'react-hot-toast'
-
-
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, useMemo } from 'react'
 import { api } from '@/lib/api'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Clock, MapPin, Loader2, Calendar, Lock, Upload, CheckCircle2, CheckCircle, FileText, X } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  Clock, 
+  MapPin, 
+  CircleNotch, 
+  CalendarDots, 
+  Lock, 
+  UploadSimple, 
+  CheckCircle, 
+  FileText, 
+  X,
+  WarningCircle,
+  Info
+} from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 
-export default function ScanAttendancePage() {
+function ScanAttendanceContent() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const orgSlug = params.orgSlug as string
 
+  const querySessionId = searchParams?.get('sessionId') || ''
+  const queryStatus = searchParams?.get('status') || 'present'
+
   const [agendas, setAgendas] = useState<any[]>([])
-  const [selectedAgendaId, setSelectedAgendaId] = useState<string>('')
+  const [selectedAgendaId, setSelectedAgendaId] = useState<string>(querySessionId)
   
   const [pin, setPin] = useState('')
-  const [status, setStatus] = useState('present')
+  const [status, setStatus] = useState(queryStatus === 'excused' || queryStatus === 'sick' ? queryStatus : 'present')
   const [notes, setNotes] = useState('')
   const [proofUrl, setProofUrl] = useState('')
   
@@ -29,16 +45,42 @@ export default function ScanAttendancePage() {
     const fetchAgendas = async () => {
       try {
         const res = await api.get(`/org-attendance/${orgSlug}/agenda`)
-        setAgendas(res.data)
-        if (res.data.length > 0) {
-          setSelectedAgendaId(res.data[0].id)
+        const agendaList = res.data || []
+        setAgendas(agendaList)
+        
+        if (querySessionId && agendaList.some((a: any) => a.id === querySessionId)) {
+          setSelectedAgendaId(querySessionId)
+        } else if (agendaList.length > 0 && !selectedAgendaId) {
+          // Default to ongoing or first upcoming
+          const now = new Date()
+          const ongoing = agendaList.find((a: any) => 
+            a.is_active && 
+            new Date(a.start_time) <= now && 
+            new Date(a.end_time) >= now
+          )
+          setSelectedAgendaId(ongoing?.id || agendaList[0].id)
         }
       } catch (err) {
         console.error('Failed to fetch agendas', err)
       }
     }
     fetchAgendas()
-  }, [orgSlug])
+  }, [orgSlug, querySessionId])
+
+  const currentAgenda = useMemo(() => {
+    return agendas.find(a => a.id === selectedAgendaId) || null
+  }, [agendas, selectedAgendaId])
+
+  const now = new Date()
+  const isUpcoming = currentAgenda ? new Date() < new Date(currentAgenda.start_time) : false
+  const isOngoing = currentAgenda ? (new Date() >= new Date(currentAgenda.start_time) && new Date() <= new Date(currentAgenda.end_time)) : false
+
+  // If user switched to an upcoming session while on 'present', suggest switching to excused or sick
+  useEffect(() => {
+    if (isUpcoming && status === 'present' && queryStatus !== 'present') {
+      setStatus(queryStatus)
+    }
+  }, [isUpcoming, queryStatus])
 
   const handleCheckIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,13 +90,18 @@ export default function ScanAttendancePage() {
       return
     }
 
+    if (isUpcoming && status === 'present') {
+      toast.error('Sesi ini belum dimulai. Anda hanya dapat mengajukan Izin atau Sakit lebih awal.')
+      return
+    }
+
     if (status === 'present' && pin.length !== 4) {
       toast.error('PIN harus 4 angka.')
       return
     }
 
     if (status !== 'present' && !proofUrl) {
-      toast.error('Bukti surat wajib diunggah.')
+      toast.error('Bukti surat keterangan wajib diunggah.')
       return
     }
 
@@ -73,15 +120,15 @@ export default function ScanAttendancePage() {
           setLocationStatus('Mengirim data kehadiran...')
           await submitData(position.coords.latitude, position.coords.longitude, position.coords.accuracy)
         },
-        async (error) => {
-          toast.error('Gagal mendapatkan lokasi. Absen dikirim tanpa data GPS.')
+        async () => {
+          toast.error('Gagal mendapatkan lokasi. Presensi dikirim tanpa data GPS.')
           setLocationStatus('Mengirim data kehadiran (Tanpa GPS)...')
           await submitData(null, null, null)
         },
         { enableHighAccuracy: true, timeout: 5000 }
       )
     } else {
-      setLocationStatus('Mengirim data izin/sakit...')
+      setLocationStatus('Mengirim pengajuan izin/sakit...')
       await submitData(null, null)
     }
   }
@@ -100,41 +147,47 @@ export default function ScanAttendancePage() {
       }
       const res = await api.post(`/org-attendance/${orgSlug}/scan`, payload)
       
-      const successMsg = res.data.message || 'Absen berhasil dicatat!'
-      toast.success(successMsg)
+      const successMsg = res.data.message || (status !== 'present' ? 'Pengajuan izin/sakit berhasil dikirim!' : 'Presensi berhasil dicatat!')
+      if (res.data?.alreadyRecorded) {
+        toast(successMsg, { icon: 'ℹ️' })
+      } else {
+        toast.success(successMsg)
+      }
       router.push(`/org/${orgSlug}/attendance`)
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Gagal melakukan check-in.')
+      toast.error(err.response?.data?.error || err.message || 'Gagal melakukan check-in.')
     } finally {
       setLoading(false)
+      setLocationStatus('')
     }
   }
 
   const isFormValid = () => {
-    if (!selectedAgendaId) return false;
-    if (status === 'present') return pin.length === 4;
-    return proofUrl !== '';
+    if (!selectedAgendaId) return false
+    if (isUpcoming && status === 'present') return false
+    if (status === 'present') return pin.length === 4
+    return proofUrl !== ''
   }
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 flex flex-col items-center justify-center relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-lg z-10 bg-white border border-slate-200 shadow-sm rounded-2xl p-6 md:p-8">
+      <div className="w-full max-w-lg z-10 bg-white border border-slate-200 shadow-sm rounded-3xl p-6 md:p-8">
         <header className="mb-6 text-left">
           <Link 
             href={`/org/${orgSlug}/attendance`} 
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-4"
           >
-            <ArrowLeft className="h-3 w-3" />
-            Kembali ke Absensi
+            <ArrowLeft size={14} weight="bold" />
+            Kembali ke Presensi
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-            <CheckCircle className="h-7 w-7 text-blue-600" />
+            <CheckCircle size={30} weight="duotone" className="text-blue-600" />
             Formulir Kehadiran
           </h1>
           <p className="text-slate-500 font-medium text-xs mt-2">
-            Pilih agenda yang sesuai dan isi form kehadiran Anda.
+            Pilih agenda yang sesuai dan isi kehadiran atau pengajuan izin/sakit Anda.
           </p>
         </header>
 
@@ -144,15 +197,16 @@ export default function ScanAttendancePage() {
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Agenda / Sesi</label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <CalendarDots size={20} weight="duotone" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <CustomSelect
                 value={selectedAgendaId}
                 onChange={val => setSelectedAgendaId(val)}
                 placeholder="-- Pilih Agenda --"
                 options={agendas.map(agenda => {
-                  const isOngoing = new Date() >= new Date(agenda.start_time);
+                  const ongoing = new Date() >= new Date(agenda.start_time) && new Date() <= new Date(agenda.end_time)
+                  const upcoming = new Date() < new Date(agenda.start_time)
                   return {
-                    label: `${agenda.title} (${new Date(agenda.start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}) ${isOngoing ? ' - Sedang Berjalan' : ' - Mendatang'}`,
+                    label: `${agenda.title} (${new Date(agenda.start_time).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}) ${ongoing ? ' - Sedang Berjalan' : upcoming ? ' - Mendatang (Bisa Izin/Sakit)' : ' - Selesai'}`,
                     value: agenda.id
                   }
                 })}
@@ -164,13 +218,46 @@ export default function ScanAttendancePage() {
             )}
           </div>
 
+          {/* UPCOMING NOTICE BANNER */}
+          {isUpcoming && (
+            <div className={`p-4 rounded-2xl border text-xs leading-relaxed transition-all ${
+              status === 'present'
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-emerald-50 border-emerald-200 text-emerald-900'
+            }`}>
+              {status === 'present' ? (
+                <div className="flex items-start gap-2.5">
+                  <WarningCircle size={18} weight="duotone" className="text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Sesi Ini Belum Dimulai</p>
+                    <p className="mt-0.5 text-amber-700">
+                      Jadwal mulai: <strong>{new Date(currentAgenda.start_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</strong>. 
+                      Untuk mengajukan izin atau sakit lebih awal, silakan ubah status kehadiran di bawah menjadi <strong>Izin</strong> atau <strong>Sakit</strong>.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-2.5">
+                  <FileText size={18} weight="duotone" className="text-emerald-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Pengajuan Izin/Sakit Lebih Awal</p>
+                    <p className="mt-0.5 text-emerald-700">
+                      Anda sedang mengajukan izin/sakit sebelum sesi dimulai. Silakan lampirkan surat keterangan dokter atau bukti izin resmi.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* STATUS KEHADIRAN */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1">Status Kehadiran</label>
             <CustomSelect
               value={status}
               onChange={(val) => {
-                setStatus(val);
-                if (val === 'present') setProofUrl('');
+                setStatus(val)
+                if (val === 'present') setProofUrl('')
               }}
               options={[
                 { label: 'Hadir (Membutuhkan PIN & GPS)', value: 'present' },
@@ -191,14 +278,19 @@ export default function ScanAttendancePage() {
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
                 placeholder="Contoh: 4921"
-                className="w-full text-center text-4xl tracking-[0.3em] font-black p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                disabled={isUpcoming}
+                className="w-full text-center text-4xl tracking-[0.3em] font-black p-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
                 required
               />
-              <p className="text-xs text-slate-400 text-center mt-2">Dapatkan PIN dari Sekretaris/Ketua yang sedang bertugas.</p>
+              <p className="text-xs text-slate-400 text-center mt-2">
+                {isUpcoming 
+                  ? 'PIN hanya dapat dimasukkan saat sesi telah dimulai oleh panitia.' 
+                  : 'Dapatkan PIN dari Sekretaris/Ketua yang sedang bertugas.'}
+              </p>
             </div>
           )}
 
-          {/* IZIN/SAKIT = CLOUDINARY UPLOAD CUSTOM */}
+          {/* IZIN/SAKIT = UPLOAD BUKTI */}
           {status !== 'present' && (
             <div className="animate-in fade-in slide-in-from-top-2 duration-300">
               <label className="block text-sm font-bold text-slate-700 mb-1">Bukti Surat (Gambar / PDF)</label>
@@ -218,7 +310,6 @@ export default function ScanAttendancePage() {
                         return
                       }
 
-                      // Upload ke Cloudinary lewat API langsung
                       const formData = new FormData()
                       formData.append('file', file)
                       formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'demo')
@@ -247,25 +338,27 @@ export default function ScanAttendancePage() {
                       }
                     }}
                   />
-                  <Upload className="w-10 h-10 mb-2 group-hover:scale-110 transition-transform" />
-                  <span className="font-bold text-sm">Klik atau Seret File Kesini</span>
-                  <span className="text-xs mt-1 text-slate-400">Maksimal 5MB (JPG, PNG, PDF)</span>
+                  <UploadSimple size={32} weight="duotone" className="mb-2 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  <p className="text-sm font-bold text-slate-700 group-hover:text-blue-600">Unggah Surat Keterangan / Izin</p>
+                  <p className="text-xs text-slate-400 mt-1">PNG, JPG, PDF (Maksimal 5MB)</p>
                 </div>
               ) : (
-                <div className="w-full border border-emerald-200 bg-emerald-50 rounded-xl p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <CheckCircle className="w-6 h-6 text-emerald-500 shrink-0" />
-                    <div className="truncate">
-                      <p className="text-sm font-bold text-emerald-700">Bukti Berhasil Diunggah</p>
-                      <a href={proofUrl} target="_blank" className="text-xs text-emerald-600 underline truncate block">{proofUrl}</a>
+                <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle size={20} weight="duotone" className="text-emerald-600" />
+                    <div>
+                      <p className="text-sm font-bold">Surat Keterangan Terlampir</p>
+                      <a href={proofUrl} target="_blank" rel="noreferrer" className="text-xs text-emerald-600 hover:underline">
+                        Lihat Berkas Terunggah
+                      </a>
                     </div>
                   </div>
                   <button 
                     type="button" 
-                    onClick={() => setProofUrl('')}
-                    className="text-xs font-bold text-slate-500 hover:text-red-500 px-3 py-1 bg-white border border-slate-200 rounded-lg shrink-0 flex items-center gap-1"
+                    onClick={() => setProofUrl('')} 
+                    className="p-1.5 hover:bg-emerald-100 rounded-lg text-emerald-700 transition-colors"
                   >
-                    <X className="w-3 h-3"/> Ganti
+                    <X size={15} weight="bold" />
                   </button>
                 </div>
               )}
@@ -273,12 +366,12 @@ export default function ScanAttendancePage() {
           )}
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Catatan Tambahan (Opsional)</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Catatan / Alasan</label>
             <textarea 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Contoh: Surat keterangan dokter dari RS..."
-              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none bg-white"
+              placeholder="Contoh: Mengikuti lomba olimpiade / Surat dokter dari RS..."
+              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0087FF] outline-none bg-white text-sm"
               rows={2}
             />
           </div>
@@ -286,22 +379,44 @@ export default function ScanAttendancePage() {
           <button 
             type="submit"
             disabled={loading || !isFormValid()}
-            className="w-full flex items-center justify-center gap-2 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl transition-all"
+            className="w-full flex items-center justify-center gap-2 py-4 bg-[#0087FF] hover:bg-[#0077E6] disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-sm active:scale-95"
           >
             {loading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {locationStatus}
+                <CircleNotch size={20} weight="bold" className="animate-spin" />
+                <span>{locationStatus}</span>
+              </>
+            ) : isUpcoming && status === 'present' ? (
+              <>
+                <Clock size={20} weight="duotone" />
+                <span>Sesi Belum Dimulai (Pilih Izin/Sakit)</span>
+              </>
+            ) : status !== 'present' ? (
+              <>
+                <FileText size={20} weight="duotone" />
+                <span>Kirim Pengajuan {status === 'sick' ? 'Sakit' : 'Izin'}</span>
               </>
             ) : (
               <>
-                {status === 'present' ? <MapPin className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                Kirim Kehadiran
+                <MapPin size={20} weight="duotone" />
+                <span>Kirim Kehadiran</span>
               </>
             )}
           </button>
         </form>
       </div>
     </div>
+  )
+}
+
+export default function ScanAttendancePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <CircleNotch size={28} weight="bold" className="animate-spin text-blue-600" />
+      </div>
+    }>
+      <ScanAttendanceContent />
+    </Suspense>
   )
 }

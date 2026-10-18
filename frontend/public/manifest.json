@@ -4,7 +4,7 @@
   "short_name": "KitaAtur",
   "version": "1.0.0-beta.2",
   "description": "Platform SaaS Manajemen Absensi QR dan Arus Kas Organisasi Terintegrasi",
-  "start_url": "/login",
+  "start_url": "/app",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -94,8 +94,30 @@
   ],
   "shortcuts": [
     {
+      "name": "Bantu Absen Lapangan",
+      "short_name": "Bantu Absen",
+      "description": "Buka absensi manual cepat anggota",
+      "url": "/app?target=bantu-absen",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Scan Absen QR",
+      "short_name": "Scan Absen",
+      "description": "Buka scanner absensi mandiri",
+      "url": "/app?target=attendance",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Dasbor Organisasi",
+      "short_name": "Organisasi",
+      "description": "Masuk ke dasbor organisasi aktif",
+      "url": "/app?target=dashboard",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    },
+    {
       "name": "Dashboard Personal",
-      "short_name": "Dashboard",
+      "short_name": "Personal",
+      "description": "Keuangan & target pribadi",
       "url": "/personal/dashboard",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }

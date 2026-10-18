@@ -5,7 +5,24 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { useDashboardStore } from '@/lib/dashboard-store'
 import TransactionForm from './transaction-form'
-import { User, Bell, ChevronUp, ChevronDown, Plus, Wallet, Target, Info, ArrowUpRight, ArrowDownRight, X, Calendar, Clock, ChevronRight, BadgeCheck } from 'lucide-react'
+import { 
+  User, 
+  Bell, 
+  CaretUp as ChevronUp, 
+  CaretDown as ChevronDown, 
+  Plus, 
+  Wallet, 
+  Target, 
+  Info, 
+  ArrowUpRight, 
+  ArrowDownRight, 
+  X, 
+  CalendarDots as Calendar, 
+  Clock, 
+  CaretRight as ChevronRight, 
+  CheckCircle as BadgeCheck, 
+  Buildings as Building2 
+} from '@phosphor-icons/react'
 
 interface Summary {
   income: number
@@ -125,11 +142,26 @@ export default function PersonalDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-slate-400">
-        <svg className="animate-spin h-10 w-10 text-blue-600 mb-4" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      <div className="min-h-screen bg-slate-50 font-sans relative animate-pulse">
+        <header className="flex justify-between items-center p-4 md:px-8 max-w-4xl mx-auto pt-6 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-slate-200"></div>
+            <div className="w-28 h-8 rounded-lg bg-slate-200"></div>
+          </div>
+          <div className="w-8 h-8 rounded-full bg-slate-200"></div>
+        </header>
+        <main className="max-w-4xl mx-auto p-4 md:px-8 pb-32">
+          <div className="h-40 md:h-48 bg-slate-200 rounded-3xl mb-6"></div>
+          <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-slate-200 rounded-2xl"></div>)}
+          </div>
+          <div className="bg-white rounded-3xl border border-slate-100 p-6">
+            <div className="h-6 w-48 bg-slate-200 rounded-lg mb-6"></div>
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => <div key={i} className="h-16 bg-slate-50 rounded-xl"></div>)}
+            </div>
+          </div>
+        </main>
       </div>
     )
   }
@@ -165,7 +197,7 @@ export default function PersonalDashboard() {
               <span className="text-xl font-extrabold tracking-tight text-slate-900">KitaAtur</span>
             </div>
             {!isVerified && (
-              <Link href="/upgrade" className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md shadow-blue-500/20 transition-all">
+              <Link href="/upgrade" className="bg-[#0087FF] hover:bg-[#0077E6] text-white text-sm font-bold px-4 py-1.5 rounded-full shadow-md shadow-blue-500/20 transition-all">
                 Upgrade
               </Link>
             )}
@@ -207,13 +239,13 @@ export default function PersonalDashboard() {
         
         {/* Unified Hero Section (Slider) */}
         <div className="relative mb-8">
-          <div className="relative overflow-hidden rounded-3xl shadow-xl shadow-blue-600/20 bg-blue-600">
-            <div className="flex transition-transform duration-700 ease-[cubic-bezier(0.87,0,0.13,1)]" style={{ transform: `translateX(-${activeHero * 100}%)` }}>
+          <div className="relative overflow-hidden rounded-3xl shadow-xl shadow-[#0087FF]/25 bg-gradient-to-r from-[#0087FF] via-[#0099FF] to-[#01C4FB]">
+            <div className="flex transition-transform duration-700 ease-brand-slide" style={{ transform: `translateX(-${activeHero * 100}%)` }}>
               
               {/* Slide 1: Agenda (satu slide, ganti-gantian isinya) */}
               {agendas.length > 0 && (
                 <div className="w-full flex-none">
-                  <Link href={`/org/${agendas[currentAgendaIndex].orgSlug}/attendance`} className="block bg-blue-600 p-5 md:p-6 text-white relative overflow-hidden h-full group cursor-pointer">
+                  <Link href={`/org/${agendas[currentAgendaIndex].orgSlug}/attendance`} className="block bg-gradient-to-r from-[#0087FF] via-[#0099FF] to-[#01C4FB] p-5 md:p-6 text-white relative overflow-hidden h-full group cursor-pointer">
                     <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none transition-transform duration-1000 group-hover:scale-110"></div>
 
                     <div className="flex justify-between items-start mb-2 relative z-10">
@@ -224,7 +256,7 @@ export default function PersonalDashboard() {
                       {new Date() >= new Date(agendas[currentAgendaIndex].start_time) ? (
                         <span className="bg-rose-500 text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-rose-500/20">Berjalan</span>
                       ) : (
-                        <span className="bg-white text-blue-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-sm">Mendatang</span>
+                        <span className="bg-white text-[#0087FF] text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-sm">Mendatang</span>
                       )}
                     </div>
                     
@@ -257,7 +289,7 @@ export default function PersonalDashboard() {
 
               {/* Slide 2: Sisa Saldo Anda */}
               <div className="w-full flex-none">
-                <div className="bg-blue-600 p-5 md:p-6 text-white relative overflow-hidden h-full">
+                <div className="bg-gradient-to-r from-[#0087FF] via-[#0099FF] to-[#01C4FB] p-5 md:p-6 text-white relative overflow-hidden h-full">
                   <div className="flex justify-between items-start mb-1 relative z-10">
                     <div className="flex items-center gap-2 opacity-90">
                       <span className="font-semibold text-base">Sisa Saldo Anda</span>
@@ -265,7 +297,7 @@ export default function PersonalDashboard() {
                     </div>
                     <button 
                       onClick={() => setShowFormModal(true)}
-                      className="bg-white text-blue-600 hover:bg-blue-50 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
+                      className="bg-white text-[#0087FF] hover:bg-white/90 text-xs font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 transition-all active:scale-95"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Tambah
@@ -293,17 +325,60 @@ export default function PersonalDashboard() {
             <div className="absolute -bottom-5 left-0 right-0 flex justify-center gap-2 z-20">
               <button 
                 onClick={() => setActiveHero(0)} 
-                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 0 ? 'bg-blue-600 w-6' : 'bg-slate-300 w-1.5'}`}
+                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 0 ? 'bg-[#0087FF] w-6' : 'bg-slate-300 w-1.5'}`}
                 aria-label="Agenda"
               />
               <button 
                 onClick={() => setActiveHero(1)} 
-                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 1 ? 'bg-blue-600 w-6' : 'bg-slate-300 w-1.5'}`}
+                className={`h-1.5 rounded-full transition-all duration-500 ${activeHero === 1 ? 'bg-[#0087FF] w-6' : 'bg-slate-300 w-1.5'}`}
                 aria-label="Sisa Saldo Anda"
               />
             </div>
           )}
         </div>
+
+        {/* Quick Organization Access Bar */}
+        {store.orgs && store.orgs.length > 0 && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                Ruang Organisasi
+              </span>
+              <span className="text-[11px] font-semibold text-slate-400">
+                {store.orgs.length} Organisasi
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {store.orgs.map((org: any) => (
+                <Link
+                  key={org.id}
+                  href={`/org/${org.slug}/dashboard`}
+                  className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm hover:border-blue-500 hover:shadow-md transition-all flex items-center justify-between group active:scale-[0.98]"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-800 text-sm overflow-hidden shrink-0">
+                      {org.logo_url ? (
+                        <img src={org.logo_url} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        org.name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                        {org.name}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-medium truncate">
+                        Buka Ruang Kerja & Presensi
+                      </p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 2x2 Grid System */}
         <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6">

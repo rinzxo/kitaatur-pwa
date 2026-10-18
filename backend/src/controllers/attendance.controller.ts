@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { prisma } from '../config/db'
 import { sendPushNotification } from './notification.controller'
+import { ensureTodayScheduledSessions } from '../jobs/session.job'
 
 // Helper function to calculate distance using Haversine formula
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -23,13 +24,12 @@ export async function createSession(req: any, res: Response) {
   const userId = req.user?.id;
   const { title, session_type, start_time, end_time, late_time, checkout_start_time, latitude, longitude, radius_meters, invitedOrgs } = req.body;
 
-  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
-    return res.status(403).json({ error: 'Hanya Ketua dan Sekretaris yang bisa membuka sesi absensi' });
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
+    return res.status(403).json({ error: 'Hanya Ketua, Wakil Ketua, dan Sekretaris yang bisa membuka sesi presensi' });
   }
 
-  if (latitude == null || longitude == null) {
-    return res.status(400).json({ error: 'Lokasi (latitude & longitude) wajib disertakan' });
-  }
+  const safeLat = latitude != null ? Number(latitude) : 0;
+  const safeLon = longitude != null ? Number(longitude) : 0;
 
   if (!start_time || !end_time) {
     return res.status(400).json({ error: 'Waktu mulai dan selesai wajib disertakan' });
@@ -70,7 +70,7 @@ export async function createSession(req: any, res: Response) {
       data: {
         organization_id: orgMemberContext.organizationId,
         created_by: userId,
-        title: title || 'Sesi Absensi',
+        title: title || 'Sesi Presensi',
         session_type: session_type || 'in_only',
         start_time: new Date(start_time),
         end_time: new Date(end_time),
@@ -78,8 +78,8 @@ export async function createSession(req: any, res: Response) {
         checkout_start_time: checkout_start_time ? new Date(checkout_start_time) : null,
         pin_code,
         checkout_pin_code,
-        latitude,
-        longitude,
+        latitude: safeLat,
+        longitude: safeLon,
         radius_meters: radius_meters || 50,
         is_active: true,
         pending_shared_orgs
@@ -92,7 +92,7 @@ export async function createSession(req: any, res: Response) {
       const members = await prisma.organization_members.findMany({ where: { organization_id: org.id, role: { not: 'auditor' as any } } });
       for (const m of members) {
         if (m.profile_id !== userId) {
-          sendPushNotification(m.profile_id, 'Sesi Absensi Dibuka!', `Sesi "${newSession.title}" di ${org.name} telah dibuka. Segera lakukan presensi!`, `/org/${org.slug}/attendance/scan`);
+          sendPushNotification(m.profile_id, 'Sesi Presensi Dibuka!', `Sesi "${newSession.title}" di ${org.name} telah dibuka. Segera lakukan presensi!`, `/org/${org.slug}/attendance/scan`);
         }
       }
 
@@ -104,7 +104,7 @@ export async function createSession(req: any, res: Response) {
             const heads = await prisma.organization_members.findMany({
               where: {
                 organization_id: invitedOrgId,
-                role: { in: ['head', 'sekretaris'] }
+                role: { in: ['head', 'vice_head', 'sekretaris'] }
               }
             });
             for (const h of heads) {
@@ -130,6 +130,18 @@ export async function getSessions(req: any, res: Response) {
   }
 
   try {
+    await ensureTodayScheduledSessions(orgMemberContext.organizationId);
+
+    // Otomatis tandai is_active = false untuk sesi yang end_time nya sudah lewat
+    await prisma.attendance_sessions.updateMany({
+      where: {
+        organization_id: orgMemberContext.organizationId,
+        is_active: true,
+        end_time: { lt: new Date() }
+      },
+      data: { is_active: false }
+    });
+
     const sessions = await prisma.attendance_sessions.findMany({
       where: {
         OR: [
@@ -244,8 +256,8 @@ export async function getSessionMembers(req: any, res: Response) {
     const customData = callerMembership?.custom_data as any;
     const canDelegate = customData?.can_take_attendance === true;
 
-    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
-      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil absensi' });
+    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'vice_head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil presensi' });
     }
 
     const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
@@ -269,21 +281,22 @@ export async function getSessionMembers(req: any, res: Response) {
       where: { session_id: sessionId }
     });
 
-    // Filter member yang sudah selesai absen
-    const filteredMembers = members.filter(member => {
+    // Petakan semua member dengan data absensi terkini di sesi ini
+    const mappedMembers = members.map(member => {
       const attendance = attendances.find(a => a.profile_id === member.profile_id);
-      if (!attendance) return true; // Belum absen sama sekali, tampilkan
-
-      if (session.session_type === 'in_out') {
-        // Jika in_out, dia baru "selesai" kalau sudah absen pulang (check_out_time tidak null)
-        return attendance.check_out_time === null;
-      } else {
-        // Jika in_only, kalau sudah ada attendance (absen datang), berarti selesai
-        return false;
-      }
+      return {
+        ...member,
+        attendance: attendance ? {
+          id: attendance.id,
+          status: attendance.status, // 'present' | 'late' | 'excused' | 'sick' | 'absent'
+          check_in_time: attendance.check_in_time,
+          check_out_time: attendance.check_out_time,
+          notes: attendance.notes
+        } : null
+      };
     });
 
-    return res.status(200).json(filteredMembers);
+    return res.status(200).json(mappedMembers);
   } catch (err) {
     console.error('Error fetching session members:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
@@ -296,8 +309,8 @@ export async function updateAttendanceStatus(req: any, res: Response) {
   const { status } = req.body;
   const orgMemberContext = req.orgMember;
 
-  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
-    return res.status(403).json({ error: 'Hanya Ketua dan Sekretaris yang bisa mengubah status absen' });
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
+    return res.status(403).json({ error: 'Hanya Ketua, Wakil Ketua, dan Sekretaris yang bisa mengubah status absen' });
   }
 
   try {
@@ -334,8 +347,8 @@ export async function validateAttendance(req: any, res: Response) {
   const { orgIdOrSlug, attendanceId } = req.params;
   const orgMemberContext = req.orgMember;
 
-  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
-    return res.status(403).json({ error: 'Hanya Ketua dan Sekretaris yang bisa menyetujui izin' });
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
+    return res.status(403).json({ error: 'Hanya Ketua, Wakil Ketua, dan Sekretaris yang bisa menyetujui izin' });
   }
 
   try {
@@ -354,7 +367,7 @@ export async function validateAttendance(req: any, res: Response) {
 
     const existing = await prisma.attendance.findUnique({ where: { id: attendanceId } });
     if (!existing) {
-      return res.status(404).json({ error: 'Data absensi tidak ditemukan' });
+      return res.status(404).json({ error: 'Data presensi tidak ditemukan' });
     }
 
     const newNotes = existing.notes ? (existing.notes.includes('[VALIDATED]') ? existing.notes : `${existing.notes} [VALIDATED]`) : '[VALIDATED]';
@@ -552,6 +565,194 @@ export const scanGuestQR = async (req: Request, res: Response) => {
     });
     if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
 
+    const session = await prisma.attendance_sessions.findUnique({
+      where: { id: sessionId.length === 36 ? sessionId : undefined }
+    });
+
+    if (!session || !session.is_active) {
+      return res.status(400).json({ error: 'Sesi absen sudah tidak aktif atau tidak ditemukan.' });
+    }
+
+    const now = new Date();
+
+    // 1. Cek apakah ini QR Anggota (Member)
+    let targetProfileId: string | null = null;
+    if (typeof qrToken === 'string') {
+      const trimmed = qrToken.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (parsed.profileId || parsed.profile_id) {
+            targetProfileId = parsed.profileId || parsed.profile_id;
+          }
+        } catch (e) {}
+      }
+      if (!targetProfileId && trimmed.toLowerCase().includes('member:')) {
+        const parts = trimmed.split(':');
+        targetProfileId = parts[parts.length - 1];
+      }
+      if (!targetProfileId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+        targetProfileId = trimmed;
+      }
+    }
+
+    if (targetProfileId) {
+      const member = await prisma.organization_members.findFirst({
+        where: {
+          organization_id: org.id,
+          profile_id: targetProfileId
+        },
+        include: {
+          profile: true
+        }
+      });
+
+      if (member) {
+        const memberName = member.profile?.full_name || member.profile?.email || 'Anggota';
+        const existingRecord = await prisma.attendance.findFirst({
+          where: {
+            session_id: session.id,
+            profile_id: member.profile_id
+          }
+        });
+
+        const hasAttendedIncoming = existingRecord && (existingRecord.status === 'present' || existingRecord.status === 'late');
+
+        // 1. Sesi in_out: Jika sudah absen datang tapi belum absen pulang -> Catat Pulang
+        if (session.session_type === 'in_out' && hasAttendedIncoming && !existingRecord.check_out_time) {
+          const updated = await prisma.attendance.update({
+            where: { id: existingRecord.id },
+            data: {
+              check_out_time: now,
+              notes: existingRecord.notes ? `${existingRecord.notes} [SCAN_QR PULANG]` : '[SCAN_QR PULANG]'
+            } as any
+          });
+          return res.status(200).json({
+            message: `Absen Pulang berhasil dicatat untuk ${memberName}!`,
+            data: updated,
+            attendeeType: 'member',
+            isCheckOut: true,
+            status: 'checkout',
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        }
+
+        // 2. Sesi in_out: Jika sudah menyelesaikan datang dan pulang
+        if (session.session_type === 'in_out' && existingRecord?.check_out_time) {
+          return res.status(200).json({
+            message: `${memberName} sudah menyelesaikan presensi Datang & Pulang.`,
+            data: existingRecord,
+            attendeeType: 'member',
+            alreadyRecorded: true,
+            isCheckOut: true,
+            status: 'checkout',
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        }
+
+        // Tentukan status Datang (Hadir atau Terlambat)
+        let status: 'present' | 'late' = 'present';
+        if (session.late_time && now > new Date(session.late_time)) {
+          status = 'late';
+        }
+
+        // 3. Jika sebelumnya tercatat Alpa (absent) atau Izin/Sakit, sekarang siswa hadir scan kartu -> Update ke Hadir/Telat
+        if (existingRecord && (existingRecord.status === 'absent' || existingRecord.status === 'excused' || existingRecord.status === 'sick')) {
+          const prevStatus = existingRecord.status;
+          const updated = await prisma.attendance.update({
+            where: { id: existingRecord.id },
+            data: {
+              status,
+              check_in_time: now,
+              notes: existingRecord.notes ? `${existingRecord.notes} [SCAN_QR HADIR (DARI ${prevStatus.toUpperCase()})]` : `[SCAN_QR HADIR (DARI ${prevStatus.toUpperCase()})]`
+            } as any
+          });
+          return res.status(200).json({
+            message: `Presensi berhasil: ${memberName} (${status === 'late' ? 'Terlambat' : 'Hadir'}) - status diperbarui dari ${prevStatus}`,
+            data: updated,
+            attendeeType: 'member',
+            isCheckIn: true,
+            status,
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        }
+
+        // 4. Jika sudah tercatat Hadir / Terlambat sebelumnya (lewat roll call manual atau scan lain)
+        if (existingRecord && (existingRecord.status === 'present' || existingRecord.status === 'late')) {
+          const timeStr = existingRecord.check_in_time ? new Date(existingRecord.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+          return res.status(200).json({
+            message: `${memberName} sudah tercatat ${existingRecord.status === 'late' ? 'Terlambat' : 'Hadir'} sebelumnya (Pukul ${timeStr} WIB).`,
+            data: existingRecord,
+            attendeeType: 'member',
+            alreadyRecorded: true,
+            status: existingRecord.status,
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        }
+
+        // 5. Belum ada data presensi sama sekali -> Buat baru (Create)
+        try {
+          const newRecord = await prisma.attendance.create({
+            data: {
+              organization_id: org.id,
+              profile_id: member.profile_id,
+              session_id: session.id,
+              status,
+              check_in_time: now,
+              notes: '[SCAN_QR DATANG]'
+            } as any
+          });
+
+          return res.status(200).json({
+            message: `Presensi berhasil: ${memberName} (${status === 'late' ? 'Terlambat' : 'Hadir'})`,
+            data: newRecord,
+            attendeeType: 'member',
+            isCheckIn: true,
+            status,
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        } catch (createErr: any) {
+          // Jika terjadi race condition konkuren, ambil data yang sudah dibuat
+          const existingAfter = await prisma.attendance.findFirst({
+            where: { session_id: session.id, profile_id: member.profile_id }
+          });
+          return res.status(200).json({
+            message: `${memberName} sudah tercatat hadir.`,
+            data: existingAfter,
+            attendeeType: 'member',
+            alreadyRecorded: true,
+            status: existingAfter?.status || status,
+            member: {
+              id: member.id,
+              name: memberName,
+              role: member.role
+            }
+          });
+        }
+      }
+    }
+
+    // 2. Jika bukan QR Anggota, proses sebagai Tamu / Siswa Luar
     let guest = null;
     if (qrToken.length === 36) {
       guest = await prisma.org_guests.findFirst({
@@ -586,15 +787,7 @@ export const scanGuestQR = async (req: Request, res: Response) => {
     }
 
     if (!guest) {
-      return res.status(404).json({ error: 'QR Code tidak valid atau bukan tamu dari organisasi ini.' });
-    }
-
-    const session = await prisma.attendance_sessions.findUnique({
-      where: { id: sessionId.length === 36 ? sessionId : undefined }
-    });
-
-    if (!session || !session.is_active) {
-      return res.status(400).json({ error: 'Sesi absen sudah tidak aktif atau tidak ditemukan.' });
+      return res.status(404).json({ error: 'QR Code tidak terdaftar sebagai Anggota maupun Tamu organisasi ini.' });
     }
 
     const existingCheckin = await prisma.guest_attendance.findFirst({
@@ -605,22 +798,41 @@ export const scanGuestQR = async (req: Request, res: Response) => {
     });
 
     if (existingCheckin) {
-      return res.status(400).json({ error: 'Tamu ini sudah melakukan check-in di sesi ini.' });
+      return res.status(200).json({
+        message: `${guest.name} (Tamu) sudah tercatat check-in sebelumnya.`,
+        data: existingCheckin,
+        attendeeType: 'guest',
+        alreadyRecorded: true,
+        status: existingCheckin.status
+      });
     }
 
-    const updatedGuest = await prisma.guest_attendance.create({
-      data: {
-        session_id: sessionId,
-        guest_id: guest.id,
-        status: 'present',
-        check_in_time: new Date()
-      }
-    });
+    try {
+      const updatedGuest = await prisma.guest_attendance.create({
+        data: {
+          session_id: sessionId,
+          guest_id: guest.id,
+          status: 'present',
+          check_in_time: now
+        }
+      });
 
-    res.json({ message: 'Berhasil check-in.', data: updatedGuest });
+      return res.status(200).json({ 
+        message: `Berhasil check-in: ${guest.name} (Tamu/Peserta)`, 
+        data: updatedGuest,
+        attendeeType: 'guest'
+      });
+    } catch (guestErr: any) {
+      return res.status(200).json({ 
+        message: `${guest.name} (Tamu) sudah tercatat check-in sebelumnya.`, 
+        data: existingCheckin,
+        attendeeType: 'guest',
+        alreadyRecorded: true
+      });
+    }
   } catch (error) {
-    console.error('Error scanning guest QR:', error);
-    res.status(500).json({ error: 'Terjadi kesalahan saat scan QR.' });
+    console.error('Error scanning attendance QR:', error);
+    return res.status(500).json({ error: 'Terjadi kesalahan saat scan QR.' });
   }
 };
 export const getGuestStats = async (req: Request, res: Response) => {
@@ -879,7 +1091,7 @@ export async function closeSession(req: any, res: Response) {
   const orgMemberContext = req.orgMember;
   const { sessionId } = req.params;
 
-  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris')) {
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
     return res.status(403).json({ error: 'Akses ditolak' });
   }
 
@@ -933,7 +1145,7 @@ export async function checkIn(req: any, res: Response) {
         }
       });
       if (!activeSession) {
-        return res.status(404).json({ error: 'Sesi absensi tidak ditemukan atau sudah ditutup (atau PIN salah)' });
+        return res.status(404).json({ error: 'Sesi presensi tidak ditemukan atau sudah ditutup (atau PIN salah)' });
       }
     } else {
       if (!req.body.session_id) {
@@ -942,7 +1154,10 @@ export async function checkIn(req: any, res: Response) {
       activeSession = await prisma.attendance_sessions.findFirst({
         where: {
           id: req.body.session_id,
-          organization_id: orgMemberContext.organizationId
+          OR: [
+            { organization_id: orgMemberContext.organizationId },
+            { shared_with_orgs: { has: orgMemberContext.organizationId } }
+          ]
         }
       });
       if (!activeSession) {
@@ -953,14 +1168,14 @@ export async function checkIn(req: any, res: Response) {
     const now = new Date();
 
     if (now > activeSession.end_time) {
-      return res.status(400).json({ error: 'Sesi absensi ini sudah berakhir' });
+      return res.status(400).json({ error: 'Sesi presensi ini sudah berakhir' });
     }
 
-    if (now < activeSession.start_time) {
-      return res.status(400).json({ error: 'Sesi absensi ini belum dimulai' });
+    if (status === 'present' && now < activeSession.start_time) {
+      return res.status(400).json({ error: 'Sesi presensi ini belum dimulai' });
     }
 
-    const isCheckOutAttempt = activeSession.checkout_pin_code === pin;
+    const isCheckOutAttempt = Boolean(pin) && activeSession.checkout_pin_code === pin;
 
     if (isCheckOutAttempt && activeSession.session_type !== 'in_out') {
       return res.status(400).json({ error: 'PIN tidak valid untuk sesi ini' });
@@ -986,7 +1201,12 @@ export async function checkIn(req: any, res: Response) {
         return res.status(400).json({ error: 'Anda belum absen datang. Silakan absen datang terlebih dahulu.' });
       }
       if (existing.check_out_time) {
-        return res.status(400).json({ error: 'Anda sudah melakukan absen pulang.' });
+        return res.status(200).json({
+          message: 'Anda sudah melakukan absen pulang sebelumnya.',
+          record: existing,
+          alreadyRecorded: true,
+          isCheckOut: true
+        });
       }
 
       // Validasi GPS untuk Pulang (Sekarang Opsional)
@@ -999,13 +1219,57 @@ export async function checkIn(req: any, res: Response) {
         data: { check_out_time: now } as any
       });
       
-      return res.status(200).json({ message: 'Absen pulang berhasil dicatat', record: updatedRecord });
+      return res.status(200).json({ message: 'Absen pulang berhasil dicatat', record: updatedRecord, isCheckOut: true });
     } 
     
     // --- LOGIKA ABSEN DATANG ---
     else {
       if (existing) {
-        return res.status(400).json({ error: 'Anda sudah melakukan absen datang untuk sesi ini.' });
+        // 1. Jika sudah tercatat hadir atau terlambat sebelumnya
+        if (existing.status === 'present' || existing.status === 'late') {
+          const timeStr = existing.check_in_time ? new Date(existing.check_in_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '-';
+          return res.status(200).json({
+            message: `Anda sudah tercatat ${existing.status === 'late' ? 'Terlambat' : 'Hadir'} sebelumnya (Pukul ${timeStr} WIB).`,
+            record: existing,
+            alreadyRecorded: true,
+            status: existing.status
+          });
+        }
+
+        // 2. Jika sebelumnya tercatat Alpa (absent) dan sekarang member absen datang dengan PIN valid
+        if (finalStatus === 'present' && existing.status === 'absent') {
+          if (latitude != null && longitude != null) {
+            distance_meters = calculateDistance(activeSession.latitude, activeSession.longitude, latitude, longitude);
+          }
+          if (activeSession.late_time && now > activeSession.late_time) {
+            finalStatus = 'late';
+          }
+          const updatedRecord = await prisma.attendance.update({
+            where: { id: existing.id },
+            data: {
+              status: finalStatus,
+              check_in_time: now,
+              latitude: latitude || null,
+              longitude: longitude || null,
+              distance_meters,
+              notes: existing.notes ? `${existing.notes} [CHECKIN_MEMBER: Transisi dari alpa]` : `[CHECKIN_MEMBER: Transisi dari alpa]`
+            } as any
+          });
+          return res.status(200).json({
+            message: `Presensi berhasil diperbarui menjadi ${finalStatus === 'late' ? 'Terlambat' : 'Hadir'}.`,
+            record: updatedRecord,
+            status: finalStatus
+          });
+        }
+
+        // 3. Jika tercatat sakit/izin dan mencoba check-in biasa
+        if (existing.status === 'excused' || existing.status === 'sick') {
+          return res.status(400).json({
+            error: `Anda sudah tercatat ${existing.status === 'excused' ? 'Izin' : 'Sakit'}. Hubungi ketua/sekretaris jika hadir langsung.`
+          });
+        }
+
+        return res.status(400).json({ error: 'Anda sudah melakukan absen/izin untuk sesi ini.' });
       }
 
       if (finalStatus === 'present') {
@@ -1023,21 +1287,41 @@ export async function checkIn(req: any, res: Response) {
         }
       }
 
-      const record = await prisma.attendance.create({
-        data: {
-          organization_id: orgMemberContext.organizationId,
-          profile_id: userId,
-          session_id: activeSession.id,
-          status: finalStatus as any,
-          notes: notes || null,
-          proof_url: proof_url || null,
-          latitude: latitude || null,
-          longitude: longitude || null,
-          distance_meters
-        } as any
-      });
+      try {
+        const record = await prisma.attendance.create({
+          data: {
+            organization_id: orgMemberContext.organizationId,
+            profile_id: userId,
+            session_id: activeSession.id,
+            status: finalStatus as any,
+            notes: notes || null,
+            proof_url: proof_url || null,
+            latitude: latitude || null,
+            longitude: longitude || null,
+            distance_meters
+          } as any
+        });
 
-      return res.status(201).json({ message: 'Absen datang berhasil dicatat', record });
+        const successMsg = (finalStatus === 'sick' || finalStatus === 'excused')
+          ? 'Data izin/sakit berhasil dikirim'
+          : 'Absen datang berhasil dicatat';
+
+        return res.status(201).json({ message: successMsg, record, status: finalStatus });
+      } catch (createErr: any) {
+        // Proteksi race-condition jika record dibuat di detik yang persis sama lewat scan QR pengurus
+        if (createErr.code === 'P2002') {
+          const recordAfter = await prisma.attendance.findFirst({
+            where: { session_id: activeSession.id, profile_id: userId }
+          });
+          return res.status(200).json({
+            message: `Anda sudah tercatat pada sesi ini.`,
+            record: recordAfter,
+            alreadyRecorded: true,
+            status: recordAfter?.status || finalStatus
+          });
+        }
+        throw createErr;
+      }
     }
 
   } catch (err) {
@@ -1159,6 +1443,8 @@ export async function getAgenda(req: any, res: Response) {
   }
 
   try {
+    await ensureTodayScheduledSessions(orgMemberContext.organizationId);
+
     const now = new Date();
     // Get ongoing or upcoming active sessions
     const sessions = await prisma.attendance_sessions.findMany({
@@ -1265,16 +1551,12 @@ export async function manualBulkCheckIn(req: any, res: Response) {
     const customData = callerMembership?.custom_data as any;
     const canDelegate = customData?.can_take_attendance === true;
 
-    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
-      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil absensi' });
+    if (callerMembership?.role !== 'head' && callerMembership?.role !== 'vice_head' && callerMembership?.role !== 'sekretaris' && !canDelegate) {
+      return res.status(403).json({ error: 'Akses ditolak: Anda tidak memiliki wewenang untuk mengambil presensi' });
     }
 
     if (!profileIds || !Array.isArray(profileIds) || profileIds.length === 0) {
-      return res.status(400).json({ error: 'Daftar anggota yang akan diabsenkan kosong' });
-    }
-
-    if (!pin) {
-      return res.status(400).json({ error: 'PIN wajib diisi untuk keamanan' });
+      return res.status(400).json({ error: 'Daftar anggota yang akan dipresensikan kosong' });
     }
 
     const session = await prisma.attendance_sessions.findUnique({
@@ -1282,26 +1564,58 @@ export async function manualBulkCheckIn(req: any, res: Response) {
     });
 
     if (!session) {
-      return res.status(404).json({ error: 'Sesi absensi tidak ditemukan' });
+      return res.status(404).json({ error: 'Sesi presensi tidak ditemukan' });
     }
 
     const validOrgs = [session.organization_id, ...(session.shared_with_orgs || [])];
     if (!validOrgs.includes(orgMemberContext.organizationId)) {
-      return res.status(403).json({ error: 'Akses ditolak: Anda bukan bagian dari sesi absensi ini' });
+      return res.status(403).json({ error: 'Akses ditolak: Anda bukan bagian dari sesi presensi ini' });
     }
 
-    let isCheckOut = false;
+    // Handle Revoke / Cabut Kehadiran (Kembalikan ke status Belum Hadir)
+    if (req.body.action === 'revoke' || req.body.status === 'unmarked') {
+      const deleteResult = await prisma.attendance.deleteMany({
+        where: {
+          session_id: session.id,
+          profile_id: { in: profileIds }
+        }
+      });
+      return res.status(200).json({
+        message: `Kehadiran ${deleteResult.count} anggota berhasil dicabut.`,
+        action: 'revoke',
+        revokedCount: deleteResult.count,
+        profileIds
+      });
+    }
 
-    if (session.session_type === 'in_out' && session.checkout_pin_code === pin) {
+    const isExcusedOrSick = req.body.status === 'excused' || req.body.status === 'sick' || req.body.status === 'absent';
+    let isCheckOut = req.body.isCheckOut === true || req.body.type === 'checkout';
+
+    // Jika admin menyertakan PIN, kita tetap validasi apakah ini check-out
+    if (pin && session.session_type === 'in_out' && session.checkout_pin_code === pin) {
       isCheckOut = true;
-    } else if (session.pin_code !== pin) {
-      return res.status(400).json({ error: 'PIN tidak valid' });
     }
 
     const now = new Date();
+    
+    // Tentukan status: jika dicatat hadir, sistem mengecek batas waktu telat sesi secara otomatis (kalau lewat, otomatis Telat)
+    let computedStatus: 'present' | 'late' | 'excused' | 'sick' | 'absent' = 'present';
+    if (req.body.status === 'present' || !req.body.status) {
+      if (session.late_time && now > new Date(session.late_time)) {
+        computedStatus = 'late';
+      } else {
+        computedStatus = 'present';
+      }
+    } else if (['late', 'excused', 'sick', 'absent'].includes(req.body.status)) {
+      computedStatus = req.body.status;
+    }
+
+    const adminIdentifier = req.user?.email || req.user?.id || 'admin';
+    const auditNote = `[MANUAL_BY_ADMIN: ${adminIdentifier}]`;
       
     const results = [];
     let failedCount = 0;
+    let lockedCount = 0;
 
     for (const pid of profileIds) {
       // Cari asal organisasi member ini (di antara validOrgs)
@@ -1317,6 +1631,12 @@ export async function manualBulkCheckIn(req: any, res: Response) {
         where: { session_id: session.id, profile_id: pid }
       });
 
+      // Proteksi anggota yang izin atau sakit secara mandiri (terkunci otomatis), kecuali jika admin menentukan status eksplisit
+      if (existing && (existing.status === 'excused' || existing.status === 'sick') && !req.body.status) {
+        lockedCount++;
+        continue;
+      }
+
       if (isCheckOut) {
         // Harus sudah absen datang dulu
         if (!existing) {
@@ -1329,32 +1649,77 @@ export async function manualBulkCheckIn(req: any, res: Response) {
         }
         const updated = await prisma.attendance.update({
           where: { id: existing.id },
-          data: { check_out_time: now, notes: existing.notes ? existing.notes + ' [PULANG BY DELEGATE]' : '[PULANG BY DELEGATE]' } as any
+          data: { 
+            check_out_time: now, 
+            notes: existing.notes ? `${existing.notes} [PULANG BY ADMIN: ${adminIdentifier}]` : `[PULANG BY ADMIN: ${adminIdentifier}]` 
+          } as any
         });
         results.push(updated);
       } else {
-        // Absen Datang
+        // Absen Datang / Update Status
         if (!existing) {
-          const record = await prisma.attendance.create({
+          try {
+            const record = await prisma.attendance.create({
+              data: {
+                organization_id: memberOrgId,
+                profile_id: pid,
+                session_id: session.id,
+                status: computedStatus,
+                notes: auditNote,
+                check_in_time: now
+              } as any
+            });
+            results.push(record);
+          } catch (createErr: any) {
+            if (createErr.code === 'P2002') {
+              const conflictExisting = await prisma.attendance.findFirst({
+                where: { session_id: session.id, profile_id: pid }
+              });
+              if (conflictExisting) {
+                const updated = await prisma.attendance.update({
+                  where: { id: conflictExisting.id },
+                  data: {
+                    status: computedStatus,
+                    notes: conflictExisting.notes ? `${conflictExisting.notes} ${auditNote}` : auditNote
+                  } as any
+                });
+                results.push(updated);
+              }
+            } else {
+              throw createErr;
+            }
+          }
+        } else {
+          // Update status oleh admin
+          const updated = await prisma.attendance.update({
+            where: { id: existing.id },
             data: {
-              organization_id: memberOrgId,
-              profile_id: pid,
-              session_id: session.id,
-              status: 'present',
-              notes: '[MANUAL CHECK-IN BY DELEGATE]',
-              check_in_time: now
+              status: computedStatus,
+              notes: existing.notes ? `${existing.notes} ${auditNote}` : auditNote,
+              check_in_time: existing.check_in_time || now
             } as any
           });
-          results.push(record);
+          results.push(updated);
         }
       }
     }
 
-    const msg = failedCount > 0 
-      ? `Berhasil mengabsenkan ${results.length} anggota (${failedCount} gagal karena belum absen datang).`
-      : `Berhasil mengabsenkan ${results.length} anggota.`;
+    const statusLabel = computedStatus === 'excused' ? 'Izin' : computedStatus === 'sick' ? 'Sakit' : computedStatus === 'late' ? 'Telat' : computedStatus === 'absent' ? 'Alpa' : 'Hadir';
+    let msg = `Berhasil mencatat ${results.length} anggota (${statusLabel}).`;
+    if (lockedCount > 0) {
+      msg += ` ${lockedCount} anggota dilewati karena Izin/Sakit.`;
+    }
+    if (failedCount > 0) {
+      msg += ` ${failedCount} gagal karena belum absen datang.`;
+    }
 
-    return res.status(200).json({ message: msg, records: results });
+    return res.status(200).json({ 
+      message: msg, 
+      records: results,
+      computedStatus,
+      isCheckOut,
+      lockedCount
+    });
   } catch (err) {
     console.error('Error manual bulk check-in:', err);
     return res.status(500).json({ error: 'Internal Server Error' });

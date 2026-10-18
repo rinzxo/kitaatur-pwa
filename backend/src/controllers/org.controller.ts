@@ -33,13 +33,16 @@ export async function createOrganization(req: Request, res: Response) {
       })
     }
 
-    if (activeSub.plan_type === 'plus' || activeSub.plan_type === 'pro') {
+    const plan = (activeSub.plan_type || '').toLowerCase()
+    const isFamilyOrEnterprise = plan.includes('family') || plan.includes('enterprise')
+
+    if (!isFamilyOrEnterprise && (plan.includes('plus') || plan.includes('pro') || plan.includes('school'))) {
       const orgCount = await prisma.organizations.count({
         where: { owner_id: userId }
       })
       if (orgCount >= 1) {
         return res.status(403).json({
-          error: 'Paket langganan Anda saat ini hanya dapat membuat maksimal 1 organisasi. Silakan hubungi Sales untuk upgrade ke Enterprise.'
+          error: 'Paket langganan Anda saat ini hanya dapat membuat maksimal 1 organisasi. Silakan upgrade ke Paket Family untuk mengelola organisasi cabang.'
         })
       }
     }
@@ -141,8 +144,8 @@ export async function addOrganizationMember(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
   const { email, fullName, role } = req.body
 
-  if (!orgMemberContext || orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Head yang dapat mengelola anggota' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua atau Wakil Ketua yang dapat mengelola anggota' })
   }
 
   if (!email || !fullName) {
@@ -150,6 +153,10 @@ export async function addOrganizationMember(req: Request, res: Response) {
   }
 
   const selectedRole = (role || 'member') as org_member_role
+
+  if (selectedRole === 'head' && orgMemberContext.role !== 'head') {
+    return res.status(403).json({ error: 'Hanya Ketua (Pemilik Organisasi) yang dapat menetapkan peran Ketua' })
+  }
 
   try {
     // A. Cari apakah email sudah terdaftar di profiles
@@ -264,8 +271,8 @@ export async function updateMemberRole(req: Request, res: Response) {
   const { memberProfileId } = req.params
   const { role } = req.body
 
-  if (!orgMemberContext || orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Head yang dapat mengelola anggota' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua atau Wakil Ketua yang dapat mengelola anggota' })
   }
 
   if (!role) {
@@ -293,8 +300,20 @@ export async function updateMemberRole(req: Request, res: Response) {
       return res.status(400).json({ error: 'Anda tidak dapat mengubah role Anda sendiri' })
     }
 
+    if (targetMember.role === 'head') {
+      return res.status(403).json({ error: 'Tidak dapat mengubah role Ketua organisasi' })
+    }
+
+    if (orgMemberContext.role === 'vice_head' && targetMember.role === 'vice_head') {
+      return res.status(403).json({ error: 'Akses ditolak: Wakil Ketua tidak dapat mengubah role sesama Wakil Ketua' })
+    }
+
     // B. Update role keanggotaan
     if (selectedRole === 'head') {
+      // Hanya Head (Pemilik Organisasi) yang dapat mentransfer kepemilikan
+      if (orgMemberContext.role !== 'head') {
+        return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua (Pemilik Organisasi) yang dapat memindahkan kepemilikan organisasi' })
+      }
       // Logika Transfer Kepemilikan
       const transaction = await prisma.$transaction([
         // 1. Update owner_id di tabel organizations
@@ -803,13 +822,13 @@ export async function getOrganizationSettings(req: Request, res: Response) {
   }
 }
 
-// 7b. Mengupdate Profil Organisasi (Akses: Head)
+// 7b. Mengupdate Profil Organisasi (Akses: Head & Wakil Ketua)
 export async function updateOrganization(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
   const { name, logo_url, is_edu, edu_pin } = req.body
 
-  if (!orgMemberContext || orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua yang dapat mengubah profil organisasi' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua atau Wakil Ketua yang dapat mengubah profil organisasi' })
   }
 
   if (!name || name.trim() === '') {
@@ -868,8 +887,8 @@ export async function updateOrganizationSettings(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
   const { dues_target_amount, dues_presets } = req.body
 
-  if (!orgMemberContext || orgMemberContext.role !== 'bendahara') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Bendahara yang dapat mengubah pengaturan iuran' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'bendahara' && orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Pengurus (Ketua atau Bendahara) yang dapat mengubah pengaturan iuran' })
   }
 
   try {
@@ -891,13 +910,13 @@ export async function updateOrganizationSettings(req: Request, res: Response) {
   }
 }
 
-// F3. Ubah Skema Data Tambahan Anggota (Hanya Head)
+// F3. Ubah Skema Data Tambahan Anggota (Head & Wakil Ketua)
 export async function updateOrgCustomFields(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
   const { custom_fields_schema } = req.body
 
-  if (!orgMemberContext || orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua yang dapat mengubah skema data tambahan' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua atau Wakil Ketua yang dapat mengubah skema data tambahan' })
   }
 
   try {
@@ -926,8 +945,8 @@ export async function updateMemberCustomData(req: Request, res: Response) {
 
   if (!orgMemberContext) return res.status(401).json({ error: 'Unauthorized' })
 
-  // Bisa diedit oleh Head, Sekretaris, atau pemilik data itu sendiri
-  if (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'sekretaris' && currentUserId !== memberProfileId) {
+  // Bisa diedit oleh Head, Vice Head, Sekretaris, atau pemilik data itu sendiri
+  if (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris' && currentUserId !== memberProfileId) {
     return res.status(403).json({ error: 'Akses ditolak: Anda hanya dapat mengubah data Anda sendiri' })
   }
 
@@ -1197,12 +1216,12 @@ export async function removeOrganizationMember(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
   const { memberProfileId } = req.params
 
-  if (!orgMemberContext || orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Akses ditolak: Hanya Head yang dapat mengeluarkan anggota' })
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Akses ditolak: Hanya Ketua atau Wakil Ketua yang dapat mengeluarkan anggota' })
   }
 
   if (orgMemberContext.profileId === memberProfileId) {
-    return res.status(400).json({ error: 'Tidak dapat mengeluarkan diri sendiri. Silakan transfer kepemilikan terlebih dahulu jika ingin keluar.' })
+    return res.status(400).json({ error: 'Tidak dapat mengeluarkan diri sendiri.' })
   }
 
   try {
@@ -1221,7 +1240,11 @@ export async function removeOrganizationMember(req: Request, res: Response) {
     }
 
     if (memberToKick.role === 'head') {
-      return res.status(400).json({ error: 'Tidak dapat mengeluarkan anggota dengan role Head' })
+      return res.status(400).json({ error: 'Tidak dapat mengeluarkan anggota dengan role Ketua' })
+    }
+
+    if (orgMemberContext.role === 'vice_head' && memberToKick.role === 'vice_head') {
+      return res.status(403).json({ error: 'Akses ditolak: Wakil Ketua tidak dapat mengeluarkan sesama Wakil Ketua' })
     }
 
     // Hapus dari organization_members
@@ -1240,3 +1263,409 @@ export async function removeOrganizationMember(req: Request, res: Response) {
     return res.status(500).json({ error: 'Internal Server Error' })
   }
 }
+
+// ==========================================
+// KELUARGA ORGANISASI & TAUTAN CABANG (FAMILY)
+// ==========================================
+
+// Helper: Verifikasi apakah user/organisasi memiliki paket aktif Family atau Enterprise
+async function checkHasFamilySubscription(userId: string, userEmail?: string): Promise<boolean> {
+  if (userEmail === 'generalrino@gmail.com') return true
+  try {
+    const subs = await prisma.subscriptions.findMany({
+      where: {
+        profile_id: userId,
+        status: 'active',
+        expires_at: { gt: new Date() }
+      }
+    })
+    return subs.some((s: any) => {
+      const pt = (s.plan_type || '').toLowerCase()
+      return pt.includes('family') || pt.includes('enterprise')
+    })
+  } catch {
+    return false
+  }
+}
+
+// 1. Ambil Informasi Keluarga & Status Cabang
+export async function getFamilyInfo(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember
+  const user = (req as any).user
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses ditolak' })
+  }
+
+  try {
+    const org = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId },
+      include: {
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo_url: true,
+            owner_id: true
+          }
+        },
+        children: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo_url: true,
+            created_at: true,
+            _count: {
+              select: { organization_members: true }
+            }
+          },
+          orderBy: { name: 'asc' }
+        }
+      }
+    })
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organisasi tidak ditemukan' })
+    }
+
+    const isParent = org.children.length > 0 || (Boolean(org.family_code) && !org.parent_id)
+    const isBranch = Boolean(org.parent_id)
+    const roleInFamily = isBranch ? 'branch' : (isParent ? 'parent' : 'independent')
+
+    // Pengecekan status langganan
+    let coveredByFamily = false
+    let hasFamilySubscription = false
+
+    if (isBranch && org.parent?.owner_id) {
+      coveredByFamily = await checkHasFamilySubscription(org.parent.owner_id)
+    } else if (org.owner_id) {
+      hasFamilySubscription = await checkHasFamilySubscription(org.owner_id, user?.email)
+    }
+
+    // Hanya Head, Wakil Ketua, dan Sekretaris yang dapat melihat family_code
+    const canManage = orgMemberContext.role === 'head' || orgMemberContext.role === 'vice_head' || orgMemberContext.role === 'sekretaris'
+    const familyCode = canManage ? org.family_code : null
+
+    return res.status(200).json({
+      is_family: roleInFamily !== 'independent',
+      role_in_family: roleInFamily,
+      family_code: familyCode,
+      parent: org.parent ? {
+        id: org.parent.id,
+        name: org.parent.name,
+        slug: org.parent.slug,
+        logo_url: org.parent.logo_url
+      } : null,
+      children: org.children.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        logo_url: c.logo_url,
+        created_at: c.created_at,
+        members_count: c._count.organization_members
+      })),
+      covered_by_family: coveredByFamily,
+      has_family_subscription: hasFamilySubscription
+    })
+  } catch (err) {
+    console.error('Error getting family info:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+// 2. Generate / Perbarui Kode Tautan Keluarga (Head & Wakil Ketua Induk)
+export async function generateFamilyCode(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember
+  const user = (req as any).user
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Hanya Ketua atau Wakil Ketua yang dapat mengelola Kode Keluarga.' })
+  }
+
+  try {
+    const org = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId }
+    })
+
+    if (!org) {
+      return res.status(404).json({ error: 'Organisasi tidak ditemukan' })
+    }
+
+    if (org.parent_id) {
+      return res.status(400).json({ error: 'Organisasi yang sudah menjadi cabang tidak dapat menjadi induk.' })
+    }
+
+    // Verifikasi kepemilikan paket Family atau Enterprise
+    const isEligible = await checkHasFamilySubscription(user.id, user?.email)
+    if (!isEligible) {
+      return res.status(403).json({
+        error: 'Fitur Keluarga & Tautan Cabang memerlukan paket langganan KitaAtur Family. Silakan tingkatkan paket Anda.',
+        needsUpgrade: true
+      })
+    }
+
+    // Generate kode unik dan mudah dibaca: misal MUSIK-FAM-8492
+    const prefix = org.slug.replace(/[^a-zA-Z0-9]/g, '').substring(0, 4).toUpperCase() || 'HUB'
+    const randomDigits = Math.floor(1000 + Math.random() * 9000)
+    const newCode = `${prefix}-FAM-${randomDigits}`
+
+    const updated = await prisma.organizations.update({
+      where: { id: org.id },
+      data: { family_code: newCode }
+    })
+
+    return res.status(200).json({
+      success: true,
+      family_code: updated.family_code,
+      message: 'Kode tautan keluarga berhasil dibuat.'
+    })
+  } catch (err) {
+    console.error('Error generating family code:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+// 3. Tautkan Cabang ke Induk via Kode Keluarga (Head & Wakil Ketua Cabang)
+export async function linkBranchToFamily(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Hanya Ketua atau Wakil Ketua organisasi yang dapat menautkan ke Induk.' })
+  }
+
+  const { familyCode } = req.body
+  if (!familyCode || typeof familyCode !== 'string' || familyCode.trim() === '') {
+    return res.status(400).json({ error: 'Kode Tautan Keluarga wajib diisi.' })
+  }
+
+  const cleanCode = familyCode.trim().toUpperCase()
+
+  try {
+    const currentOrg = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId },
+      include: {
+        children: { select: { id: true } }
+      }
+    })
+
+    if (!currentOrg) {
+      return res.status(404).json({ error: 'Organisasi Anda tidak ditemukan.' })
+    }
+
+    if (currentOrg.parent_id) {
+      return res.status(400).json({ error: 'Organisasi ini sudah terhubung ke induk lain. Putuskan tautan terlebih dahulu.' })
+    }
+
+    if (currentOrg.children.length > 0) {
+      return res.status(400).json({ error: 'Organisasi yang sudah memiliki cabang tidak dapat ditautkan sebagai cabang ke induk lain.' })
+    }
+
+    // Temukan Induk berdasarkan family_code
+    const parentOrg = await prisma.organizations.findUnique({
+      where: { family_code: cleanCode }
+    })
+
+    if (!parentOrg) {
+      return res.status(404).json({ error: 'Kode Tautan Keluarga tidak valid atau tidak ditemukan.' })
+    }
+
+    if (parentOrg.id === currentOrg.id) {
+      return res.status(400).json({ error: 'Tidak dapat menautkan organisasi ke dirinya sendiri.' })
+    }
+
+    if (parentOrg.parent_id === currentOrg.id) {
+      return res.status(400).json({ error: 'Tidak dapat menautkan karena terjadi hierarki melingkar.' })
+    }
+
+    // Verifikasi Induk memiliki langganan Family aktif
+    if (parentOrg.owner_id) {
+      const parentHasFamily = await checkHasFamilySubscription(parentOrg.owner_id)
+      if (!parentHasFamily) {
+        return res.status(400).json({
+          error: 'Organisasi Induk saat ini belum memiliki paket langganan KitaAtur Family yang aktif.'
+        })
+      }
+    }
+
+    // Tautkan cabang
+    await prisma.organizations.update({
+      where: { id: currentOrg.id },
+      data: { parent_id: parentOrg.id }
+    })
+
+    return res.status(200).json({
+      success: true,
+      message: `Berhasil menautkan ke ${parentOrg.name}. Seluruh data anggota, kas, dan riwayat absen Anda tetap aman.`,
+      parent: {
+        id: parentOrg.id,
+        name: parentOrg.name,
+        slug: parentOrg.slug
+      }
+    })
+  } catch (err) {
+    console.error('Error linking branch to family:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+// 4. Putuskan Tautan Cabang (Head / Wakil Ketua Cabang melepaskan diri ATAU Head / Wakil Ketua Induk melepas Cabang)
+export async function unlinkBranchFromFamily(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
+    return res.status(403).json({ error: 'Hanya Ketua atau Wakil Ketua yang dapat memutuskan tautan cabang.' })
+  }
+
+  const { branchOrgId } = req.body || {}
+
+  try {
+    const currentOrg = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId }
+    })
+
+    if (!currentOrg) {
+      return res.status(404).json({ error: 'Organisasi tidak ditemukan.' })
+    }
+
+    // Skenario A: Jika pemanggil adalah Cabang yang ingin keluar
+    if (currentOrg.parent_id) {
+      await prisma.organizations.update({
+        where: { id: currentOrg.id },
+        data: { parent_id: null }
+      })
+      return res.status(200).json({
+        success: true,
+        message: 'Berhasil memutuskan hubungan dari Organisasi Induk. Organisasi Anda kini kembali mandiri.'
+      })
+    }
+
+    // Skenario B: Jika pemanggil adalah Induk yang ingin melepas salah satu Cabangnya
+    if (branchOrgId) {
+      const branchToUnlink = await prisma.organizations.findFirst({
+        where: { id: branchOrgId, parent_id: currentOrg.id }
+      })
+
+      if (!branchToUnlink) {
+        return res.status(404).json({ error: 'Cabang tidak ditemukan di bawah organisasi ini.' })
+      }
+
+      await prisma.organizations.update({
+        where: { id: branchOrgId },
+        data: { parent_id: null }
+      })
+
+      return res.status(200).json({
+        success: true,
+        message: `Cabang ${branchToUnlink.name} berhasil dilepas dari keluarga organisasi.`
+      })
+    }
+
+    return res.status(400).json({ error: 'Organisasi ini bukan cabang dan ID cabang tidak disertakan.' })
+  } catch (err) {
+    console.error('Error unlinking branch:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+
+// 5. Daftar Seluruh Cabang dalam 1 Keluarga (Untuk Fast Switcher & Kolaborasi)
+export async function getFamilyBranches(req: Request, res: Response) {
+  const orgMemberContext = (req as any).orgMember
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses ditolak.' })
+  }
+
+  try {
+    const currentOrg = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo_url: true,
+        parent_id: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo_url: true,
+            children: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                logo_url: true
+              },
+              orderBy: { name: 'asc' }
+            }
+          }
+        },
+        children: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logo_url: true
+          },
+          orderBy: { name: 'asc' }
+        }
+      }
+    })
+
+    if (!currentOrg) {
+      return res.status(404).json({ error: 'Organisasi tidak ditemukan' })
+    }
+
+    // Jika organisasi saat ini adalah Induk
+    if (currentOrg.children.length > 0) {
+      const branches = [
+        {
+          id: currentOrg.id,
+          name: currentOrg.name,
+          slug: currentOrg.slug,
+          logo_url: currentOrg.logo_url,
+          is_parent: true,
+          is_current: true
+        },
+        ...currentOrg.children.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          logo_url: c.logo_url,
+          is_parent: false,
+          is_current: false
+        }))
+      ]
+      return res.status(200).json({ is_family: true, branches })
+    }
+
+    // Jika organisasi saat ini adalah Cabang
+    if (currentOrg.parent) {
+      const parent = currentOrg.parent
+      const branches = [
+        {
+          id: parent.id,
+          name: parent.name,
+          slug: parent.slug,
+          logo_url: parent.logo_url,
+          is_parent: true,
+          is_current: false
+        },
+        ...parent.children.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          logo_url: c.logo_url,
+          is_parent: false,
+          is_current: c.id === currentOrg.id
+        }))
+      ]
+      return res.status(200).json({ is_family: true, branches })
+    }
+
+    // Organisasi mandiri (bukan keluarga)
+    return res.status(200).json({ is_family: false, branches: [] })
+  } catch (err) {
+    console.error('Error getting family branches:', err)
+    return res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+

@@ -21,7 +21,7 @@ function GenerateContent() {
   const [checkoutPin, setCheckoutPin] = useState<string | null>(null)
   const [sessionType, setSessionType] = useState<string>('in_only')
   const [sessionId, setSessionId] = useState<string | null>(urlSessionId || null)
-  const [sessionTitle, setSessionTitle] = useState<string>('Sesi Absensi Aktif')
+  const [sessionTitle, setSessionTitle] = useState<string>('Sesi Presensi Aktif')
   const [locationStatus, setLocationStatus] = useState<string>('Memuat data sesi...')
 
 
@@ -67,7 +67,7 @@ function GenerateContent() {
     if (!sessionId) return
     try {
       await api.put(`/org-attendance/${orgSlug}/sessions/${sessionId}/close`)
-      toast.error('Sesi absensi ditutup.')
+      toast.error('Sesi presensi ditutup.')
       router.push(`/org/${orgSlug}/attendance`)
     } catch (err) {
       toast.error('Gagal menutup sesi.')
@@ -97,20 +97,28 @@ function GenerateContent() {
         </header>
 
         {loading ? (
-          <div className="py-12 flex flex-col items-center justify-center">
-            <Loader2 className="w-12 h-12 text-blue-600 animate-spin mb-4" />
-            <p className="text-slate-600">{locationStatus}</p>
+          <div className="space-y-8 animate-pulse">
+            <div className="bg-slate-100 border border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center h-44">
+              <div className="h-4 w-32 bg-slate-200 rounded-md mb-4" />
+              <div className="h-14 w-52 bg-slate-300 rounded-xl" />
+            </div>
+            <div className="h-10 w-64 bg-slate-100 rounded-xl mx-auto" />
+            <div className="space-y-3">
+              <div className="h-14 bg-slate-100 rounded-xl" />
+              <div className="h-14 bg-slate-100 rounded-xl" />
+              <div className="h-14 bg-slate-100 rounded-xl" />
+            </div>
           </div>
         ) : sessionPin ? (
           <div className="space-y-8">
             {sessionType === 'in_out' && checkoutPin ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">PIN Absen Datang</p>
+                  <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2">PIN Presensi Datang</p>
                   <h2 className="text-4xl md:text-5xl font-black text-blue-700 tracking-[0.2em]">{sessionPin}</h2>
                 </div>
                 <div className="bg-orange-50 border border-orange-200 rounded-2xl p-6">
-                  <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-2">PIN Absen Pulang</p>
+                  <p className="text-xs font-bold text-orange-600 uppercase tracking-widest mb-2">PIN Presensi Pulang</p>
                   <h2 className="text-4xl md:text-5xl font-black text-orange-700 tracking-[0.2em]">{checkoutPin}</h2>
                 </div>
               </div>
@@ -137,24 +145,24 @@ function GenerateContent() {
             <div className="flex flex-col gap-3">
               <button 
                 onClick={() => router.push(`/org/${orgSlug}/attendance/guests/scan?sessionId=${sessionId}`)}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-blue-200 hover:border-blue-600 hover:bg-blue-50 text-blue-600 font-bold rounded-xl transition-all shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-[#0087FF]/30 hover:border-[#0087FF] hover:bg-[#E0F4FE]/30 text-[#0087FF] font-bold rounded-xl transition-all shadow-sm"
               >
                 Scan QR Tamu
               </button>
 
               <button 
                 onClick={() => router.push(`/org/${orgSlug}/attendance/guests?sessionId=${sessionId}`)}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-indigo-200 hover:border-indigo-600 hover:bg-indigo-50 text-indigo-600 font-bold rounded-xl transition-all shadow-sm"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-xl transition-all shadow-sm"
               >
                 Lihat Daftar Hadir Tamu
               </button>
 
               <button 
                 onClick={closeSession}
-                className="w-full flex items-center justify-center gap-2 py-4 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl transition-all"
+                className="w-full flex items-center justify-center gap-2 py-4 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl transition-all"
               >
                 <StopCircle className="w-5 h-5" />
-                Tutup Sesi Absensi
+                Tutup Sesi Presensi
               </button>
             </div>
           </div>
@@ -170,7 +178,22 @@ function GenerateContent() {
 
 export default function GenerateAttendancePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-10 h-10 animate-spin text-blue-600"/></div>}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 flex flex-col items-center justify-center relative overflow-hidden animate-pulse">
+        <div className="w-full max-w-2xl bg-white border border-slate-200 shadow-sm rounded-3xl p-6 md:p-8 space-y-8">
+          <div>
+            <div className="h-4 w-28 bg-slate-200 rounded-md mb-3" />
+            <div className="h-8 w-56 bg-slate-300 rounded-xl mb-2" />
+            <div className="h-4 w-72 bg-slate-200 rounded-md" />
+          </div>
+          <div className="h-40 bg-slate-100 rounded-2xl" />
+          <div className="space-y-3">
+            <div className="h-14 bg-slate-100 rounded-xl" />
+            <div className="h-14 bg-slate-100 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    }>
       <GenerateContent />
     </Suspense>
   )

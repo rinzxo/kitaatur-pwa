@@ -27,8 +27,8 @@ export async function generateAttendanceToken(orgId: string) {
       return { success: false, error: "Not a member of this organization" };
     }
 
-    if (orgMember.role !== "head" && orgMember.role !== "sekretaris") {
-      return { success: false, error: "Only Head or Secretary can generate attendance tokens" };
+    if (orgMember.role !== "head" && orgMember.role !== "vice_head" && orgMember.role !== "sekretaris") {
+      return { success: false, error: "Only Head, Vice Head or Secretary can generate attendance tokens" };
     }
 
     // Generate token valid for today

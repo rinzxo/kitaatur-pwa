@@ -1,3 +1,4 @@
+@import 'leaflet/dist/leaflet.css';
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,27 +14,42 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 221.2 83.2% 53.3%; /* blue-600 */
+    --primary: 208 100% 50%; /* #0087FF from KitaAtur logo */
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 214.3 31.8% 91.4%; /* slate-200 */
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 195 95% 94%; /* #E0F4FE logo soft cyan */
+    --secondary-foreground: 208 100% 40%;
 
     --muted: 214.3 31.8% 91.4%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 214.3 31.8% 91.4%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 195 95% 94%;
+    --accent-foreground: 208 100% 40%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 208 100% 50%;
 
     --radius: 1rem; /* rounded-2xl feel */
   }
+}
+
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #0087FF 0%, #01C4FB 100%);
+}
+.bg-brand-gradient-hover:hover {
+  background: linear-gradient(135deg, #0077E6 0%, #00B5EA 100%);
+}
+.text-brand-gradient {
+  background: linear-gradient(135deg, #0087FF 0%, #01C4FB 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.shadow-brand {
+  box-shadow: 0 10px 25px -5px rgba(0, 135, 255, 0.25), 0 8px 10px -6px rgba(1, 196, 251, 0.2);
 }
 
 body {

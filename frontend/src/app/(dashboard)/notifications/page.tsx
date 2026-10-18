@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, Settings, BellRing } from 'lucide-react'
+import { ArrowLeft, GearSix as Settings, BellRinging as BellRing } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 import { api, supabase } from '@/lib/api'
 
@@ -153,7 +153,7 @@ export default function NotificationsPage() {
             <button 
               onClick={handleSubscribe} 
               disabled={subscribing}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl shrink-0 transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
+              className="bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold py-2 px-4 rounded-xl shrink-0 transition-colors w-full sm:w-auto flex items-center justify-center gap-2"
             >
               <BellRing className="w-4 h-4" />
               {subscribing ? 'Mengaktifkan...' : 'Aktifkan Sekarang'}
@@ -208,7 +208,7 @@ export default function NotificationsPage() {
                   </p>
                 </div>
                 {!item.is_read && (
-                  <div className="w-2.5 h-2.5 bg-blue-600 rounded-full mt-1.5 shrink-0"></div>
+                  <div className="w-2.5 h-2.5 bg-[#0087FF] rounded-full mt-1.5 shrink-0"></div>
                 )}
               </div>
             ))

@@ -1,4 +1,5 @@
 'use client'
+import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
@@ -50,7 +51,7 @@ export default function AdminDashboardPage() {
       })
       setMaintenance(!maintenance)
     } catch (err) {
-      alert('Gagal mengubah mode maintenance')
+      toast.error('Gagal mengubah mode maintenance')
     } finally {
       setUpdating(false)
     }
@@ -64,15 +65,31 @@ export default function AdminDashboardPage() {
         value: appVersion,
         description: 'Versi aplikasi saat ini.'
       })
-      alert('Versi aplikasi berhasil diupdate')
+      toast.success('Versi aplikasi berhasil diupdate')
     } catch (err) {
-      alert('Gagal mengubah versi aplikasi')
+      toast.error('Gagal mengubah versi aplikasi')
     } finally {
       setUpdatingVersion(false)
     }
   }
 
-  if (loading) return <div className="p-8 text-center">Memuat data dewa...</div>
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-4 md:p-8 animate-pulse space-y-6">
+        <div className="h-8 w-60 bg-slate-200 rounded-xl mb-6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center space-y-3">
+              <div className="w-12 h-12 bg-slate-100 rounded-full" />
+              <div className="h-8 w-16 bg-slate-200 rounded-lg" />
+              <div className="h-4 w-28 bg-slate-100 rounded-md" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-48" />
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-8">
@@ -163,7 +180,7 @@ export default function AdminDashboardPage() {
           <button 
             onClick={handleUpdateVersion}
             disabled={updatingVersion || !appVersion.trim()}
-            className="px-6 py-2 rounded-xl font-bold text-white bg-blue-600 hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+            className="px-6 py-2 rounded-xl font-bold text-white bg-[#0087FF] hover:bg-[#0077E6] transition-colors disabled:opacity-50 whitespace-nowrap"
           >
             {updatingVersion ? 'Menyimpan...' : 'Simpan'}
           </button>

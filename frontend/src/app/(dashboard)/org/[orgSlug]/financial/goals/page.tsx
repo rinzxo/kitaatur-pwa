@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Target, Wallet, Plus, X, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Target, Wallet, Plus, X, WarningCircle as AlertCircle } from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { api, supabase } from '@/lib/api'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -112,7 +112,13 @@ export default function GoalsPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!await await confirm('Konfirmasi', 'Hapus target/anggaran ini?')) return
+    const ok = await confirm({
+      title: 'Hapus Target / Anggaran',
+      message: 'Apakah Anda yakin ingin menghapus target/anggaran ini?',
+      confirmText: 'Ya, Hapus',
+      variant: 'danger'
+    })
+    if (!ok) return
     try {
       await api.delete(`/org/${orgSlug}/goals/${id}`)
       fetchGoals()
@@ -192,7 +198,7 @@ export default function GoalsPage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden">
       {/* Glow background */}
-      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-violet-100 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#E0F4FE] rounded-full blur-[120px] pointer-events-none opacity-60" />
 
       <header className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
@@ -204,7 +210,7 @@ export default function GoalsPage() {
             Kembali ke Laporan Kas
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 mt-1 flex items-center gap-3">
-            <Target className="h-8 w-8 text-violet-600" />
+            <Target className="h-8 w-8 text-[#0087FF]" />
             Anggaran & Target
           </h1>
           <p className="text-slate-500 text-sm mt-1 font-medium">Atur limit pengeluaran bulanan atau target tabungan acara.</p>
@@ -216,7 +222,7 @@ export default function GoalsPage() {
               setModalType(activeTab)
               setIsModalOpen(true)
             }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-xl text-sm shadow-lg hover:shadow-slate-900/20 transition-all duration-300"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-semibold rounded-xl text-sm shadow-sm transition-all duration-300"
           >
             <Plus className="h-4 w-4" />
             {activeTab === 'saving' ? 'Buat Target Baru' : 'Atur Limit Anggaran'}
@@ -230,7 +236,7 @@ export default function GoalsPage() {
         <div className="flex p-1 bg-white border border-slate-200 rounded-xl mb-8 w-full max-w-md shadow-sm">
           <button
             onClick={() => setActiveTab('saving')}
-            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'saving' ? 'bg-violet-50 text-violet-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${activeTab === 'saving' ? 'bg-[#E0F4FE] text-[#0087FF] shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
           >
             Target Tabungan
           </button>
@@ -272,7 +278,7 @@ export default function GoalsPage() {
                                 </span>
                               )}
                             </div>
-                            <p className="text-sm text-slate-500">Terkumpul: <strong className="text-violet-600">{formatRupiah(current)}</strong> dari {formatRupiah(target)}</p>
+                            <p className="text-sm text-slate-500">Terkumpul: <strong className="text-[#0087FF]">{formatRupiah(current)}</strong> dari {formatRupiah(target)}</p>
                           </div>
                           {isEditor && (
                             <button onClick={() => handleDelete(goal.id)} className="text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition">
@@ -281,18 +287,18 @@ export default function GoalsPage() {
                           )}
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-3 mb-2 overflow-hidden">
-                          <div className="bg-violet-500 h-3 rounded-full transition-all duration-1000" style={{ width: `${percent}%` }}></div>
+                          <div className="bg-[#0087FF] h-3 rounded-full transition-all duration-1000" style={{ width: `${percent}%` }}></div>
                         </div>
                         <div className="flex justify-between items-center mt-3">
                           <div className="flex gap-2">
                             <Link
                               href={`/org/${orgSlug}/financial/goals/${goal.id}`}
-                              className="text-xs font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+                              className="text-xs font-bold text-[#0087FF] bg-[#E0F4FE] hover:bg-[#cbeafc] px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
                             >
                               Kelola Target ➔
                             </Link>
                           </div>
-                          <div className="text-right text-xs font-bold text-violet-600">{percent.toFixed(1)}%</div>
+                          <div className="text-right text-xs font-bold text-[#0087FF]">{percent.toFixed(1)}%</div>
                         </div>
                       </div>
                     )
@@ -385,7 +391,7 @@ export default function GoalsPage() {
                       value={title}
                       onChange={e => setTitle(e.target.value)}
                       placeholder="Misal: Beli Proyektor Baru"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-[#0087FF] focus:outline-none"
                     />
                   </div>
                   <div>
@@ -395,7 +401,7 @@ export default function GoalsPage() {
                       value={savingCategory}
                       onChange={e => setSavingCategory(e.target.value)}
                       placeholder="Misal: Gadget, Liburan, Darurat"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-[#0087FF] focus:outline-none"
                     />
                   </div>
                 </>
@@ -424,14 +430,14 @@ export default function GoalsPage() {
                   value={targetAmount ? new Intl.NumberFormat('id-ID').format(parseInt(targetAmount, 10)) : ''}
                   onChange={(e) => setTargetAmount(e.target.value.replace(/\D/g, ''))}
                   placeholder="Misal: 1000000"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-[#0087FF] focus:outline-none"
                 />
               </div>
 
               <div className="pt-4">
                 <button
                   type="submit"
-                  className={`w-full py-4 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl ${modalType === 'saving' ? 'bg-violet-600 hover:bg-violet-700 shadow-violet-200' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-200'}`}
+                  className={`w-full py-4 text-white font-bold rounded-xl transition-all shadow-sm ${modalType === 'saving' ? 'bg-[#0087FF] hover:bg-[#0077E6]' : 'bg-amber-500 hover:bg-amber-600'}`}
                 >
                   Simpan
                 </button>
@@ -461,7 +467,7 @@ export default function GoalsPage() {
                   value={progressAmount ? new Intl.NumberFormat('id-ID').format(parseInt(progressAmount, 10)) : ''}
                   onChange={(e) => setProgressAmount(e.target.value.replace(/\D/g, ''))}
                   placeholder="Misal: 500000"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-[#0087FF] focus:outline-none"
                 />
               </div>
 
@@ -498,7 +504,7 @@ export default function GoalsPage() {
                       value={progressDescription}
                       onChange={(e) => setProgressDescription(e.target.value)}
                       placeholder="Misal: Dana bantuan Pak Budi"
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-violet-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-[#0087FF] focus:outline-none"
                     />
                   </div>
                 )}
@@ -507,7 +513,7 @@ export default function GoalsPage() {
               <button
                 type="submit"
                 disabled={isSubmittingProgress}
-                className="w-full py-4 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl bg-violet-600 hover:bg-violet-700 shadow-violet-200 mt-4 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                className="w-full py-4 text-white font-bold rounded-xl transition-all shadow-sm bg-[#0087FF] hover:bg-[#0077E6] mt-4 disabled:opacity-70 disabled:cursor-not-allowed flex justify-center items-center gap-2"
               >
                 {isSubmittingProgress ? (
                   <>
@@ -539,8 +545,10 @@ export default function GoalsPage() {
             
             <div className="p-6 overflow-y-auto flex-1">
               {loadingHistory ? (
-                <div className="flex justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600"></div>
+                <div className="space-y-3 animate-pulse">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-16 bg-slate-50 rounded-xl" />
+                  ))}
                 </div>
               ) : transactions.length === 0 ? (
                 <div className="text-center py-8 text-slate-500 text-sm">

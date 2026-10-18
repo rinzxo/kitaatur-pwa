@@ -80,18 +80,29 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone()
 
-  // Protect dashboard and personal routes, as well as onboarding
-  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/personal') || url.pathname.startsWith('/onboarding')) {
-    if (!user) {
-      url.pathname = '/login'
+  // Auto-redirect logged-in users from root to /app
+  if (url.pathname === '/') {
+    if (user) {
+      url.pathname = '/app'
       return NextResponse.redirect(url)
     }
   }
 
-  // Redirect logged-in users away from auth pages
+  // Protect dashboard, personal, and app routes, as well as onboarding
+  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/personal') || url.pathname.startsWith('/onboarding') || url.pathname.startsWith('/app')) {
+    if (!user) {
+      url.pathname = '/login'
+      if (url.pathname.startsWith('/app')) {
+        url.searchParams.set('next', '/app')
+      }
+      return NextResponse.redirect(url)
+    }
+  }
+
+  // Redirect logged-in users away from auth pages directly into /app
   if (url.pathname.startsWith('/login') || url.pathname.startsWith('/register')) {
     if (user) {
-      url.pathname = '/personal/dashboard'
+      url.pathname = '/app'
       return NextResponse.redirect(url)
     }
   }
@@ -102,6 +113,7 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     '/',
+    '/app/:path*',
     '/dashboard/:path*',
     '/personal/:path*',
     '/onboarding',

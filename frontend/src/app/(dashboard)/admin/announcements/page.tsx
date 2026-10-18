@@ -1,4 +1,5 @@
 'use client'
+import toast from 'react-hot-toast'
 import { useState, useEffect } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
@@ -34,8 +35,9 @@ export default function AdminAnnouncementsPage() {
       try {
         await api.delete(`/admin/announcements/${id}`)
         setAnnouncements(announcements.filter(a => a.id !== id))
+        toast.success('Pengumuman berhasil dihapus')
       } catch (err) {
-        alert('Gagal menghapus')
+        toast.error('Gagal menghapus pengumuman')
       }
     }
   }
@@ -47,8 +49,9 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements([res.data, ...announcements])
       setIsAdding(false)
       setFormData({ title: '', content: '', type: 'info' })
+      toast.success('Pengumuman berhasil dibuat')
     } catch (err) {
-      alert('Gagal membuat pengumuman')
+      toast.error('Gagal membuat pengumuman')
     }
   }
 
@@ -65,7 +68,7 @@ export default function AdminAnnouncementsPage() {
           </h1>
           <p className="text-slate-500 mt-1">Kirim pesan yang akan muncul di layar semua pengguna.</p>
         </div>
-        <button onClick={() => setIsAdding(!isAdding)} className="bg-blue-600 text-white font-bold px-4 py-2 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
+        <button onClick={() => setIsAdding(!isAdding)} className="bg-[#0087FF] text-white font-bold px-4 py-2 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
           {isAdding ? 'Batal' : <><Plus className="w-5 h-5"/> Buat Baru</>}
         </button>
       </div>
@@ -94,13 +97,21 @@ export default function AdminAnnouncementsPage() {
                 onChange={(val) => setFormData({...formData, type: val})}
               />
             </div>
-            <button type="submit" className="bg-blue-600 text-white font-bold py-3 rounded-xl mt-2">Kirim Broadcast</button>
+            <button type="submit" className="bg-[#0087FF] text-white font-bold py-3 rounded-xl mt-2">Kirim Broadcast</button>
           </form>
         </div>
       )}
 
       {loading ? (
-        <div className="text-center py-10 text-slate-500">Memuat data...</div>
+        <div className="flex flex-col gap-4 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+              <div className="h-5 w-20 bg-slate-200 rounded-md" />
+              <div className="h-6 w-48 bg-slate-200 rounded-lg" />
+              <div className="h-4 w-full bg-slate-100 rounded-md" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col gap-4">
           {announcements.map(a => (

@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, Target, PlusCircle, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Target, PlusCircle, CheckCircle } from '@phosphor-icons/react'
 
 interface Goal {
   id: string
@@ -58,8 +58,34 @@ export default function PersonalTargetsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <p className="text-slate-500 font-bold">Memuat target impian Anda...</p>
+      <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden animate-pulse">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="h-3 w-28 bg-slate-200 rounded-md mb-3" />
+              <div className="h-8 w-64 bg-slate-300 rounded-xl" />
+              <div className="h-4 w-52 bg-slate-200 rounded-md mt-2" />
+            </div>
+            <div className="h-11 w-36 bg-slate-200 rounded-xl" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="h-5 w-36 bg-slate-200 rounded-md" />
+                  <div className="w-6 h-6 bg-slate-100 rounded-full" />
+                </div>
+                <div className="h-7 w-28 bg-slate-300 rounded-lg" />
+                <div className="h-3 w-full bg-slate-100 rounded-full" />
+                <div className="flex justify-between pt-2">
+                  <div className="h-4 w-20 bg-slate-200 rounded-md" />
+                  <div className="h-4 w-12 bg-slate-200 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
@@ -70,7 +96,7 @@ export default function PersonalTargetsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 p-6 md:p-10 relative overflow-hidden">
-      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-100 rounded-full blur-[120px] pointer-events-none opacity-50" />
+      <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-[#E0F4FE] rounded-full blur-[120px] pointer-events-none opacity-50" />
       
       <header className="relative z-10 max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
@@ -79,14 +105,14 @@ export default function PersonalTargetsPage() {
             Kembali ke Dashboard
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
-            <Target className="h-8 w-8 text-purple-600" />
+            <Target className="h-8 w-8 text-[#0087FF]" />
             Target Finansial
           </h1>
           <p className="text-slate-500 font-medium text-sm mt-1">Lacak pencapaian dan wujudkan impian finansial Anda.</p>
         </div>
         <Link 
           href="/personal/targets/create"
-          className="flex items-center gap-2 px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl shadow-lg shadow-purple-500/30 transition-all active:scale-[0.98]"
+          className="flex items-center gap-2 px-5 py-3 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-sm transition-all active:scale-[0.98]"
         >
           <PlusCircle className="h-5 w-5" />
           Buat Target Baru
@@ -101,7 +127,7 @@ export default function PersonalTargetsPage() {
             <p className="text-slate-500 mb-6">Mulai rencanakan masa depan Anda dengan menetapkan target tabungan baru!</p>
             <Link 
               href="/personal/targets/create"
-              className="inline-block px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors"
+              className="inline-block px-6 py-3 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors shadow-sm"
             >
               Mulai Buat Target Pertama
             </Link>
@@ -128,11 +154,11 @@ export default function PersonalTargetsPage() {
                   <div>
                     <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
                       <span className="text-slate-500">Terkumpul</span>
-                      <span className="text-purple-600">{progress.toFixed(1)}%</span>
+                      <span className="text-[#0087FF]">{progress.toFixed(1)}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-3 mb-4 overflow-hidden">
                       <div 
-                        className="bg-purple-600 h-3 rounded-full transition-all duration-1000 ease-out" 
+                        className="bg-[#0087FF] h-3 rounded-full transition-all duration-1000 ease-out" 
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
@@ -154,12 +180,12 @@ export default function PersonalTargetsPage() {
                           placeholder="Tambah Nominal..."
                           value={addAmounts[goal.id] || ''}
                           onChange={(e) => setAddAmounts({ ...addAmounts, [goal.id]: e.target.value })}
-                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#0087FF]"
                         />
                         <button
                           onClick={() => handleAddProgress(goal.id)}
                           disabled={updating === goal.id || !addAmounts[goal.id]}
-                          className="px-4 py-2 bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
+                          className="px-4 py-2 bg-[#E0F4FE] hover:bg-[#cbeafc] text-[#007AE6] font-bold rounded-lg text-sm transition-colors disabled:opacity-50 whitespace-nowrap"
                         >
                           {updating === goal.id ? 'Menyimpan...' : 'Tambah'}
                         </button>

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
-import { Printer, ArrowLeft, Scissors } from 'lucide-react'
+import { Printer, ArrowLeft, Scissors } from '@phosphor-icons/react'
 import Link from 'next/link'
 
 export default function InvoicePrintPage() {
@@ -36,7 +36,25 @@ export default function InvoicePrintPage() {
   }, [record])
 
   if (loading) {
-    return <div className="p-10 text-center font-bold text-slate-500">Menyiapkan Kwitansi...</div>
+    return (
+      <div className="p-6 md:p-10 animate-pulse flex justify-center">
+        <div className="max-w-xl w-full border border-slate-200 rounded-2xl p-6 bg-white space-y-6">
+          <div className="flex justify-between items-start border-b border-slate-100 pb-4">
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-slate-200 rounded-lg" />
+              <div className="h-4 w-28 bg-slate-100 rounded-md" />
+            </div>
+            <div className="h-8 w-24 bg-slate-100 rounded-xl" />
+          </div>
+          <div className="space-y-3 py-2">
+            <div className="h-8 bg-slate-50 rounded-lg" />
+            <div className="h-8 bg-slate-50 rounded-lg" />
+            <div className="h-8 bg-slate-50 rounded-lg" />
+          </div>
+          <div className="h-10 w-36 bg-slate-200 rounded-xl ml-auto" />
+        </div>
+      </div>
+    )
   }
 
   if (!record) {
@@ -106,7 +124,7 @@ export default function InvoicePrintPage() {
         </Link>
         <button 
           onClick={() => window.print()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-lg transition-all"
         >
           <Printer className="h-4 w-4" />
           Cetak Ulang

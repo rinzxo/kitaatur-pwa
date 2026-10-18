@@ -28,7 +28,7 @@ export default function EduLandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-full h-[45vh] bg-blue-600 rounded-b-[40px] z-0 shadow-lg"></div>
+      <div className="absolute top-0 left-0 w-full h-[45vh] bg-[#0087FF] rounded-b-[40px] z-0 shadow-lg"></div>
 
       <header className="relative z-10 py-6 px-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -57,14 +57,24 @@ export default function EduLandingPage() {
             placeholder="Cari nama sekolah..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all font-medium"
+            className="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0087FF] focus:border-transparent transition-all font-medium"
           />
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
-            <p className="text-slate-500 font-medium">Memuat daftar sekolah...</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-slate-200 shrink-0" />
+                  <div className="space-y-2">
+                    <div className="h-5 w-44 bg-slate-200 rounded-lg" />
+                    <div className="h-4 w-28 bg-slate-100 rounded-md" />
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-slate-100" />
+              </div>
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -83,12 +93,12 @@ export default function EduLandingPage() {
                     )}
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                    <h3 className="text-lg font-bold text-slate-900 group-hover:text-[#0087FF] transition-colors line-clamp-2">
                       {school.name}
                     </h3>
                   </div>
                 </div>
-                <div className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-all shrink-0 ml-4">
+                <div className="w-10 h-10 rounded-full bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-[#0087FF] group-hover:text-white transition-all shrink-0 ml-4">
                   <ArrowRight className="w-5 h-5" />
                 </div>
               </Link>

@@ -3,7 +3,24 @@ import toast from 'react-hot-toast'
 
 
 import { useState, useEffect } from 'react'
-import { Settings, User, Shield, Building2, Info, ChevronRight, Plus, Bell, ArrowLeft, LogOut, CreditCard, Camera, Loader2, Save, BadgeCheck } from 'lucide-react'
+import { 
+  GearSix as Settings, 
+  User, 
+  Shield, 
+  Buildings as Building2, 
+  Info, 
+  CaretRight as ChevronRight, 
+  Plus, 
+  Bell, 
+  ArrowLeft, 
+  SignOut as LogOut, 
+  CreditCard, 
+  Camera, 
+  CircleNotch as Loader2, 
+  FloppyDisk as Save, 
+  CheckCircle as BadgeCheck,
+  QrCode 
+} from '@phosphor-icons/react'
 import Link from 'next/link'
 import { api, supabase } from '@/lib/api'
 import { useRouter } from 'next/navigation'
@@ -212,9 +229,9 @@ export default function SettingsPage() {
                   Buat Organisasi Baru
                 </Link>
               ) : (
-                <div className="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-xl flex flex-col items-center text-center">
-                  <p className="text-sm text-blue-800 font-medium mb-3">Upgrade ke Premium untuk mulai membuat Organisasi dan mengundang tim Anda.</p>
-                  <Link href="/upgrade" className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-full shadow-md text-sm transition-all">
+                <div className="mb-6 bg-[#E0F4FE]/70 border border-[#b9e5fa] p-4 rounded-xl flex flex-col items-center text-center">
+                  <p className="text-sm text-slate-800 font-medium mb-3">Upgrade ke Premium untuk mulai membuat Organisasi dan mengundang tim Anda.</p>
+                  <Link href="/upgrade" className="bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold px-6 py-2.5 rounded-full shadow-sm text-sm transition-all">
                     Upgrade Sekarang
                   </Link>
                 </div>
@@ -235,7 +252,19 @@ export default function SettingsPage() {
                 </Link>
 
                 {isLoadingOrgs ? (
-                  <div className="text-center py-6 text-sm text-slate-400 animate-pulse font-medium">Memuat organisasi...</div>
+                  <div className="space-y-3 animate-pulse">
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200" />
+                          <div className="space-y-2">
+                            <div className="h-5 w-32 bg-slate-200 rounded-md" />
+                            <div className="h-3 w-20 bg-slate-100 rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : myOrgs.length > 0 ? (
                   myOrgs.map((org: any) => (
                     <Link key={org.id} href={`/org/${org.slug}/dashboard`} className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 transition-colors group">
@@ -266,12 +295,24 @@ export default function SettingsPage() {
               <p className="text-slate-500 mb-6">Pilih organisasi untuk mengelola anggota dan pengaturan.</p>
               <div className="space-y-3">
                 {isLoadingOrgs ? (
-                  <div className="text-center py-6 text-sm text-slate-400 animate-pulse font-medium">Memuat organisasi...</div>
+                  <div className="space-y-3 animate-pulse">
+                    {[1, 2].map(i => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 bg-white">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-slate-200" />
+                          <div className="space-y-2">
+                            <div className="h-5 w-32 bg-slate-200 rounded-md" />
+                            <div className="h-3 w-20 bg-slate-100 rounded-md" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : myOrgs.length > 0 ? (
                   myOrgs.map((org: any) => (
                     <div key={org.id} className="p-4 rounded-2xl border border-slate-200 bg-white shadow-sm space-y-4">
                       <div className="flex items-center gap-4 border-b border-slate-100 pb-4">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xl">
+                        <div className="w-12 h-12 rounded-full bg-[#E0F4FE] flex items-center justify-center text-[#007AE6] font-bold text-xl">
                           {org.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
@@ -313,7 +354,7 @@ export default function SettingsPage() {
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-8 text-left space-y-4 shadow-sm">
                   <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                     <span className="text-sm font-semibold text-slate-500">Versi Aplikasi</span>
-                    <span className="text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">1.0.0-beta.2</span>
+                    <span className="text-sm font-bold text-[#0087FF] bg-[#E0F4FE] border border-[#0087FF]/20 px-2.5 py-1 rounded-md">1.0.0-beta.2</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                     <span className="text-sm font-semibold text-slate-500">Build Number</span>
@@ -372,13 +413,13 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-slate-900">{userName}</h2>
                 {isVerified && (
-                  <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-50" />
+                  <BadgeCheck size={20} weight="fill" className="text-[#0087FF]" />
                 )}
               </div>
               <p className="text-slate-500">Tampilkan profil</p>
             </div>
           </div>
-          <ChevronRight className="w-6 h-6 text-slate-400 group-hover:text-slate-900 transition-colors" />
+          <ChevronRight size={22} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
         </button>
 
         {/* Promo Banner Card */}
@@ -389,11 +430,11 @@ export default function SettingsPage() {
           <div className="relative z-10 w-2/3">
             <h3 className="text-lg font-semibold mb-2">Bangun organisasi Anda</h3>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Sangat mudah mengelola absensi dan keuangan bersama tim.
+              Sangat mudah mengelola presensi dan keuangan bersama tim.
             </p>
           </div>
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-full flex items-center justify-end pr-4 opacity-80 group-hover:opacity-100 transition-opacity">
-             <Building2 className="w-20 h-20 text-emerald-500/20" />
+             <Building2 size={80} weight="duotone" className="text-emerald-500/20" />
           </div>
         </Link>
 
@@ -404,57 +445,70 @@ export default function SettingsPage() {
             
             <button onClick={() => navigateToView('switcher')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
-                <Building2 className="w-6 h-6 text-slate-700" />
+                <Building2 size={24} weight="duotone" className="text-slate-700" />
                 <span className="text-lg text-slate-700">Workspace & Organisasi</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
             <Link href="/personal/settings/subscription" className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
-                <CreditCard className="w-6 h-6 text-slate-700" />
+                <CreditCard size={24} weight="duotone" className="text-slate-700" />
                 <span className="text-lg text-slate-700">Langganan & Tagihan</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
             </Link>
 
             {myOrgs.length > 0 && (
               <button onClick={() => navigateToView('org_management')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
                 <div className="flex items-center gap-4">
-                  <Settings className="w-6 h-6 text-slate-700" />
+                  <Settings size={24} weight="duotone" className="text-slate-700" />
                   <span className="text-lg text-slate-700">Kelola Organisasi</span>
                 </div>
-                <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
               </button>
+            )}
+
+            {myOrgs.length > 0 && (
+              <Link href={`/org/${myOrgs[0].slug}/settings`} className="flex items-center justify-between py-5 border-b border-slate-100 group">
+                <div className="flex items-center gap-4">
+                  <QrCode size={24} weight="duotone" className="text-[#0087FF]" />
+                  <div className="text-left">
+                    <span className="text-lg text-slate-700 font-medium block">Kartu QR Presensi Digital</span>
+                    <span className="text-xs text-slate-400">Tampilkan ID & QR presensi di {myOrgs[0].name}</span>
+                  </div>
+                </div>
+                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-[#0087FF] transition-colors" />
+              </Link>
             )}
 
             <button onClick={() => navigateToView('profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
-                <User className="w-6 h-6 text-slate-700" />
+                <User size={24} weight="duotone" className="text-slate-700" />
                 <span className="text-lg text-slate-700">Informasi personal</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
             <button onClick={() => navigateToView('security')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
-                <Shield className="w-6 h-6 text-slate-700" />
+                <Shield size={24} weight="duotone" className="text-slate-700" />
                 <span className="text-lg text-slate-700">Login & keamanan</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
             <button onClick={() => navigateToView('about')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
               <div className="flex items-center gap-4">
-                <Info className="w-6 h-6 text-slate-700" />
+                <Info size={24} weight="duotone" className="text-slate-700" />
                 <span className="text-lg text-slate-700">Tentang Aplikasi</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-900 transition-colors" />
+              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
             </button>
 
             <button onClick={handleLogout} className="flex items-center justify-between py-5 group mt-4">
               <div className="flex items-center gap-4">
-                <LogOut className="w-6 h-6 text-rose-500" />
+                <LogOut size={24} weight="duotone" className="text-rose-500" />
                 <span className="text-lg text-rose-500 font-medium">Keluar</span>
               </div>
             </button>

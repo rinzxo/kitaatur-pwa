@@ -70,7 +70,7 @@ export default function MeetingHistoryPage() {
             className="inline-flex items-center gap-2 text-xs font-medium text-slate-500 hover:text-slate-900 transition-colors mb-2"
           >
             <ArrowLeft className="h-3 w-3" />
-            Kembali ke Absensi
+            Kembali ke Presensi
           </Link>
           <h1 className="text-3xl font-extrabold text-slate-900 flex items-center gap-2">
             <FileText className="h-8 w-8 text-indigo-600" />
@@ -118,9 +118,9 @@ export default function MeetingHistoryPage() {
               </div>
 
               {meeting.ai_summary ? (
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5">
-                  <h4 className="text-xs font-bold text-indigo-900 mb-3 uppercase tracking-wider">Ringkasan AI</h4>
-                  <div className="prose prose-slate max-w-none text-indigo-900/80 text-sm whitespace-pre-wrap">
+                <div className="bg-[#E0F4FE]/60 border border-[#b9e5fa] rounded-xl p-5">
+                  <h4 className="text-xs font-bold text-slate-900 mb-3 uppercase tracking-wider">Ringkasan AI</h4>
+                  <div className="prose prose-slate max-w-none text-slate-700 text-sm whitespace-pre-wrap">
                     {meeting.ai_summary}
                   </div>
                 </div>
