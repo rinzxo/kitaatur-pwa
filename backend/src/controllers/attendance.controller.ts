@@ -1115,7 +1115,7 @@ export async function closeSession(req: any, res: Response) {
 export async function checkIn(req: any, res: Response) {
   const orgMemberContext = req.orgMember;
   const userId = req.user?.id;
-  const { pin, latitude, longitude, accuracy, status, proof_url, notes } = req.body;
+  let { pin, latitude, longitude, accuracy, status, proof_url, notes } = req.body;
 
   if (!orgMemberContext) {
     return res.status(403).json({ error: 'Akses ditolak' });
@@ -1281,9 +1281,14 @@ export async function checkIn(req: any, res: Response) {
         if (activeSession.late_time && now > activeSession.late_time) {
           finalStatus = 'late';
         }
-      } else {
-        if (!proof_url && finalStatus !== 'absent') {
-          return res.status(400).json({ error: 'Surat bukti wajib disertakan untuk status sakit/izin' });
+      } else if (finalStatus === 'sick') {
+        // Anggota bisa mengajukan sakit tanpa surat dengan batas susulan 1x24 jam
+        if (!proof_url && !notes) {
+          notes = 'Sakit (Menunggu surat dokter maks 1x24 jam)';
+        }
+      } else if (finalStatus === 'excused') {
+        if (!proof_url && !notes) {
+          notes = 'Izin';
         }
       }
 
@@ -1340,6 +1345,20 @@ export async function getAttendanceRecords(req: any, res: Response) {
   }
 
   try {
+    // Sweep status sakit tanpa surat yang melewati 1x24 jam menjadi izin biasa
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await prisma.attendance.updateMany({
+      where: {
+        organization_id: orgMemberContext.organizationId,
+        status: 'sick',
+        proof_url: null,
+        check_in_time: { lte: twentyFourHoursAgo }
+      },
+      data: {
+        status: 'excused'
+      }
+    });
+
     const whereClause: any = {
       organization_id: orgMemberContext.organizationId
     };
@@ -1483,6 +1502,21 @@ export async function getMyAttendanceHistory(req: any, res: Response) {
   }
 
   try {
+    // Sweep status sakit pribadi tanpa surat yang melewati 1x24 jam menjadi izin biasa
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await prisma.attendance.updateMany({
+      where: {
+        organization_id: orgMemberContext.organizationId,
+        profile_id: userId,
+        status: 'sick',
+        proof_url: null,
+        check_in_time: { lte: twentyFourHoursAgo }
+      },
+      data: {
+        status: 'excused'
+      }
+    });
+
     const records = await prisma.attendance.findMany({
       where: {
         organization_id: orgMemberContext.organizationId,
@@ -1524,6 +1558,82 @@ export async function getMyAttendanceHistory(req: any, res: Response) {
   } catch (err) {
     console.error('Error fetching personal attendance history:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
+// 10b. Update Bukti Surat Susulan (Misal: Surat Sakit dalam batas 1x24 jam)
+export async function updateAttendanceProof(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const userId = req.user?.id;
+  const { attendanceId } = req.params;
+  const { proof_url, notes } = req.body;
+
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses organisasi dibatasi' });
+  }
+
+  if (!proof_url) {
+    return res.status(400).json({ error: 'File bukti surat keterangan wajib diunggah' });
+  }
+
+  try {
+    const attendance = await prisma.attendance.findUnique({
+      where: { id: attendanceId },
+      include: { session: true }
+    });
+
+    if (!attendance) {
+      return res.status(404).json({ error: 'Data kehadiran tidak ditemukan' });
+    }
+
+    const isOwner = attendance.profile_id === userId;
+    const isAdmin = ['head', 'vice_head', 'sekretaris'].includes(orgMemberContext.role);
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({ error: 'Anda hanya dapat mengunggah bukti untuk presensi Anda sendiri' });
+    }
+
+    const now = new Date();
+    const rawTime = attendance.check_in_time || attendance.created_at;
+    const checkInTime = rawTime ? new Date(rawTime) : now;
+    const ageHours = (now.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+
+    let updatedStatus = attendance.status;
+
+    // Jika status sakit atau sebelumnya terkonversi ke izin karena batas waktu:
+    // Kembalikan ke status 'sick' asalkan dalam 24 jam atau dibantu oleh admin
+    if (attendance.status === 'sick' || (attendance.status === 'excused' && attendance.notes?.includes('CONVERTED_TO_EXCUSED'))) {
+      if (ageHours <= 24 || isAdmin) {
+        updatedStatus = 'sick';
+      }
+    }
+
+    let cleanNotes = (attendance.notes || '')
+      .replace(/\[MENUNGGU_SURAT_24JAM\]/g, '')
+      .replace(/\[CONVERTED_TO_EXCUSED[^\]]*\]/g, '')
+      .replace(/Sakit \(Menunggu surat dokter maks 1x24 jam\)/g, 'Sakit')
+      .trim();
+
+    if (notes && notes.trim()) {
+      cleanNotes = cleanNotes ? `${cleanNotes} - ${notes.trim()}` : notes.trim();
+    }
+
+    const updated = await prisma.attendance.update({
+      where: { id: attendanceId },
+      data: {
+        proof_url,
+        status: updatedStatus,
+        notes: cleanNotes || null
+      }
+    });
+
+    return res.status(200).json({
+      message: 'Surat bukti berhasil diunggah',
+      data: updated
+    });
+  } catch (err) {
+    console.error('Error updating attendance proof:', err);
+    return res.status(500).json({ error: 'Gagal memperbarui bukti kehadiran' });
   }
 }
 

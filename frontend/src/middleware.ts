@@ -11,72 +11,30 @@ export async function middleware(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+          cookiesToSet.forEach(({ name, value }) => {
+            request.cookies.set(name, value)
           })
           supabaseResponse = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+            request,
           })
-          supabaseResponse.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          supabaseResponse = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          supabaseResponse.cookies.set({
-            name,
-            value: '',
-            ...options,
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              secure: process.env.NODE_ENV === 'production',
+            })
           })
         },
       },
     }
   )
 
-  // Bulletproof workaround: Manually extract session from cookie if ssr fails to parse it
-  const authCookie = request.cookies.get('sb-vapjaqgoikyllyeuilfs-auth-token')?.value
-  if (authCookie) {
-    try {
-      // Sanitize literal newlines in the cookie string
-      const sanitizedCookie = authCookie.replace(/\n/g, '\\n').replace(/\r/g, '\\r')
-      const parsed = JSON.parse(sanitizedCookie)
-      if (parsed.access_token && parsed.refresh_token) {
-        await supabase.auth.setSession({
-          access_token: parsed.access_token,
-          refresh_token: parsed.refresh_token,
-        })
-      }
-    } catch (e) {
-      console.log('[MIDDLEWARE] MANUAL PARSE ERROR:', e)
-    }
-  }
-
   // Fetch the user session to validate the token
   const { data, error } = await supabase.auth.getUser()
   const user = data?.user
-
-  console.log('[MIDDLEWARE] PATH:', request.nextUrl.pathname)
-  console.log('[MIDDLEWARE] GET_USER ERROR:', error)
-  console.log('[MIDDLEWARE] USER:', user ? user.email : 'null')
 
   const url = request.nextUrl.clone()
 
@@ -88,22 +46,30 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Protect dashboard, personal, and app routes, as well as onboarding
-  if (url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/personal') || url.pathname.startsWith('/onboarding') || url.pathname.startsWith('/app')) {
+  // Protect dashboard, personal, app routes, and onboarding
+  const isProtectedRoute = 
+    url.pathname.startsWith('/dashboard') || 
+    url.pathname.startsWith('/personal') || 
+    url.pathname.startsWith('/onboarding') || 
+    url.pathname.startsWith('/app')
+
+  if (isProtectedRoute) {
     if (!user) {
-      url.pathname = '/login'
-      if (url.pathname.startsWith('/app')) {
-        url.searchParams.set('next', '/app')
-      }
-      return NextResponse.redirect(url)
+      const redirectUrl = new URL('/login', request.url)
+      const targetPath = url.pathname === '/app' ? '/app' : (url.pathname + url.search)
+      redirectUrl.searchParams.set('next', targetPath)
+      return NextResponse.redirect(redirectUrl)
     }
   }
 
   // Redirect logged-in users away from auth pages directly into /app
-  if (url.pathname.startsWith('/login') || url.pathname.startsWith('/register')) {
-    if (user) {
-      url.pathname = '/app'
-      return NextResponse.redirect(url)
+  if (url.pathname === '/login' || url.pathname === '/register') {
+    // Only redirect if user has active session and is NOT currently processing an auth code
+    if (user && !request.nextUrl.searchParams.has('code')) {
+      const nextTarget = request.nextUrl.searchParams.get('next') || '/app'
+      const destination = nextTarget.startsWith('/') ? nextTarget : '/app'
+      const redirectUrl = new URL(destination, request.url)
+      return NextResponse.redirect(redirectUrl)
     }
   }
 

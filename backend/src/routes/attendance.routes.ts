@@ -13,6 +13,7 @@ import {
   getAgenda,
   validateAttendance,
   getMyAttendanceHistory,
+  updateAttendanceProof,
   manualBulkCheckIn,
   getPendingCollaborations,
   acceptCollaboration,
@@ -101,11 +102,14 @@ router.get('/:orgIdOrSlug', requireOrgRole(['head', 'bendahara', 'sekretaris', '
 // Ambil riwayat absensi pribadi (Untuk Pengguna Aktif)
 router.get('/:orgIdOrSlug/me/history', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getMyAttendanceHistory)
 
+// Upload Bukti Surat Susulan (Untuk Anggota & Admin)
+router.put('/:orgIdOrSlug/attendance/:attendanceId/proof', requireOrgRole(['head', 'vice_head', 'bendahara', 'sekretaris', 'member']), updateAttendanceProof)
+
 // Update status absen (Sekretaris & Head) - Untuk menolak bukti
-router.put('/:orgIdOrSlug/attendance/:attendanceId/status', requireOrgRole(['head', 'sekretaris']), updateAttendanceStatus)
+router.put('/:orgIdOrSlug/attendance/:attendanceId/status', requireOrgRole(['head', 'vice_head', 'sekretaris']), updateAttendanceStatus)
 
 // Approve manual (Sekretaris & Head)
-router.put('/:orgIdOrSlug/attendance/:attendanceId/validate', requireOrgRole(['head', 'sekretaris']), validateAttendance)
+router.put('/:orgIdOrSlug/attendance/:attendanceId/validate', requireOrgRole(['head', 'vice_head', 'sekretaris']), validateAttendance)
 
 // ========================
 // AI Analysis

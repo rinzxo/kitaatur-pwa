@@ -58,7 +58,8 @@ function AppDispatcher() {
         // 1. Verifikasi Auth
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) {
-          const nextUrl = window.location.pathname + window.location.search
+          const targetParam = searchParams.get('target')
+          const nextUrl = targetParam ? `/app?target=${encodeURIComponent(targetParam)}` : '/app'
           window.location.href = `/login?next=${encodeURIComponent(nextUrl)}`
           return
         }

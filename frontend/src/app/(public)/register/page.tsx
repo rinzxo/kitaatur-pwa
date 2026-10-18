@@ -71,7 +71,7 @@ export default function RegisterPage() {
     setError(null)
 
     // Ambil redirect URL jika ada, lalu hapus agar tidak tersangkut
-    const redirectUrl = localStorage.getItem('redirect_after_login') || '/personal/dashboard'
+    const redirectUrl = localStorage.getItem('redirect_after_login') || '/app'
     localStorage.removeItem('redirect_after_login')
 
     const { error } = await supabase.auth.signInWithOAuth({

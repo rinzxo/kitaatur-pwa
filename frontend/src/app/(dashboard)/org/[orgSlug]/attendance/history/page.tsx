@@ -5,7 +5,7 @@ import toast from 'react-hot-toast'
 import { useEffect, useState } from 'react'
 import { api, supabase } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download, Compass } from 'lucide-react'
+import { ArrowLeft, Clock, RefreshCw, Filter, X, History, Download, Compass, Upload, FileText, CheckCircle, AlertCircle, Eye, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import SpotlightTour, { TourStep } from '@/components/ui/SpotlightTour'
@@ -25,6 +25,13 @@ export default function AttendanceHistoryPage() {
   const [personalHistory, setPersonalHistory] = useState<any[]>([])
   const [personalStats, setPersonalStats] = useState<any>(null)
   const [showTour, setShowTour] = useState(false)
+
+  // State untuk Modal Upload Surat Dokter Susulan (1x24 jam)
+  const [uploadingRecord, setUploadingRecord] = useState<any | null>(null)
+  const [uploadingProofUrl, setUploadingProofUrl] = useState<string>('')
+  const [uploadNotes, setUploadNotes] = useState<string>('')
+  const [uploadLoading, setUploadLoading] = useState<boolean>(false)
+  const [submittingProof, setSubmittingProof] = useState<boolean>(false)
 
   const historyTourSteps: TourStep[] = [
     {
@@ -124,8 +131,40 @@ export default function AttendanceHistoryPage() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await fetchData()
+    await Promise.all([
+      fetchData(),
+      api.get(`/org-attendance/${orgSlug}/me/history`).then(res => {
+        setPersonalHistory(res.data.records || [])
+        setPersonalStats(res.data.stats || null)
+      }).catch(console.error)
+    ])
     setRefreshing(false)
+  }
+
+  const handleUploadProofSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!uploadingRecord) return
+    if (!uploadingProofUrl) {
+      toast.error('Silakan unggah foto atau dokumen surat dokter terlebih dahulu.')
+      return
+    }
+
+    setSubmittingProof(true)
+    try {
+      await api.put(`/org-attendance/${orgSlug}/attendance/${uploadingRecord.id}/proof`, {
+        proof_url: uploadingProofUrl,
+        notes: uploadNotes
+      })
+      toast.success('Surat dokter berhasil diunggah! Status sakit Anda telah diperbarui.')
+      setUploadingRecord(null)
+      setUploadingProofUrl('')
+      setUploadNotes('')
+      await handleRefresh()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal menyimpan surat bukti.')
+    } finally {
+      setSubmittingProof(false)
+    }
   }
 
   if (loading) {
@@ -350,39 +389,124 @@ export default function AttendanceHistoryPage() {
                     <th className="px-6 py-4">Agenda / Sesi</th>
                     <th className="px-6 py-4">Waktu Check-in</th>
                     <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4">Bukti Surat / Tindakan</th>
                     <th className="px-6 py-4">Catatan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {personalHistory.map((record) => (
-                    <tr key={record.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">
-                        {record.session?.title || 'Sesi Tanpa Nama'}
-                      </td>
-                      <td className="px-6 py-4 text-slate-600">
-                        {record.check_in_time ? new Date(record.check_in_time).toLocaleString('id-ID', {
-                          day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-                        }) : '-'}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
-                          record.status === 'present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          record.status === 'late' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                          record.status === 'excused' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
-                          record.status === 'sick' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
-                          'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}>
-                          {record.status === 'present' ? 'Hadir' : 
-                           record.status === 'late' ? 'Telat' : 
-                           record.status === 'excused' ? 'Izin' : 
-                           record.status === 'sick' ? 'Sakit' : 'Alpa'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-500 text-xs truncate max-w-[200px]" title={record.notes || ''}>
-                        {record.notes || '-'}
-                      </td>
-                    </tr>
-                  ))}
+                  {personalHistory.map((record) => {
+                    const rawTime = record.check_in_time || record.created_at
+                    const checkInTime = rawTime ? new Date(rawTime) : new Date()
+                    const ageHours = (Date.now() - checkInTime.getTime()) / (1000 * 60 * 60)
+                    const isExpired = ageHours > 24
+                    const hoursRemaining = Math.max(0, 24 - ageHours)
+                    const remH = Math.floor(hoursRemaining)
+                    const remM = Math.floor((hoursRemaining - remH) * 60)
+
+                    const isSick = record.status === 'sick'
+                    const isConvertedFromSick = record.status === 'excused' && (record.notes?.includes('CONVERTED_TO_EXCUSED') || record.notes?.includes('batas 24 jam'))
+                    const hasProof = !!record.proof_url
+
+                    return (
+                      <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-bold text-slate-900">
+                          {record.session?.title || 'Sesi Tanpa Nama'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">
+                          {record.check_in_time ? new Date(record.check_in_time).toLocaleString('id-ID', {
+                            day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                          }) : '-'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${
+                            record.status === 'present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                            record.status === 'late' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            record.status === 'excused' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                            record.status === 'sick' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' :
+                            'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {record.status === 'present' ? 'Hadir' : 
+                             record.status === 'late' ? 'Telat' : 
+                             record.status === 'excused' ? 'Izin' : 
+                             record.status === 'sick' ? 'Sakit' : 'Alpa'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {hasProof ? (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewProofUrl(record.proof_url)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors active:scale-95"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Lihat Surat</span>
+                            </button>
+                          ) : isSick ? (
+                            !isExpired ? (
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                  <Clock className="w-3 h-3 text-amber-600" />
+                                  <span>Sisa {remH}j {remM}m</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUploadingRecord(record)
+                                    setUploadingProofUrl('')
+                                    setUploadNotes('')
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-all active:scale-95"
+                                >
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Unggah Surat</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-slate-400 italic">
+                                  Lewat batas 24j (Dianggap Izin)
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setUploadingRecord(record)
+                                    setUploadingProofUrl('')
+                                    setUploadNotes('')
+                                  }}
+                                  className="text-xs text-blue-600 hover:underline font-bold"
+                                >
+                                  Unggah Susulan
+                                </button>
+                              </div>
+                            )
+                          ) : isConvertedFromSick ? (
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+                              <span className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                                Izin (Sakit tanpa surat &gt;24j)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setUploadingRecord(record)
+                                  setUploadingProofUrl('')
+                                  setUploadNotes('')
+                                }}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 border border-blue-200 transition-colors"
+                              >
+                                <Upload className="w-3 h-3" />
+                                <span>Unggah Surat</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-slate-500 text-xs truncate max-w-[200px]" title={record.notes || ''}>
+                          {record.notes?.replace(/\[CONVERTED_TO_EXCUSED[^\]]*\]/g, '') || '-'}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -519,6 +643,183 @@ export default function AttendanceHistoryPage() {
                 <img src={previewProofUrl} alt="Bukti Kehadiran" className="max-w-full max-h-[85vh] object-contain rounded-xl" />
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL UPLOAD SURAT DOKTER SUSULAN (1x24 JAM) */}
+      {uploadingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative animate-in zoom-in-95 duration-200">
+            <button
+              type="button"
+              onClick={() => {
+                setUploadingRecord(null)
+                setUploadingProofUrl('')
+                setUploadNotes('')
+              }}
+              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-slate-900 truncate">Unggah Surat Dokter Susulan</h3>
+                <p className="text-xs text-slate-500 truncate">
+                  {uploadingRecord.session?.title || 'Sesi Presensi'}
+                </p>
+              </div>
+            </div>
+
+            {/* Info batas waktu 24 jam */}
+            <div className="mb-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <p className="font-bold">Ketentuan Batas 1x24 Jam</p>
+                <p className="mt-0.5 text-amber-800">
+                  Unggah foto surat keterangan dokter/sakit untuk mengonfirmasi status Sakit resmi Anda. Jika melewati 24 jam sejak pengajuan awal, sistem secara otomatis menganggapnya sebagai Izin biasa.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleUploadProofSubmit} className="space-y-4">
+              {/* File Upload Box */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Berkas Surat (Foto / PDF)
+                </label>
+                {!uploadingProofUrl ? (
+                  <div className="relative w-full border-2 border-dashed border-slate-300 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50/50 transition-colors group cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/png, image/jpeg, image/webp, application/pdf"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      disabled={uploadLoading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (!file) return
+
+                        if (file.size > 5000000) {
+                          toast.error('Ukuran berkas maksimal 5MB')
+                          return
+                        }
+
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        formData.append('upload_preset', process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'appweb')
+
+                        const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || 'djkkckmig'
+
+                        setUploadLoading(true)
+                        try {
+                          const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+                            method: 'POST',
+                            body: formData
+                          })
+                          const data = await res.json()
+                          if (data.secure_url) {
+                            setUploadingProofUrl(data.secure_url)
+                            toast.success('Berkas surat berhasil diunggah.')
+                          } else {
+                            throw new Error(data.error?.message || 'Gagal mengunggah berkas')
+                          }
+                        } catch (err: any) {
+                          console.error('Upload Error', err)
+                          toast.error(err.message || 'Gagal mengunggah berkas ke server.')
+                        } finally {
+                          setUploadLoading(false)
+                        }
+                      }}
+                    />
+                    {uploadLoading ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                        <p className="text-xs font-semibold text-blue-600">Sedang mengunggah berkas...</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="w-8 h-8 text-slate-400 group-hover:text-blue-500 mb-2 transition-colors" />
+                        <p className="text-xs font-bold text-slate-700 group-hover:text-blue-600 text-center">
+                          Klik atau seret foto surat dokter ke sini
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-1">PNG, JPG, PDF (Maksimal 5MB)</p>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between text-emerald-900">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold truncate">Surat Dokter Terlampir</p>
+                        <a
+                          href={uploadingProofUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-emerald-700 hover:underline font-medium"
+                        >
+                          Lihat Pratinjau Berkas
+                        </a>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setUploadingProofUrl('')}
+                      className="text-xs font-bold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 px-2.5 py-1 rounded-lg transition-colors shrink-0"
+                    >
+                      Ganti
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Catatan / Keterangan Tambahan */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                  Keterangan Dokter / Diagnosa (Opsional)
+                </label>
+                <textarea
+                  value={uploadNotes}
+                  onChange={(e) => setUploadNotes(e.target.value)}
+                  placeholder="Contoh: Sakit Tifus, surat dokter RS Hermina istirahat 3 hari"
+                  rows={2}
+                  className="w-full text-xs p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none transition-all"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUploadingRecord(null)
+                    setUploadingProofUrl('')
+                    setUploadNotes('')
+                  }}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingProof || !uploadingProofUrl}
+                  className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition-all disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {submittingProof ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
+                  ) : (
+                    <span>Simpan Surat Bukti</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -1,34 +1,52 @@
 import { createServerClient } from '@supabase/ssr'
-import { NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
+import { NextResponse, type NextRequest } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/personal/dashboard'
+  let next = requestUrl.searchParams.get('next') || '/app'
+
+  // Pastikan path internal aman dari open redirect
+  if (!next.startsWith('/') || next.startsWith('//')) {
+    next = '/app'
+  }
+
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const host = forwardedHost || requestUrl.host
+  const protocol = request.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'development' ? 'http' : 'https')
+  const redirectTarget = `${protocol}://${host}${next}`
+
+  const response = NextResponse.redirect(redirectTarget)
 
   if (code) {
-    const cookieStore = cookies()
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
+          getAll() {
+            return request.cookies.getAll()
           },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.delete({ name, ...options })
+          setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, {
+                ...options,
+                path: options?.path || '/',
+                secure: process.env.NODE_ENV === 'production',
+              })
+            })
           },
         },
       }
     )
 
-    await supabase.auth.exchangeCodeForSession(code)
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) {
+      console.error('[AUTH_CALLBACK] exchangeCodeForSession failed:', error.message)
+      // Redirect ke login dengan pesan error jika code expired / invalid
+      return NextResponse.redirect(`${protocol}://${host}/login?error=${encodeURIComponent(error.message)}`)
+    }
   }
 
-  return NextResponse.redirect(new URL(next, request.url))
+  return response
 }

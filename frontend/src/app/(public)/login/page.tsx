@@ -3,7 +3,6 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { Zap } from 'lucide-react'
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return (
@@ -24,37 +23,82 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-
 function AuthCodeHandler() {
-  const router = useRouter()
   const searchParams = useSearchParams()
+  const [hasCode, setHasCode] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
     const code = searchParams.get('code')
-    if (code) {
-      const next = searchParams.get('next') || '/app'
-      window.location.href = `/auth/callback?code=${code}&next=${encodeURIComponent(next)}`
-    }
-  }, [searchParams])
+    if (!code) return
 
-  return null
+    setHasCode(true)
+    const next = searchParams.get('next') || '/app'
+
+    async function handleExchange(authCode: string) {
+      try {
+        // 1. Coba exchange langsung di browser client menggunakan Supabase browser client
+        const { data, error } = await supabase.auth.exchangeCodeForSession(authCode)
+        
+        if (!error && data?.session) {
+          // Bersihkan URL dari parameter code agar tidak memicu loop saat refresh
+          const cleanUrl = window.location.pathname
+          window.history.replaceState({}, document.title, cleanUrl)
+          window.location.href = next
+          return
+        }
+
+        // 2. Jika client exchange gagal (misal PKCE verifier ada di server cookies), fallback ke /auth/callback
+        console.warn('[AuthCodeHandler] Client exchange fallback to /auth/callback:', error?.message)
+        window.location.href = `/auth/callback?code=${authCode}&next=${encodeURIComponent(next)}`
+      } catch (err) {
+        console.error('[AuthCodeHandler] Error exchanging code:', err)
+        window.location.href = `/auth/callback?code=${authCode}&next=${encodeURIComponent(next)}`
+      }
+    }
+
+    handleExchange(code)
+  }, [searchParams, supabase])
+
+  if (!hasCode) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-4 p-6 text-center max-w-sm">
+        <div className="w-12 h-12 border-4 border-[#0087FF] border-t-transparent rounded-full animate-spin" />
+        <p className="text-slate-800 font-bold text-lg">Menyinkronkan sesi akun...</p>
+        <p className="text-slate-500 text-sm">Mohon tunggu sebentar, Anda sedang dialihkan.</p>
+      </div>
+    </div>
+  )
 }
 
-export default function LoginPage() {
+function LoginPageContent() {
+  const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const supabase = createClient()
 
+  // Tangkap pesan error dari query param jika ada
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam))
+    }
+  }, [searchParams])
+
   // Cek apakah user sudah terautentikasi sebelumnya
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        const redirectUrl = localStorage.getItem('redirect_after_login') || '/app'
+      // Hanya redirect jika tidak sedang memproses parameter auth code
+      if (session && !searchParams.get('code')) {
+        const nextParam = searchParams.get('next')
+        const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
         localStorage.removeItem('redirect_after_login')
         window.location.href = redirectUrl
       }
     })
-  }, [supabase])
+  }, [supabase, searchParams])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -88,7 +132,8 @@ export default function LoginPage() {
       return
     }
 
-    const redirectUrl = localStorage.getItem('redirect_after_login') || '/app'
+    const nextParam = searchParams.get('next')
+    const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
     localStorage.removeItem('redirect_after_login')
     window.location.href = redirectUrl
   }
@@ -97,8 +142,8 @@ export default function LoginPage() {
     setPending(true)
     setError(null)
     
-    // Ambil redirect URL jika ada, lalu hapus agar tidak tersangkut
-    const redirectUrl = localStorage.getItem('redirect_after_login') || '/app'
+    const nextParam = searchParams.get('next')
+    const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
     localStorage.removeItem('redirect_after_login')
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -119,6 +164,7 @@ export default function LoginPage() {
       <Suspense fallback={null}>
         <AuthCodeHandler />
       </Suspense>
+
       {/* Left Pane (Hero Branding) - Hidden on Mobile */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-[#0087FF] via-[#007AE6] to-[#01C4FB] p-12 flex-col justify-between relative overflow-hidden text-white">
         <div className="relative z-10">
@@ -230,5 +276,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#0087FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   )
 }

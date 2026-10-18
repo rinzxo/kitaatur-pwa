@@ -108,9 +108,44 @@ export const ensureTodayScheduledSessions = async (organizationId?: string) => {
   }
 };
 
+/**
+ * Otomatis ubah status sakit tanpa surat bukti yang sudah melewati 1x24 jam
+ * sejak jam check-in menjadi status izin biasa (excused).
+ */
+export const sweepExpiredSickLeaves = async () => {
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const expiredSickRecords = await prisma.attendance.findMany({
+      where: {
+        status: 'sick',
+        proof_url: null,
+        check_in_time: { lte: twentyFourHoursAgo }
+      }
+    });
+
+    for (const record of expiredSickRecords) {
+      const autoNote = record.notes 
+        ? `${record.notes} [CONVERTED_TO_EXCUSED: Batas 24 jam surat sakit terlewati]`
+        : '[CONVERTED_TO_EXCUSED: Batas 24 jam surat sakit terlewati]';
+      await prisma.attendance.update({
+        where: { id: record.id },
+        data: {
+          status: 'excused',
+          notes: autoNote
+        }
+      });
+    }
+  } catch (err) {
+    console.error('[SessionJob] Error sweeping expired sick leaves:', err);
+  }
+};
+
 export const initSessionJobs = () => {
   // Jalankan tiap menit untuk memastikan sesi terjadwal otomatis selalu siap
+  // serta mengecek masa berlaku 1x24 jam surat keterangan sakit
   cron.schedule('* * * * *', async () => {
     await ensureTodayScheduledSessions();
+    await sweepExpiredSickLeaves();
   });
 };
+

@@ -100,8 +100,8 @@ function ScanAttendanceContent() {
       return
     }
 
-    if (status !== 'present' && !proofUrl) {
-      toast.error('Bukti surat keterangan wajib diunggah.')
+    if (status === 'excused' && !proofUrl && !notes.trim()) {
+      toast.error('Mohon sertakan bukti surat atau tuliskan catatan alasan izin.')
       return
     }
 
@@ -261,8 +261,8 @@ function ScanAttendanceContent() {
               }}
               options={[
                 { label: 'Hadir (Membutuhkan PIN & GPS)', value: 'present' },
-                { label: 'Izin (Membutuhkan Bukti Surat)', value: 'excused' },
-                { label: 'Sakit (Membutuhkan Bukti Surat)', value: 'sick' }
+                { label: 'Izin (Surat atau Alasan Tertulis)', value: 'excused' },
+                { label: 'Sakit (Bisa Tanpa Surat / Susulan 24 Jam)', value: 'sick' }
               ]}
               className="w-full"
             />
@@ -292,8 +292,31 @@ function ScanAttendanceContent() {
 
           {/* IZIN/SAKIT = UPLOAD BUKTI */}
           {status !== 'present' && (
-            <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-              <label className="block text-sm font-bold text-slate-700 mb-1">Bukti Surat (Gambar / PDF)</label>
+            <div className="animate-in fade-in slide-in-from-top-2 duration-300 space-y-2">
+              {status === 'sick' && (
+                <div className="p-3.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-indigo-900 text-xs flex items-start gap-2.5">
+                  <WarningCircle size={18} weight="duotone" className="text-indigo-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-bold">Bisa Diajukan Tanpa Surat Sekarang</p>
+                    <p className="mt-0.5 text-indigo-700 leading-relaxed">
+                      Belum sempat ke dokter atau belum ada surat? Anda dapat langsung mengirimkan pengajuan sakit sekarang. Sistem memberikan batas waktu <strong>1x24 jam</strong> untuk mengunggah surat susulan di <strong>Riwayat Presensi</strong> Anda. Jika lewat 24 jam belum ada surat, status otomatis disesuaikan menjadi Izin biasa.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <label className="block text-sm font-bold text-slate-700">
+                  {status === 'sick' ? 'Bukti Surat Dokter' : 'Bukti Surat Izin'}
+                </label>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-md ${
+                  status === 'sick' 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {status === 'sick' ? 'Opsional Saat Ini' : 'Lampiran'}
+                </span>
+              </div>
               
               {!proofUrl ? (
                 <div className="relative w-full border-2 border-dashed border-slate-300 rounded-xl p-8 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-600 transition-colors group">
