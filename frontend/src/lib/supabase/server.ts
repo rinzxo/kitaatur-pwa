@@ -9,6 +9,32 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          try {
+            cookieStore.set(name, value, {
+              ...options,
+              domain: undefined,
+              secure: process.env.NODE_ENV === 'production'
+            })
+          } catch (error) {
+            // Read-only in Server Components
+          }
+        },
+        remove(name: string, options: any) {
+          try {
+            cookieStore.set(name, '', {
+              ...options,
+              domain: undefined,
+              maxAge: 0,
+              secure: process.env.NODE_ENV === 'production'
+            })
+          } catch (error) {
+            // Read-only in Server Components
+          }
+        },
         getAll() {
           return cookieStore.getAll()
         },
@@ -22,7 +48,7 @@ export async function createClient() {
               })
             )
           } catch (error) {
-            console.error('Failed to set cookie in Server Component:', error)
+            // Read-only in Server Components
           }
         },
       },

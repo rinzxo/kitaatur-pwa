@@ -30,26 +30,44 @@ function AuthCodeHandler() {
 
   useEffect(() => {
     const code = searchParams.get('code')
+    const tokenHash = searchParams.get('token_hash')
+    const type = searchParams.get('type')
+    const next = searchParams.get('next') || '/app'
+
+    if (tokenHash && type) {
+      setHasCode(true)
+      window.location.href = `/auth/callback?token_hash=${encodeURIComponent(tokenHash)}&type=${encodeURIComponent(type)}&next=${encodeURIComponent(next)}`
+      return
+    }
+
     if (!code) return
 
     setHasCode(true)
-    const next = searchParams.get('next') || '/app'
 
     async function handleExchange(authCode: string) {
       try {
-        // 1. Coba exchange langsung di browser client menggunakan Supabase browser client
+        // Coba exchange di browser client
         const { data, error } = await supabase.auth.exchangeCodeForSession(authCode)
         
         if (!error && data?.session) {
-          // Bersihkan URL dari parameter code agar tidak memicu loop saat refresh
           const cleanUrl = window.location.pathname
           window.history.replaceState({}, document.title, cleanUrl)
           window.location.href = next
           return
         }
 
-        // 2. Jika client exchange gagal (misal PKCE verifier ada di server cookies), fallback ke /auth/callback
-        console.warn('[AuthCodeHandler] Client exchange fallback to /auth/callback:', error?.message)
+        const isPkce = error?.message?.toLowerCase().includes('pkce') ||
+                       error?.message?.toLowerCase().includes('code verifier') ||
+                       error?.message?.toLowerCase().includes('challenge')
+
+        if (isPkce) {
+          // Bersihkan URL dan tampilkan info bahwa verifikasi email selesai dan user bisa langsung login
+          const cleanUrl = `${window.location.pathname}?verified=true&info=${encodeURIComponent('Email Anda telah diverifikasi. Silakan masuk menggunakan email dan kata sandi Anda.')}`
+          window.location.href = cleanUrl
+          return
+        }
+
+        // Fallback ke server route /auth/callback
         window.location.href = `/auth/callback?code=${authCode}&next=${encodeURIComponent(next)}`
       } catch (err) {
         console.error('[AuthCodeHandler] Error exchanging code:', err)
@@ -76,14 +94,32 @@ function AuthCodeHandler() {
 function LoginPageContent() {
   const searchParams = useSearchParams()
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const supabase = createClient()
 
-  // Tangkap pesan error dari query param jika ada
+  // Tangkap pesan error dan info dari query param jika ada
   useEffect(() => {
     const errorParam = searchParams.get('error')
+    const infoParam = searchParams.get('info')
+    const verifiedParam = searchParams.get('verified')
+
+    if (infoParam) {
+      setInfo(decodeURIComponent(infoParam))
+    } else if (verifiedParam === 'true') {
+      setInfo('Email Anda telah berhasil diverifikasi! Silakan masuk menggunakan email dan kata sandi.')
+    }
+
     if (errorParam) {
-      setError(decodeURIComponent(errorParam))
+      const decoded = decodeURIComponent(errorParam)
+      const isPkce = decoded.toLowerCase().includes('pkce') ||
+                     decoded.toLowerCase().includes('code verifier') ||
+                     decoded.toLowerCase().includes('challenge')
+      if (isPkce) {
+        setError('Sesi verifikasi dibuka di peramban berbeda atau telah kedaluwarsa. Jika Anda baru saja mengonfirmasi email, akun Anda sudah aktif—silakan langsung masukkan email dan kata sandi Anda.')
+      } else {
+        setError(decoded)
+      }
     }
   }, [searchParams])
 
@@ -91,7 +127,7 @@ function LoginPageContent() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       // Hanya redirect jika tidak sedang memproses parameter auth code
-      if (session && !searchParams.get('code')) {
+      if (session && !searchParams.get('code') && !searchParams.get('token_hash')) {
         const nextParam = searchParams.get('next')
         const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
         localStorage.removeItem('redirect_after_login')
@@ -232,6 +268,12 @@ function LoginPageContent() {
               />
             </div>
             
+            {info && (
+              <div className="text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-xl text-sm font-medium">
+                {info}
+              </div>
+            )}
+
             {error && (
               <div className="text-rose-500 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl text-sm font-medium">
                 {error}
