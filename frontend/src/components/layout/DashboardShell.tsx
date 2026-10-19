@@ -74,11 +74,6 @@ export default function DashboardShell({ children }: DashboardShellProps) {
   const orgMatch = currentPath?.match(/\/org\/([^\/]+)/)
   const currentOrgSlug = orgMatch ? orgMatch[1] : ''
 
-  const noShellPaths = ['/org/create']
-  if (pathname && noShellPaths.includes(pathname)) {
-    return <>{children}</>
-  }
-
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null)
 
   // Fetch members for current org when navigating to org pages
@@ -205,6 +200,11 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   // Same for bottom navigation
   const activeBottomNavItems = isOrg ? orgNavItems : personalNavItems
+
+  const noShellPaths = ['/org/create']
+  if (pathname && noShellPaths.includes(pathname)) {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
