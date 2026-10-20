@@ -2,7 +2,7 @@
 
 import toast from 'react-hot-toast'
 import { useEffect, useState, useMemo } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   ArrowLeft, 
@@ -37,11 +37,12 @@ export default function AttendanceAnalysisPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [currentUserRole, setCurrentUserRole] = useState<string>('member')
 
-  const fetchData = async () => {
+  const fetchData = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true)
       const [resStats, resRecords] = await Promise.all([
         api.get(`/org-attendance/${orgSlug}/stats`),
-        api.get(`/org-attendance/${orgSlug}`)
+        api.get(`/org-attendance/${orgSlug}?limit=100`)
       ])
       setStats(resStats.data)
       setRecords(resRecords.data || [])
@@ -50,6 +51,8 @@ export default function AttendanceAnalysisPage() {
       fetchAiInsight(resStats.data)
     } catch (err) {
       console.error('Failed to fetch attendance stats:', err)
+    } finally {
+      if (showLoading) setLoading(false)
     }
   }
 
@@ -70,14 +73,32 @@ export default function AttendanceAnalysisPage() {
   }
 
   const initRoleAndData = async () => {
+    // 1. Instant Cache Render
+    const cachedStats = getApiCachedData<any>(`/org-attendance/${orgSlug}/stats`)
+    const cachedMembers = getApiCachedData<any[]>(`/org/${orgSlug}/members`)
+
+    if (cachedStats) {
+      setStats(cachedStats)
+      setLoading(false)
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
       return
     }
 
+    if (cachedMembers) {
+      const currentMember = cachedMembers.find((m: any) => m.profile_id === user.id)
+      if (currentMember) setCurrentUserRole(currentMember.role)
+    }
+
     try {
-      const membersRes = await api.get(`/org/${orgSlug}/members`)
+      const [membersRes] = await Promise.all([
+        api.get(`/org/${orgSlug}/members`),
+        fetchData(!cachedStats)
+      ])
+
       const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
       if (currentMember) {
         setCurrentUserRole(currentMember.role)
@@ -85,8 +106,6 @@ export default function AttendanceAnalysisPage() {
         router.push('/personal/dashboard')
         return
       }
-
-      await fetchData()
     } catch (err: any) {
       console.error('Error verifying org access:', err)
       if (err.response?.status === 403) {
@@ -94,7 +113,6 @@ export default function AttendanceAnalysisPage() {
         router.push('/personal/dashboard')
       } else {
         toast.error('Terjadi kesalahan saat memuat data statistik.')
-        setLoading(false)
       }
     } finally {
       setLoading(false)

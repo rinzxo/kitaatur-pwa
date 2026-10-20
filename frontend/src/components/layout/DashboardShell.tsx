@@ -30,6 +30,12 @@ export default function DashboardShell({ children }: DashboardShellProps) {
   const store = useDashboardStore()
   const [isNavigating, setIsNavigating] = useState(false)
 
+  const currentPath = pathname
+  const isPersonal = currentPath?.startsWith('/personal') || false
+  const isOrg = currentPath?.startsWith('/org') && !currentPath?.startsWith('/org/create')
+  const orgMatch = currentPath?.match(/\/org\/([^\/]+)/)
+  const currentOrgSlug = orgMatch ? orgMatch[1] : ''
+
   // Reset navigation indicator when navigation to the new route completes
   useEffect(() => {
     setIsNavigating(false)
@@ -60,19 +66,38 @@ export default function DashboardShell({ children }: DashboardShellProps) {
       } catch (err) {}
     }
 
+    const handleDocumentMouseOver = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (!anchor || !anchor.href) return
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('http') || href.startsWith('#')) return
+
+      if (currentOrgSlug) {
+        if (href.endsWith('/dashboard')) {
+          api.get(`/org/${currentOrgSlug}/overview`).catch(() => {})
+        } else if (href.endsWith('/financial')) {
+          api.get(`/org-financial/${currentOrgSlug}/summary`).catch(() => {})
+        } else if (href.endsWith('/attendance')) {
+          api.get(`/org-attendance/${currentOrgSlug}/agenda`).catch(() => {})
+        } else if (href.endsWith('/members')) {
+          api.get(`/org/${currentOrgSlug}/members`).catch(() => {})
+        }
+      } else if (href.startsWith('/personal')) {
+        if (href.endsWith('/dashboard')) {
+          api.get('/personal/summary').catch(() => {})
+        } else if (href.endsWith('/targets')) {
+          api.get('/personal/goals').catch(() => {})
+        }
+      }
+    }
+
     document.addEventListener('click', handleDocumentClick, true)
-    return () => document.removeEventListener('click', handleDocumentClick, true)
-  }, [])
-
-  const currentPath = pathname
-
-  // Tentukan apakah kita berada di Personal Space atau Organization Space
-  const isPersonal = currentPath?.startsWith('/personal') || false
-  const isOrg = currentPath?.startsWith('/org') && !currentPath?.startsWith('/org/create')
-
-  // Extract orgSlug from currentPath if in org space
-  const orgMatch = currentPath?.match(/\/org\/([^\/]+)/)
-  const currentOrgSlug = orgMatch ? orgMatch[1] : ''
+    document.addEventListener('mouseover', handleDocumentMouseOver, { passive: true })
+    return () => {
+      document.removeEventListener('click', handleDocumentClick, true)
+      document.removeEventListener('mouseover', handleDocumentMouseOver)
+    }
+  }, [currentOrgSlug])
 
   const [activeAnnouncement, setActiveAnnouncement] = useState<any>(null)
 

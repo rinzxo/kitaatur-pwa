@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Target, Wallet, Plus, X, WarningCircle as AlertCircle } from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 
 interface Goal {
@@ -77,6 +77,15 @@ export default function GoalsPage() {
   }, [orgSlug])
 
   const checkRoleAndLoad = async () => {
+    // 1. Instant Cache Render
+    const cachedGoals = getApiCachedData<Goal[]>(`/org/${orgSlug}/goals`)
+    const cachedMembers = getApiCachedData<any[]>(`/org/${orgSlug}/members`)
+
+    if (cachedGoals && cachedGoals.length > 0) {
+      setGoals(cachedGoals)
+      setLoading(false)
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
@@ -84,30 +93,45 @@ export default function GoalsPage() {
     }
     setCurrentUserId(user.id)
 
+    if (cachedMembers) {
+      const currentMember = cachedMembers.find((m: any) => m.profile_id === user.id)
+      if (currentMember) setCurrentUserRole(currentMember.role)
+    }
+
     try {
-      const membersRes = await api.get(`/org/${orgSlug}/members`)
-      const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-      if (currentMember) {
-        setCurrentUserRole(currentMember.role)
-      } else {
-        router.push('/personal/dashboard')
-        return
+      const [membersRes, goalsRes] = await Promise.allSettled([
+        api.get(`/org/${orgSlug}/members`),
+        api.get(`/org/${orgSlug}/goals`)
+      ])
+
+      if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
+        const currentMember = membersRes.value.data.find((m: any) => m.profile_id === user.id)
+        if (currentMember) {
+          setCurrentUserRole(currentMember.role)
+        } else {
+          router.push('/personal/dashboard')
+          return
+        }
       }
-      await fetchGoals()
+
+      if (goalsRes.status === 'fulfilled' && goalsRes.value?.data) {
+        setGoals(goalsRes.value.data)
+      }
     } catch (err) {
-      console.error('Error fetching role:', err)
+      console.error('Error fetching role or goals:', err)
       setLoading(false)
     }
   }
 
-  const fetchGoals = async () => {
+  const fetchGoals = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true)
       const res = await api.get(`/org/${orgSlug}/goals`)
       setGoals(res.data)
     } catch (err) {
       console.error('Failed to fetch goals:', err)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 

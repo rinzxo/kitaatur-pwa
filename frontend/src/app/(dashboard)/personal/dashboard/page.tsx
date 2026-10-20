@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import { useDashboardStore } from '@/lib/dashboard-store'
 import TransactionForm from './transaction-form'
 import { 
@@ -80,6 +80,16 @@ export default function PersonalDashboard() {
 
   // Only fetch page-specific data (summary, goals, agendas) — user/org/sub data comes from store
   const fetchPageData = async () => {
+    // 1. Instant cache render
+    const cachedSummary = getApiCachedData<any>('/personal/summary')
+    const cachedGoals = getApiCachedData<any>('/personal/goals')
+    if (cachedSummary?.summary) {
+      setSummary(cachedSummary.summary)
+      setRecords(cachedSummary.records || [])
+      if (cachedGoals) setGoals(cachedGoals)
+      setLoading(false)
+    }
+
     try {
       const [summaryRes, goalsRes] = await Promise.all([
         api.get('/personal/summary').catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 }, records: [] } })),
@@ -121,7 +131,6 @@ export default function PersonalDashboard() {
   }
 
   useEffect(() => {
-    setLoading(true)
     fetchPageData()
   }, [store.orgs])
 

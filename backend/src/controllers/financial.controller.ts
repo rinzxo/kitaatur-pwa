@@ -12,6 +12,7 @@ export async function getOrgFinancialRecords(req: any, res: Response) {
   }
 
   try {
+    const limitParam = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
     const records = await prisma.financial_records.findMany({
       where: {
         organization_id: orgMemberContext.organizationId
@@ -20,6 +21,7 @@ export async function getOrgFinancialRecords(req: any, res: Response) {
         { transaction_date: 'desc' },
         { created_at: 'desc' }
       ],
+      take: limitParam ? Math.min(limitParam, 500) : undefined,
       include: {
         profile: {
           select: {
@@ -48,50 +50,49 @@ export async function getOrgFinancialSummary(req: any, res: Response) {
   const orgId = orgMemberContext.organizationId
 
   try {
-    // A. Agregasi Total Pemasukan
-    const incomeAgg = await prisma.financial_records.aggregate({
-      where: {
-        organization_id: orgId,
-        type: 'income'
-      },
-      _sum: {
-        amount: true
-      }
-    })
-
-    // B. Agregasi Total Pengeluaran
-    const expenseAgg = await prisma.financial_records.aggregate({
-      where: {
-        organization_id: orgId,
-        type: 'expense'
-      },
-      _sum: {
-        amount: true
-      }
-    })
-
-    const totalIncome = incomeAgg._sum.amount ? Number(incomeAgg._sum.amount) : 0
-    const totalExpense = expenseAgg._sum.amount ? Number(expenseAgg._sum.amount) : 0
-    const balance = totalIncome - totalExpense
-
-    // C. Agregasi Data Bulanan (6 Bulan Terakhir)
+    // Agregasi Data Bulanan (6 Bulan Terakhir)
     const sixMonthsAgo = new Date()
     sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5)
     sixMonthsAgo.setDate(1) // Set ke awal bulan
 
-    const monthlyRecords = await prisma.financial_records.findMany({
-      where: {
-        organization_id: orgId,
-        transaction_date: {
-          gte: sixMonthsAgo
+    // Eksekusi seluruh agregasi secara paralel
+    const [incomeAgg, expenseAgg, monthlyRecords] = await Promise.all([
+      prisma.financial_records.aggregate({
+        where: {
+          organization_id: orgId,
+          type: 'income'
+        },
+        _sum: {
+          amount: true
         }
-      },
-      select: {
-        amount: true,
-        type: true,
-        transaction_date: true
-      }
-    })
+      }),
+      prisma.financial_records.aggregate({
+        where: {
+          organization_id: orgId,
+          type: 'expense'
+        },
+        _sum: {
+          amount: true
+        }
+      }),
+      prisma.financial_records.findMany({
+        where: {
+          organization_id: orgId,
+          transaction_date: {
+            gte: sixMonthsAgo
+          }
+        },
+        select: {
+          amount: true,
+          type: true,
+          transaction_date: true
+        }
+      })
+    ])
+
+    const totalIncome = incomeAgg._sum.amount ? Number(incomeAgg._sum.amount) : 0
+    const totalExpense = expenseAgg._sum.amount ? Number(expenseAgg._sum.amount) : 0
+    const balance = totalIncome - totalExpense
 
     // Bangun peta inisialisasi untuk 6 bulan terakhir
     const monthlyDataMap: { [key: string]: { month: string; income: number; expense: number } } = {}

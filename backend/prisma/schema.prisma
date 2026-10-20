@@ -80,6 +80,8 @@ model organization_members {
   profile         profiles        @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([organization_id, profile_id], map: "organization_members_org_id_profile_id_key")
+  @@index([profile_id], map: "idx_org_members_profile")
+  @@index([organization_id, role], map: "idx_org_members_org_role")
   @@schema("public")
 }
 
@@ -99,6 +101,9 @@ model financial_records {
   profiles_financial_records_created_byToprofiles profiles?      @relation("financial_records_created_byToprofiles", fields: [created_by], references: [id], onUpdate: NoAction, map: "organization_financials_created_by_fkey")
   organization                                    organizations? @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "organization_financials_org_id_fkey")
 
+  @@index([organization_id, transaction_date(sort: Desc)], map: "idx_financial_records_org_date")
+  @@index([profile_id, transaction_date(sort: Desc)], map: "idx_financial_records_profile")
+  @@index([organization_id, category], map: "idx_financial_records_category")
   @@schema("public")
 }
 
@@ -121,6 +126,8 @@ model attendance {
   session         attendance_sessions? @relation(fields: [session_id], references: [id])
 
   @@unique([session_id, profile_id], map: "attendance_session_id_profile_id_key")
+  @@index([organization_id, session_id], map: "idx_attendance_org_session")
+  @@index([profile_id], map: "idx_attendance_profile")
   @@schema("public")
 }
 
@@ -151,6 +158,9 @@ model attendance_sessions {
   guest_leaves        guest_leaves[]
   meeting_minutes     meeting_minutes?
 
+  @@index([organization_id, start_time(sort: Desc)], map: "idx_attendance_sessions_org")
+  @@index([organization_id, is_active], map: "idx_attendance_sessions_active")
+  @@index([organization_id, is_active, start_time(sort: Desc)], map: "idx_attendance_sessions_org_active_time")
   @@schema("public")
 }
 
@@ -168,6 +178,7 @@ model meeting_minutes {
   organization    organizations        @relation(fields: [organization_id], references: [id], onDelete: Cascade)
   session         attendance_sessions? @relation(fields: [session_id], references: [id])
 
+  @@index([organization_id, created_at(sort: Desc)], map: "idx_meeting_minutes_org")
   @@schema("public")
 }
 
@@ -180,6 +191,7 @@ model notifications {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   profile    profiles @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([profile_id, is_read, created_at(sort: Desc)], map: "idx_notifications_profile_unread")
   @@schema("public")
 }
 
@@ -213,6 +225,8 @@ model goals {
   organization      organizations?      @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profile           profiles            @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([organization_id, created_at(sort: Desc)], map: "idx_goals_org")
+  @@index([profile_id, created_at(sort: Desc)], map: "idx_goals_profile")
   @@schema("public")
 }
 
@@ -228,6 +242,7 @@ model goal_transactions {
   goal        goals    @relation(fields: [goal_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profile     users    @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([goal_id, created_at(sort: Desc)], map: "idx_goal_transactions_goal")
   @@schema("public")
 }
 
@@ -245,6 +260,7 @@ model subscriptions {
   payment_url             String?
   profile                 profiles             @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([profile_id, status], map: "idx_subscriptions_profile_status")
   @@schema("public")
 }
 
@@ -260,6 +276,7 @@ model org_guests {
   guest_leaves     guest_leaves[]
   organization     organizations      @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([organization_id, identifier], map: "idx_org_guests_org_identifier")
   @@schema("public")
 }
 
@@ -274,6 +291,8 @@ model guest_attendance {
   session       attendance_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([session_id, guest_id])
+  @@index([session_id, guest_id], map: "idx_guest_attendance_session")
+  @@index([guest_id], map: "idx_guest_attendance_guest_id")
   @@schema("public")
 }
 
@@ -295,6 +314,7 @@ model attendance_schedules {
   creator         profiles      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
   organization    organizations @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([organization_id, is_active], map: "idx_attendance_schedules_org_active")
   @@schema("public")
 }
 
@@ -343,6 +363,7 @@ model guest_leaves {
   organization    organizations       @relation(fields: [organization_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   session         attendance_sessions @relation(fields: [session_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
+  @@index([session_id, guest_id], map: "idx_guest_leaves_session")
   @@schema("public")
 }
 

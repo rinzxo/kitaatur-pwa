@@ -1,8 +1,6 @@
 import { Request, Response } from 'express';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/db';
 
 export const generateFinancialInsight = async (req: Request, res: Response) => {
   try {

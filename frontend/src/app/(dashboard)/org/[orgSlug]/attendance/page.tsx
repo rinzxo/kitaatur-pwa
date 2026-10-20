@@ -3,7 +3,8 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -27,8 +28,9 @@ export default function AttendanceDashboardPage() {
   const params = useParams()
   const router = useRouter()
   const orgSlug = params.orgSlug as string
+  const store = useDashboardStore()
 
-  const [currentUserRole, setCurrentUserRole] = useState<string>('member')
+  const [currentUserRole, setCurrentUserRole] = useState<string>(store.getCurrentRole(orgSlug) || 'member')
   const [canDelegate, setCanDelegate] = useState(false)
   const [loading, setLoading] = useState(true)
   const [pendingCollabs, setPendingCollabs] = useState<any[]>([])
@@ -61,41 +63,57 @@ export default function AttendanceDashboardPage() {
   ]
 
   const initRoleAndData = async () => {
+    // 1. Instant cache render
+    const cachedAgenda = getApiCachedData<any[]>(`/org-attendance/${orgSlug}/agenda`)
+    if (cachedAgenda) {
+      setAgendas(cachedAgenda)
+      setLoading(false)
+    }
+
     try {
-      const [
-        { data: { user } },
-        membersRes,
-        agendaRes,
-        settingsRes,
-        collabRes
-      ] = await Promise.all([
-        supabase.auth.getUser(),
-        api.get(`/org/${orgSlug}/members`).catch((err) => {
-          if (err.response?.status === 403) throw err
-          return { data: [] }
-        }),
+      const knownRole = store.getCurrentRole(orgSlug)
+      let detectedRole = knownRole
+
+      const promises: Promise<any>[] = [
         api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] })),
         api.get(`/org/${orgSlug}/settings`).catch(() => ({ data: null })),
         api.get(`/org-attendance/${orgSlug}/pending-collaborations`).catch(() => ({ data: [] }))
-      ])
+      ]
 
-      if (!user) {
-        router.push('/login')
-        return
+      // Hanya fetch member list jika role belum diketahui dari store
+      if (!detectedRole) {
+        promises.push(
+          supabase.auth.getUser(),
+          api.get(`/org/${orgSlug}/members`).catch(() => ({ data: [] }))
+        )
       }
 
-      const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-      if (currentMember) {
-        setCurrentUserRole(currentMember.role)
-        setCanDelegate(!!currentMember.custom_data?.can_take_attendance)
-        setAgendas(agendaRes.data || [])
-        setIsSchool(settingsRes.data?.is_edu || false)
+      const results = await Promise.all(promises)
+      const agendaRes = results[0]
+      const settingsRes = results[1]
+      const collabRes = results[2]
 
-        if (currentMember.role === 'head' || currentMember.role === 'vice_head' || currentMember.role === 'sekretaris') {
-          setPendingCollabs(collabRes.data || [])
+      setAgendas(agendaRes.data || [])
+      setIsSchool(settingsRes.data?.is_edu || false)
+
+      if (results.length > 3) {
+        const userRes = results[3]
+        const membersRes = results[4]
+        const user = userRes?.data?.user
+        if (user) {
+          const currentMember = (membersRes.data || []).find((m: any) => m.profile_id === user.id)
+          if (currentMember) {
+            detectedRole = currentMember.role
+            setCurrentUserRole(currentMember.role)
+            setCanDelegate(!!currentMember.custom_data?.can_take_attendance)
+          }
         }
-      } else {
-        router.push('/personal/dashboard')
+      } else if (knownRole) {
+        setCurrentUserRole(knownRole)
+      }
+
+      if (detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'sekretaris') {
+        setPendingCollabs(collabRes.data || [])
       }
     } catch (err: any) {
       if (err.response?.status === 403) {

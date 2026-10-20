@@ -4,7 +4,7 @@ const nextConfig = {
   poweredByHeader: false,
   swcMinify: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'recharts'],
+    optimizePackageImports: ['lucide-react', 'recharts', '@phosphor-icons/react', 'react-hot-toast', 'qrcode.react'],
   },
   images: {
     formats: ['image/avif', 'image/webp'],

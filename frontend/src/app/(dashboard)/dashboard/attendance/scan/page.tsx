@@ -1,6 +1,19 @@
 'use client'
 import { useState } from "react";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import dynamic from "next/dynamic";
+
+const Scanner = dynamic(
+  () => import("@yudiel/react-qr-scanner").then((mod) => mod.Scanner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white gap-2">
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+        <span className="text-xs text-white/70">Mempersiapkan Kamera Pemindai...</span>
+      </div>
+    )
+  }
+);
 import { processAttendanceScan } from "@/app/actions/attendance";
 import { Loader2, Camera, CheckCircle2, XCircle } from "lucide-react";
 import Link from "next/link";

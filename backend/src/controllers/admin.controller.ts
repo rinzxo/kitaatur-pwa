@@ -4,16 +4,16 @@ import { prisma } from '../config/db'
 // 1. Get System Stats
 export async function getSystemStats(req: Request, res: Response) {
   try {
-    const totalUsers = await prisma.profiles.count()
-    const totalOrgs = await prisma.organizations.count()
-    const activeSubs = await prisma.subscriptions.count({ where: { status: 'active' } })
+    const [totalUsers, totalOrgs, activeSubs, incomeRecords] = await Promise.all([
+      prisma.profiles.count(),
+      prisma.organizations.count(),
+      prisma.subscriptions.count({ where: { status: 'active' } }),
+      prisma.financial_records.aggregate({
+        _sum: { amount: true },
+        where: { type: 'income' }
+      })
+    ]);
     
-    // Total income from all financial_records globally (excluding transfers)
-    const incomeRecords = await prisma.financial_records.aggregate({
-      _sum: { amount: true },
-      where: { type: 'income' }
-    })
-
     return res.status(200).json({
       totalUsers,
       totalOrgs,

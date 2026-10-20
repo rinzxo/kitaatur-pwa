@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import Link from 'next/link'
 import { GraduationCap, Building2, Search, ArrowRight } from 'lucide-react'
 
@@ -9,20 +9,28 @@ export default function EduLandingPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
-  useEffect(() => {
-    fetchSchools()
-  }, [])
-
-  const fetchSchools = async () => {
+  const fetchSchools = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true)
       const res = await api.get('/school/schools')
       setSchools(res.data)
     } catch (err) {
       console.error(err)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const cached = getApiCachedData<any[]>('/school/schools')
+    if (cached && cached.length > 0) {
+      setSchools(cached)
+      setLoading(false)
+      fetchSchools(false)
+    } else {
+      fetchSchools(true)
+    }
+  }, [])
 
   const filteredSchools = schools.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
 

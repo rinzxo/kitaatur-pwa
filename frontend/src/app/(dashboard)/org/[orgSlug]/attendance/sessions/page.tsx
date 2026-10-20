@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { useState, useEffect, useMemo, useRef, Suspense, Fragment } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import { 
   ArrowLeft, 
   Plus, 
@@ -42,7 +42,20 @@ import {
   BellSlash,
   Sparkle
 } from '@phosphor-icons/react'
-import { Scanner } from '@yudiel/react-qr-scanner'
+import dynamic from 'next/dynamic'
+
+const Scanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white gap-2">
+        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+        <span className="text-xs text-white/70">Mempersiapkan Kamera Pemindai...</span>
+      </div>
+    )
+  }
+)
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { SpotlightTour, type TourStep } from '@/components/ui/SpotlightTour'
@@ -262,9 +275,9 @@ function AttendanceManagementContent() {
   // -------------------------------------------------------------
   // FETCHERS
   // -------------------------------------------------------------
-  const fetchSessions = async () => {
+  const fetchSessions = async (showLoading = true) => {
     try {
-      setLoadingSessions(true)
+      if (showLoading) setLoadingSessions(true)
       const res = await api.get(`/org-attendance/${orgSlug}/sessions`)
       setSessions(res.data || [])
     } catch (err: any) {
@@ -273,17 +286,16 @@ function AttendanceManagementContent() {
         router.push(`/org/${orgSlug}/attendance`)
       }
     } finally {
-      setLoadingSessions(false)
+      if (showLoading) setLoadingSessions(false)
     }
   }
 
   const fetchValidationRecords = async () => {
     try {
       setLoadingValidation(true)
-      const res = await api.get(`/org-attendance/${orgSlug}`)
-      const all: any[] = res.data || []
-      const filtered = all.filter((r: any) => r.status === 'excused' || r.status === 'sick' || r.status === 'absent')
-      setValidationRecords(filtered)
+      // Gunakan query berindeks langsung ke DB untuk status excused, sick, dan absent
+      const res = await api.get(`/org-attendance/${orgSlug}?status=excused,sick,absent&limit=100`)
+      setValidationRecords(res.data || [])
     } catch (err: any) {
       console.error('Failed to fetch validation records:', err)
     } finally {
@@ -328,25 +340,45 @@ function AttendanceManagementContent() {
     }
   }
 
-  const fetchSchedules = async () => {
+  const fetchSchedules = async (showLoading = true) => {
     try {
-      setLoadingSchedules(true)
+      if (showLoading) setLoadingSchedules(true)
       const res = await api.get(`/org-schedule/${orgSlug}`)
       setSchedules(res.data || [])
     } catch (err: any) {
       console.error('Failed to fetch schedules', err)
     } finally {
-      setLoadingSchedules(false)
+      if (showLoading) setLoadingSchedules(false)
     }
   }
 
-  // Initial Load
+  // Initial Load with Instant Cache Render
   useEffect(() => {
     if (!orgSlug) return
-    fetchSessions()
+
+    // 1. Instant Cache Render
+    const cachedSessions = getApiCachedData<any[]>(`/org-attendance/${orgSlug}/sessions`)
+    if (cachedSessions && cachedSessions.length > 0) {
+      setSessions(cachedSessions)
+      setLoadingSessions(false)
+    }
+
+    const cachedSchedules = getApiCachedData<any[]>(`/org-schedule/${orgSlug}`)
+    if (cachedSchedules && cachedSchedules.length > 0) {
+      setSchedules(cachedSchedules)
+      setLoadingSchedules(false)
+    }
+
+    const cachedAgendas = getApiCachedData<any[]>(`/org-attendance/${orgSlug}/agenda`)
+    if (cachedAgendas && cachedAgendas.length > 0) {
+      setAgendas(cachedAgendas)
+    }
+
+    // 2. Background Revalidation
+    fetchSessions(!cachedSessions)
     fetchValidationRecords()
     fetchAgendas()
-    fetchSchedules()
+    fetchSchedules(!cachedSchedules)
   }, [orgSlug])
 
   // When selectedAgendaId changes, fetch PIN and members

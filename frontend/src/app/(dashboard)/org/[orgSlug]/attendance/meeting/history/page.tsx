@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, FileText, Search, Calendar, User } from 'lucide-react'
@@ -17,8 +17,9 @@ export default function MeetingHistoryPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  const fetchMinutes = async () => {
+  const fetchMinutes = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true)
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         router.push('/login')
@@ -35,12 +36,20 @@ export default function MeetingHistoryPage() {
         console.error('Failed to fetch meeting minutes:', err)
       }
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchMinutes()
+    if (!orgSlug) return
+    const cached = getApiCachedData<any[]>(`/org-meeting/${orgSlug}`)
+    if (cached && cached.length > 0) {
+      setMinutes(cached)
+      setLoading(false)
+      fetchMinutes(false)
+    } else {
+      fetchMinutes(true)
+    }
   }, [orgSlug, router])
 
   const filteredMinutes = minutes.filter(m => 

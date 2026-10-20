@@ -130,17 +130,24 @@ export async function getSessions(req: any, res: Response) {
   }
 
   try {
-    await ensureTodayScheduledSessions(orgMemberContext.organizationId);
+    // Jalankan pemeriksaan jadwal otomatis di background secara non-blocking
+    ensureTodayScheduledSessions(orgMemberContext.organizationId).catch(err => {
+      console.error('[SessionJob Background Error]:', err);
+    });
 
-    // Otomatis tandai is_active = false untuk sesi yang end_time nya sudah lewat
-    await prisma.attendance_sessions.updateMany({
+    // Otomatis tandai sesi kadaluarsa di background secara non-blocking
+    prisma.attendance_sessions.updateMany({
       where: {
         organization_id: orgMemberContext.organizationId,
         is_active: true,
         end_time: { lt: new Date() }
       },
       data: { is_active: false }
+    }).catch(err => {
+      console.error('[SessionExpire Background Error]:', err);
     });
+
+    const limitParam = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
     const sessions = await prisma.attendance_sessions.findMany({
       where: {
@@ -151,7 +158,8 @@ export async function getSessions(req: any, res: Response) {
       },
       orderBy: {
         start_time: 'desc'
-      }
+      },
+      take: limitParam ? Math.min(limitParam, 200) : 100
     });
 
     return res.status(200).json(sessions);
@@ -240,7 +248,10 @@ export async function getSessionMembers(req: any, res: Response) {
   const { sessionId } = req.params;
 
   try {
-    const session = await prisma.attendance_sessions.findFirst({ where: { id: sessionId.length === 36 ? sessionId : undefined } });
+    const session = await prisma.attendance_sessions.findFirst({
+      where: { id: sessionId.length === 36 ? sessionId : undefined },
+      select: { id: true, organization_id: true, shared_with_orgs: true }
+    });
     if (!session) return res.status(404).json({ error: 'Sesi tidak ditemukan' });
 
     // Cek authorization: harus head, sekretaris, atau memiliki custom_data.can_take_attendance = true
@@ -250,7 +261,8 @@ export async function getSessionMembers(req: any, res: Response) {
           organization_id: req.orgMember.organizationId,
           profile_id: req.user.id
         }
-      }
+      },
+      select: { role: true, custom_data: true }
     });
 
     const customData = callerMembership?.custom_data as any;
@@ -281,9 +293,14 @@ export async function getSessionMembers(req: any, res: Response) {
       where: { session_id: sessionId }
     });
 
+    const attendanceMap = new Map<string, any>();
+    for (const att of attendances) {
+      attendanceMap.set(att.profile_id, att);
+    }
+
     // Petakan semua member dengan data absensi terkini di sesi ini
     const mappedMembers = members.map(member => {
-      const attendance = attendances.find(a => a.profile_id === member.profile_id);
+      const attendance = attendanceMap.get(member.profile_id);
       return {
         ...member,
         attendance: attendance ? {
@@ -394,11 +411,17 @@ export async function validateAttendance(req: any, res: Response) {
 export const getGuests = async (req: Request, res: Response) => {
   const { orgIdOrSlug } = req.params;
   const { sessionId } = req.query;
+  const orgMemberContext = (req as any).orgMember;
+
   try {
-    const org = await prisma.organizations.findFirst({
-      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
-    });
-    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+    const orgId = orgMemberContext?.organizationId;
+    if (!orgId) {
+      const org = await prisma.organizations.findFirst({
+        where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
+      });
+      if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+    }
+    const targetOrgId = orgId || orgIdOrSlug;
 
     let targetSessionId = sessionId && sessionId !== 'null' ? String(sessionId) : null;
     let targetSession = null;
@@ -413,10 +436,9 @@ export const getGuests = async (req: Request, res: Response) => {
     if (!targetSession) {
       const now = new Date();
       // Only auto-pick sessions that are active and not older than 24 hours to prevent abandoned sessions from showing up
-      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       targetSession = await prisma.attendance_sessions.findFirst({
         where: {
-          organization_id: org.id,
+          organization_id: targetOrgId,
           is_active: true,
           start_time: { lte: now },
           end_time: { gte: now }
@@ -429,16 +451,19 @@ export const getGuests = async (req: Request, res: Response) => {
       }
     }
 
-    // Fetch all guests with attendance and all leaves
+    // Fetch guests with attendance and only leaves for targetSessionId (indexed)
     const guests = await prisma.org_guests.findMany({
-      where: { organization_id: org.id },
+      where: { organization_id: targetOrgId },
       orderBy: { name: 'asc' },
       include: targetSessionId ? ({
         guest_attendance: {
           where: { session_id: targetSessionId },
           select: { check_in_time: true, status: true }
         },
-        guest_leaves: true
+        guest_leaves: {
+          where: { session_id: targetSessionId },
+          select: { session_id: true, type: true, proof_url: true, created_at: true }
+        }
       } as any) : undefined
     });
     
@@ -1338,34 +1363,44 @@ export async function checkIn(req: any, res: Response) {
 // 5. Mengambil Daftar Rekam Jejak Kehadiran (Akses: Semua Anggota)
 export async function getAttendanceRecords(req: any, res: Response) {
   const orgMemberContext = req.orgMember;
-  const { sessionId } = req.query;
+    const { sessionId, status } = req.query;
 
-  if (!orgMemberContext) {
-    return res.status(403).json({ error: 'Akses organisasi dibatasi' });
-  }
-
-  try {
-    // Sweep status sakit tanpa surat yang melewati 1x24 jam menjadi izin biasa
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    await prisma.attendance.updateMany({
-      where: {
-        organization_id: orgMemberContext.organizationId,
-        status: 'sick',
-        proof_url: null,
-        check_in_time: { lte: twentyFourHoursAgo }
-      },
-      data: {
-        status: 'excused'
-      }
-    });
-
-    const whereClause: any = {
-      organization_id: orgMemberContext.organizationId
-    };
-
-    if (sessionId) {
-      whereClause.session_id = sessionId;
+    if (!orgMemberContext) {
+      return res.status(403).json({ error: 'Akses organisasi dibatasi' });
     }
+
+    try {
+      // Jalankan sweep status di background secara non-blocking
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      prisma.attendance.updateMany({
+        where: {
+          organization_id: orgMemberContext.organizationId,
+          status: 'sick',
+          proof_url: null,
+          check_in_time: { lte: twentyFourHoursAgo }
+        },
+        data: {
+          status: 'excused'
+        }
+      }).catch(err => console.error('[AttendanceSweep Background Error]:', err));
+
+      const whereClause: any = {
+        organization_id: orgMemberContext.organizationId
+      };
+
+      if (sessionId) {
+        whereClause.session_id = sessionId;
+      }
+
+      if (status) {
+        if (typeof status === 'string' && status.includes(',')) {
+          whereClause.status = { in: status.split(',').map((s: string) => s.trim()) };
+        } else {
+          whereClause.status = status;
+        }
+      }
+
+    const limitParam = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
 
     const records = await prisma.attendance.findMany({
       where: whereClause,
@@ -1379,7 +1414,8 @@ export async function getAttendanceRecords(req: any, res: Response) {
       },
       orderBy: {
         check_in_time: 'desc'
-      }
+      },
+      take: limitParam ? Math.min(limitParam, 500) : 200
     });
 
     return res.status(200).json(records);
@@ -1402,44 +1438,51 @@ export async function getAttendanceStats(req: any, res: Response) {
       where: { organization_id: orgMemberContext.organizationId }
     });
 
-    // Leaderboard (Present)
-    const attendanceStats = await prisma.attendance.groupBy({
-      by: ['profile_id'],
-      where: { 
-        organization_id: orgMemberContext.organizationId,
-        status: 'present'
-      },
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 10
-    });
+    // Leaderboard (Present) & Zona Merah (Absent or Late)
+    const [attendanceStats, redZoneStats] = await Promise.all([
+      prisma.attendance.groupBy({
+        by: ['profile_id'],
+        where: { 
+          organization_id: orgMemberContext.organizationId,
+          status: 'present'
+        },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10
+      }),
+      prisma.attendance.groupBy({
+        by: ['profile_id'],
+        where: { 
+          organization_id: orgMemberContext.organizationId,
+          status: { in: ['absent', 'late'] }
+        },
+        _count: { id: true },
+        orderBy: { _count: { id: 'desc' } },
+        take: 10
+      })
+    ]);
 
-    const enrichedStats = await Promise.all(attendanceStats.map(async (stat) => {
-      const profile = await prisma.profiles.findUnique({ where: { id: stat.profile_id }});
-      return {
-        ...stat,
-        profile: { full_name: profile?.full_name, email: profile?.email }
-      };
+    // Batch query seluruh profil sekaligus (Eliminasi N+1 roundtrips)
+    const profileIds = Array.from(new Set([
+      ...attendanceStats.map(s => s.profile_id),
+      ...redZoneStats.map(s => s.profile_id)
+    ]));
+
+    const profiles = profileIds.length > 0 ? await prisma.profiles.findMany({
+      where: { id: { in: profileIds } },
+      select: { id: true, full_name: true, email: true }
+    }) : [];
+
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
+    const enrichedStats = attendanceStats.map(stat => ({
+      ...stat,
+      profile: profileMap.get(stat.profile_id) || { full_name: 'Anggota', email: '' }
     }));
 
-    // Zona Merah (Absent or Late)
-    const redZoneStats = await prisma.attendance.groupBy({
-      by: ['profile_id'],
-      where: { 
-        organization_id: orgMemberContext.organizationId,
-        status: { in: ['absent', 'late'] }
-      },
-      _count: { id: true },
-      orderBy: { _count: { id: 'desc' } },
-      take: 10
-    });
-
-    const enrichedRedZone = await Promise.all(redZoneStats.map(async (stat) => {
-      const profile = await prisma.profiles.findUnique({ where: { id: stat.profile_id }});
-      return {
-        ...stat,
-        profile: { full_name: profile?.full_name, email: profile?.email }
-      };
+    const enrichedRedZone = redZoneStats.map(stat => ({
+      ...stat,
+      profile: profileMap.get(stat.profile_id) || { full_name: 'Anggota', email: '' }
     }));
 
     return res.status(200).json({ 
@@ -1462,7 +1505,10 @@ export async function getAgenda(req: any, res: Response) {
   }
 
   try {
-    await ensureTodayScheduledSessions(orgMemberContext.organizationId);
+    // Jalankan pemeriksaan jadwal otomatis di background secara non-blocking
+    ensureTodayScheduledSessions(orgMemberContext.organizationId).catch(err => {
+      console.error('[SessionSync Background Error]:', err);
+    });
 
     const now = new Date();
     // Get ongoing or upcoming active sessions
@@ -1502,9 +1548,9 @@ export async function getMyAttendanceHistory(req: any, res: Response) {
   }
 
   try {
-    // Sweep status sakit pribadi tanpa surat yang melewati 1x24 jam menjadi izin biasa
+    // Sweep status sakit pribadi tanpa surat yang melewati 1x24 jam secara non-blocking di background
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    await prisma.attendance.updateMany({
+    prisma.attendance.updateMany({
       where: {
         organization_id: orgMemberContext.organizationId,
         profile_id: userId,
@@ -1515,6 +1561,8 @@ export async function getMyAttendanceHistory(req: any, res: Response) {
       data: {
         status: 'excused'
       }
+    }).catch(err => {
+      console.error('[PersonalSickSweep Error]:', err);
     });
 
     const records = await prisma.attendance.findMany({

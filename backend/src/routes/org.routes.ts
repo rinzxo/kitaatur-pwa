@@ -29,7 +29,8 @@ import {
   generateFamilyCode,
   linkBranchToFamily,
   unlinkBranchFromFamily,
-  getFamilyBranches
+  getFamilyBranches,
+  getOrgDashboardOverview
 } from '../controllers/org.controller'
 
 const router = Router()
@@ -52,6 +53,9 @@ router.get('/me/list', getMyOrganizations)
 
 // A. Membuat organisasi baru (Hanya Head global)
 router.post('/create', createOrganization)
+
+// Overview Dashboard Konsolidasian (1-roundtrip batch load)
+router.get('/:orgIdOrSlug/overview', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrgDashboardOverview)
 
 // Update Profil Organisasi (Akses: Head)
 router.put('/:orgIdOrSlug', requireOrgRole(['head']), updateOrganization)

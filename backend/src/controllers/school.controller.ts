@@ -1,7 +1,5 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/db';
 
 // 1. Get all participating Edu schools
 export async function getEduSchools(req: Request, res: Response) {
@@ -89,9 +87,16 @@ export async function getStudentStats(req: Request, res: Response) {
       return res.status(404).json({ error: 'Data siswa tidak ditemukan dengan ID tersebut.' });
     }
 
-    // Ambil semua sesi untuk organisasi
-    const allSessions = await prisma.attendance_sessions.findMany({
-      where: { organization_id: orgId },
+    const now = new Date();
+    // Ambil sesi relevan langsung dari DB dengan indeks tanggal
+    const applicableSessions = await prisma.attendance_sessions.findMany({
+      where: {
+        organization_id: orgId,
+        start_time: {
+          lte: now,
+          gte: student.created_at
+        }
+      },
       select: { id: true, start_time: true, end_time: true, title: true, is_active: true }
     });
 
@@ -109,9 +114,6 @@ export async function getStudentStats(req: Request, res: Response) {
         attendedSessionIds.add(att.session_id);
       }
     });
-
-    const now = new Date();
-    const applicableSessions = allSessions.filter(s => s.start_time <= now && s.start_time >= student.created_at);
     
     let izin = 0;
     let sakit = 0;
@@ -304,10 +306,11 @@ export async function getMonitorData(req: Request, res: Response) {
       return res.status(401).json({ error: 'PIN yang dimasukkan salah.' });
     }
 
-    // Get all sessions for the dropdown
+    // Get recent sessions for the dropdown (up to 60)
     const allSessionsRaw = await prisma.attendance_sessions.findMany({
       where: { organization_id: orgId },
       orderBy: { start_time: 'desc' },
+      take: 60,
       select: { id: true, title: true, start_time: true, end_time: true, is_active: true }
     });
 

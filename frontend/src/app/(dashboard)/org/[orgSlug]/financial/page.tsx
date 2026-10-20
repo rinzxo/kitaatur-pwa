@@ -3,11 +3,20 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import FinancialChart from './financial-chart'
-import OrgTransactionForm from './org-transaction-form'
+import dynamic from 'next/dynamic'
+
+const FinancialChart = dynamic(() => import('./financial-chart'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] w-full bg-slate-50 border border-slate-200 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 font-medium text-sm shadow-sm">
+      Mempersiapkan Grafik Keuangan...
+    </div>
+  )
+})
 import { 
   ArrowLeft, 
   Wallet, 
@@ -58,9 +67,11 @@ export default function OrgFinancialPage() {
   const router = useRouter()
   const orgSlug = params.orgSlug as string
 
+  const store = useDashboardStore()
+
   // User States
-  const [currentUserId, setCurrentUserId] = useState('')
-  const [currentUserRole, setCurrentUserRole] = useState<string>('member')
+  const [currentUserId, setCurrentUserId] = useState(store.user?.id || '')
+  const [currentUserRole, setCurrentUserRole] = useState<string>(store.getCurrentRole(orgSlug) || 'member')
   const isEditor = currentUserRole === 'bendahara'
 
   // Spotlight Walkthrough Tour
@@ -140,33 +151,58 @@ export default function OrgFinancialPage() {
   }
 
   const checkRoleAndLoad = async () => {
-    try {
-      const [
-        { data: { user } },
-        membersRes,
-        summaryRes,
-        recordsRes,
-        orgRes
-      ] = await Promise.all([
-        supabase.auth.getUser(),
-        api.get(`/org/${orgSlug}/members`),
-        api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 }, chartData: [] } })),
-        api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] })),
-        api.get(`/org/${orgSlug}`).catch(() => ({ data: null }))
-      ])
-
-      if (!user) {
-        router.push('/login')
-        return
+    // 1. Instant cache render (0ms flash-free experience)
+    const cachedSummary = getApiCachedData<any>(`/org-financial/${orgSlug}/summary`)
+    const cachedRecords = getApiCachedData<any>(`/org-financial/${orgSlug}`)
+    if (cachedSummary?.summary) {
+      setSummary(cachedSummary.summary)
+      setChartData(cachedSummary.chartData || [])
+      if (cachedRecords) {
+        setRecords(cachedRecords)
       }
-      setCurrentUserId(user.id)
+      setLoading(false)
+    }
 
-      const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-      if (currentMember) {
-        setCurrentUserRole(currentMember.role)
-      } else {
-        router.push('/personal/dashboard')
-        return
+    const currentOrg = store.orgs.find(o => o.slug === orgSlug)
+    if (currentOrg?.name) {
+      setOrgName(currentOrg.name)
+    }
+
+    try {
+      const knownRole = store.getCurrentRole(orgSlug)
+      let detectedRole = knownRole
+
+      // Hanya fetch user & member jika belum ada di store
+      const promises: Promise<any>[] = [
+        api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 }, chartData: [] } })),
+        api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] }))
+      ]
+
+      if (!detectedRole || !currentUserId) {
+        promises.push(
+          supabase.auth.getUser(),
+          api.get(`/org/${orgSlug}/members`).catch(() => ({ data: [] }))
+        )
+      }
+
+      const results = await Promise.all(promises)
+      const summaryRes = results[0]
+      const recordsRes = results[1]
+
+      if (results.length > 2) {
+        const userRes = results[2]
+        const membersRes = results[3]
+        const user = userRes?.data?.user
+        if (user) {
+          setCurrentUserId(user.id)
+          const currentMember = (membersRes.data || []).find((m: any) => m.profile_id === user.id)
+          if (currentMember) {
+            detectedRole = currentMember.role
+            setCurrentUserRole(currentMember.role)
+          }
+        }
+      } else if (knownRole) {
+        setCurrentUserRole(knownRole)
       }
 
       if (summaryRes?.data) {
@@ -176,18 +212,11 @@ export default function OrgFinancialPage() {
       if (recordsRes?.data) {
         setRecords(recordsRes.data || [])
       }
-      if (orgRes?.data?.name) {
-        setOrgName(orgRes.data.name)
-      } else {
-        setOrgName(orgSlug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '))
-      }
     } catch (err: any) {
-      console.error('Error verifying org access:', err)
+      console.error('Error loading financial data:', err)
       if (err.response?.status === 403) {
         toast.error('Anda tidak memiliki akses ke organisasi ini.')
         router.push('/personal/dashboard')
-      } else {
-        toast.error('Terjadi kesalahan saat memuat data organisasi: ' + (err.response?.data?.error || err.message))
       }
     } finally {
       setLoading(false)

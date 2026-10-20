@@ -1,8 +1,6 @@
 import { Request, Response } from 'express'
-import { PrismaClient } from '@prisma/client'
+import { prisma } from '../config/db'
 import webpush from 'web-push'
-
-const prisma = new PrismaClient()
 
 // Setup Web Push
 webpush.setVapidDetails(

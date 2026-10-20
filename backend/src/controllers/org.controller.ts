@@ -409,33 +409,45 @@ export async function getOrgGoals(req: any, res: Response) {
 
     const currentDate = new Date();
     const firstDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const enhancedGoals = await Promise.all(goals.map(async (goal) => {
-      if (goal.type === 'budget' && goal.budget_category) {
-        // Hitung total pengeluaran untuk kategori ini di bulan berjalan
-        const expenses = await prisma.financial_records.aggregate({
-          where: {
-            organization_id: orgMemberContext.organizationId,
-            type: 'expense',
-            category: goal.budget_category,
-            transaction_date: {
-              gte: firstDayOfMonth,
-              lte: lastDayOfMonth
-            }
-          },
-          _sum: {
-            amount: true
+    const budgetCategories = goals
+      .filter((g) => g.type === 'budget' && g.budget_category)
+      .map((g) => g.budget_category as string);
+
+    const expenseMap = new Map<string, any>();
+    if (budgetCategories.length > 0) {
+      const expenses = await prisma.financial_records.groupBy({
+        by: ['category'],
+        where: {
+          organization_id: orgMemberContext.organizationId,
+          type: 'expense',
+          category: { in: budgetCategories },
+          transaction_date: {
+            gte: firstDayOfMonth,
+            lte: lastDayOfMonth
           }
-        });
-        
+        },
+        _sum: {
+          amount: true
+        }
+      });
+      for (const item of expenses) {
+        if (item.category) {
+          expenseMap.set(item.category, item._sum.amount || 0);
+        }
+      }
+    }
+
+    const enhancedGoals = goals.map((goal) => {
+      if (goal.type === 'budget' && goal.budget_category) {
         return {
           ...goal,
-          current_amount: expenses._sum.amount || 0
+          current_amount: expenseMap.get(goal.budget_category) || 0
         };
       }
       return goal;
-    }));
+    });
 
     return res.status(200).json(enhancedGoals)
   } catch (err) {
@@ -591,16 +603,20 @@ export async function getGoalTransactions(req: any, res: Response) {
 
   try {
     const targetGoal = await prisma.goals.findUnique({
-      where: { id: goalId }
+      where: { id: goalId },
+      select: { id: true, organization_id: true }
     })
 
     if (!targetGoal || targetGoal.organization_id !== orgMemberContext.organizationId) {
       return res.status(404).json({ error: 'Target tidak ditemukan' })
     }
 
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50
+
     const transactions = await (prisma as any).goal_transactions.findMany({
       where: { goal_id: goalId },
       orderBy: { created_at: 'desc' },
+      take: limit,
       include: {
         profile: {
           select: {
@@ -1668,4 +1684,175 @@ export async function getFamilyBranches(req: Request, res: Response) {
     return res.status(500).json({ error: 'Internal Server Error' })
   }
 }
+
+// 26. Consolidated Dashboard Overview Endpoint (Memuat seluruh ringkasan dalam 1 query batch)
+export async function getOrgDashboardOverview(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const userId = req.user?.id;
+
+  if (!orgMemberContext) {
+    return res.status(403).json({ error: 'Akses organisasi dibatasi' });
+  }
+
+  const orgId = orgMemberContext.organizationId;
+
+  try {
+    const now = new Date();
+
+    const [
+      org,
+      currentMember,
+      membersCount,
+      goals,
+      incomeSum,
+      expenseSum,
+      recentRecords,
+      userKasRecords,
+      agendas
+    ] = await Promise.all([
+      // 1. Org info & settings
+      prisma.organizations.findUnique({
+        where: { id: orgId },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          logo_url: true,
+          dues_target_amount: true,
+          dues_presets: true,
+          is_edu: true,
+          owner_id: true,
+        }
+      }),
+
+      // 2. Current member profile & role
+      prisma.organization_members.findUnique({
+        where: {
+          organization_id_profile_id: {
+            organization_id: orgId,
+            profile_id: userId
+          }
+        },
+        select: {
+          role: true,
+          joined_at: true,
+          custom_data: true
+        }
+      }),
+
+      // 3. Member count (excluding auditor)
+      prisma.organization_members.count({
+        where: {
+          organization_id: orgId,
+          role: { not: 'auditor' as any }
+        }
+      }),
+
+      // 4. Goals (top active)
+      prisma.goals.findMany({
+        where: { organization_id: orgId },
+        orderBy: { created_at: 'desc' },
+        take: 10
+      }),
+
+      // 5. Total Income
+      prisma.financial_records.aggregate({
+        where: { organization_id: orgId, type: 'income' },
+        _sum: { amount: true }
+      }),
+
+      // 6. Total Expense
+      prisma.financial_records.aggregate({
+        where: { organization_id: orgId, type: 'expense' },
+        _sum: { amount: true }
+      }),
+
+      // 7. Recent Financial Records (only 10 rows)
+      prisma.financial_records.findMany({
+        where: { organization_id: orgId },
+        orderBy: [
+          { transaction_date: 'desc' },
+          { created_at: 'desc' }
+        ],
+        take: 10,
+        include: {
+          profile: {
+            select: {
+              full_name: true,
+              email: true
+            }
+          }
+        }
+      }),
+
+      // 8. User Kas records for quick debt/tunggakan calculation
+      prisma.financial_records.findMany({
+        where: {
+          organization_id: orgId,
+          profile_id: userId,
+          category: 'Uang Kas'
+        },
+        select: { amount: true }
+      }),
+
+      // 9. Ongoing or upcoming active sessions
+      prisma.attendance_sessions.findMany({
+        where: {
+          is_active: true,
+          OR: [
+            { organization_id: orgId },
+            { shared_with_orgs: { has: orgId } }
+          ],
+          AND: [
+            {
+              OR: [
+                { start_time: { gte: now } },
+                { end_time: { gte: now } }
+              ]
+            }
+          ]
+        },
+        orderBy: { start_time: 'asc' },
+        take: 5
+      })
+    ]);
+
+    const income = incomeSum._sum.amount ? Number(incomeSum._sum.amount) : 0;
+    const expense = expenseSum._sum.amount ? Number(expenseSum._sum.amount) : 0;
+    const balance = income - expense;
+
+    // Hitung tunggakan kas jika ada target iuran
+    const targetAmt = org?.dues_target_amount ? Number(org.dues_target_amount) : 0;
+    let myTunggakan = 0;
+    if (currentMember?.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
+      const joined = new Date(currentMember.joined_at);
+      let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1;
+      if (months < 1) months = 1;
+      const expected = months * targetAmt;
+      const paid = userKasRecords.reduce((acc, curr) => acc + Number(curr.amount), 0);
+      myTunggakan = Math.max(0, expected - paid);
+    }
+
+    // Role fallback jika developer god-mode
+    const detectedRole = (req.user?.email === 'generalrino@gmail.com' || (org && org.owner_id === userId))
+      ? 'head'
+      : (currentMember?.role || orgMemberContext.role || 'member');
+
+    return res.status(200).json({
+      org,
+      role: detectedRole,
+      memberInfo: currentMember,
+      membersCount,
+      goals: goals || [],
+      financialSummary: { income, expense, balance },
+      records: recentRecords || [],
+      myTunggakan,
+      agendas: agendas || []
+    });
+  } catch (err: any) {
+    console.error('Error fetching org overview:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+}
+
 

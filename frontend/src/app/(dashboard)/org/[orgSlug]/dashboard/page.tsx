@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useRef } from 'react'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import { useDashboardStore } from '@/lib/dashboard-store'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -144,78 +144,60 @@ export default function OrgDashboardPage() {
     }).format(num)
   }
 
+  const applyOverviewData = (data: any) => {
+    if (!data) return
+    setGoals(data.goals || [])
+    setFinancialSummary(data.financialSummary || { income: 0, expense: 0, balance: 0 })
+    setRecords(data.records || [])
+    setMembersCount(data.membersCount || 0)
+    
+    // Process agenda for THIS org
+    let orgAgendas: any[] = []
+    if (data.agendas && data.agendas.length > 0) {
+      const orgName = currentOrg?.name || orgSlug
+      orgAgendas = data.agendas.map((a: any) => ({
+        ...a,
+        orgSlug: orgSlug,
+        orgName: orgName
+      }))
+      orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+    }
+    setAgendas(orgAgendas)
+
+    const targetAmt = data.org?.dues_target_amount ? parseFloat(data.org.dues_target_amount) : 0
+    setTargetAmount(targetAmt)
+
+    const detectedRole = data.role || 'member'
+    setCurrentUserRole(detectedRole)
+    setMyTunggakan(data.myTunggakan || 0)
+
+    // Check if onboarding should be shown for this leader
+    const isOrgLeader = detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'bendahara'
+    const hasCompletedOnboarding = localStorage.getItem(`kitaatur_onboarding_completed_${orgSlug}`) === 'true'
+    const isDismissedOnboarding = localStorage.getItem(`kitaatur_onboarding_dismissed_${orgSlug}`) === 'true'
+    const isBrandNewOrg = targetAmt === 0 && orgAgendas.length === 0
+
+    if (isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
+      setShowOnboarding(true)
+    }
+  }
+
   useEffect(() => {
     let isMounted = true
     const fetchData = async () => {
+      const cacheUrl = `/org/${orgSlug}/overview`
+      const cached = getApiCachedData<any>(cacheUrl)
+      if (cached && isMounted) {
+        applyOverviewData(cached)
+        setLoading(false)
+      }
+
       try {
-        const [
-          goalsRes, finRes, recordsRes, settingsRes, membersRes, agendaRes
-        ] = await Promise.all([
-          api.get(`/org/${orgSlug}/goals`).catch(() => ({ data: [] })),
-          api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 } } })),
-          api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] })),
-          api.get(`/org/${orgSlug}/settings`).catch(() => ({ data: null })),
-          api.get(`/org/${orgSlug}/members`).catch(() => ({ data: [] })),
-          api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] })),
-        ])
-        
+        const res = await api.get(cacheUrl).catch(() => null)
         if (!isMounted) return
 
-        setGoals(goalsRes.data || [])
-        setFinancialSummary(finRes.data?.summary || { income: 0, expense: 0, balance: 0 })
-        setRecords(recordsRes.data || [])
-        const validMembers = (membersRes.data || []).filter((m: any) => m.role !== 'auditor')
-        setMembersCount(validMembers.length)
-        
-        // Process agenda for THIS org
-        let orgAgendas: any[] = []
-        if (agendaRes.data && agendaRes.data.length > 0) {
-          const orgName = currentOrg?.name || orgSlug
-          orgAgendas = agendaRes.data.map((a: any) => ({
-            ...a,
-            orgSlug: orgSlug,
-            orgName: orgName
-          }))
-          orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
-        }
-        setAgendas(orgAgendas)
-
-        const targetAmt = settingsRes.data?.dues_target_amount ? parseFloat(settingsRes.data.dues_target_amount) : 0
-        setTargetAmount(targetAmt)
-
-        if (store.user?.id) {
-          const currentMember = (membersRes.data || []).find((m: any) => m.profile_id === store.user?.id)
-          const isOrgOwner = currentOrg && (currentOrg as any).owner_id === store.user?.id
-          const detectedRole = (isOrgOwner ? 'head' : (currentMember?.role || 'member')) as 'head' | 'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
-          setCurrentUserRole(detectedRole)
-
-          if (currentMember && currentMember.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
-            const joined = new Date(currentMember.joined_at)
-            const now = new Date()
-            let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
-            if (months < 1) months = 1
-            
-            const expected = months * targetAmt
-            let paid = 0
-            ;(recordsRes.data || []).forEach((r: any) => {
-              if (r.profile_id === store.user?.id && r.category === 'Uang Kas') {
-                paid += parseFloat(r.amount)
-              }
-            })
-            setMyTunggakan(expected - paid)
-          } else {
-            setMyTunggakan(0)
-          }
-
-          // Check if onboarding should be shown for this leader
-          const isOrgLeader = detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'bendahara'
-          const hasCompletedOnboarding = localStorage.getItem(`kitaatur_onboarding_completed_${orgSlug}`) === 'true'
-          const isDismissedOnboarding = localStorage.getItem(`kitaatur_onboarding_dismissed_${orgSlug}`) === 'true'
-          const isBrandNewOrg = targetAmt === 0 && orgAgendas.length === 0
-
-          if (isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
-            setShowOnboarding(true)
-          }
+        if (res?.data) {
+          applyOverviewData(res.data)
         }
       } catch (err) {
         console.error('Error fetching org dashboard data:', err)

@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BarChart2, Users, CheckCircle, Clock, AlertTriangle, Search, Download } from 'lucide-react'
@@ -35,25 +35,41 @@ export default function GuestAnalyticsPage() {
   } | null>(null)
   const [isSchool, setIsSchool] = useState(false)
 
-  useEffect(() => {
-    fetchAnalytics()
-  }, [])
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = async (showLoading = true) => {
     try {
-      const res = await api.get(`/org-attendance/${orgSlug}/guests/analytics`)
-      setData(res.data)
+      if (showLoading) setLoading(true)
+      const [analyticsRes, settingsRes] = await Promise.allSettled([
+        api.get(`/org-attendance/${orgSlug}/guests/analytics`),
+        api.get(`/org/${orgSlug}/settings`)
+      ])
 
-      try {
-        const settingsRes = await api.get(`/org/${orgSlug}/settings`)
-        setIsSchool(settingsRes.data?.is_edu || false)
-      } catch (e) {}
+      if (analyticsRes.status === 'fulfilled' && analyticsRes.value?.data) {
+        setData(analyticsRes.value.data)
+      }
+
+      if (settingsRes.status === 'fulfilled' && settingsRes.value?.data) {
+        setIsSchool(settingsRes.value.data?.is_edu || false)
+      }
     } catch (err) {
       toast.error('Gagal memuat analitik tamu')
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    const cached = getApiCachedData<any>(`/org-attendance/${orgSlug}/guests/analytics`)
+    const cachedSettings = getApiCachedData<any>(`/org/${orgSlug}/settings`)
+
+    if (cached) {
+      setData(cached)
+      if (cachedSettings) setIsSchool(cachedSettings?.is_edu || false)
+      setLoading(false)
+      fetchAnalytics(false)
+    } else {
+      fetchAnalytics(true)
+    }
+  }, [orgSlug])
 
   const exportToExcel = async () => {
     if (!data) return

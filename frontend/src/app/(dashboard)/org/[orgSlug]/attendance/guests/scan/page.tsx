@@ -4,8 +4,21 @@ import { useState, useEffect, Suspense } from 'react'
 import { api } from '@/lib/api'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, ScanLine } from 'lucide-react'
-import { Scanner } from '@yudiel/react-qr-scanner'
+import { ArrowLeft, ScanLine, Loader2 } from 'lucide-react'
+import dynamic from 'next/dynamic'
+
+const Scanner = dynamic(
+  () => import('@yudiel/react-qr-scanner').then((mod) => mod.Scanner),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-64 bg-slate-900 rounded-2xl flex flex-col items-center justify-center text-white gap-2">
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+        <span className="text-xs text-white/70">Mempersiapkan Kamera Pemindai...</span>
+      </div>
+    )
+  }
+)
 
 function ScanGuestsContent() {
   const params = useParams()

@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState, useMemo } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -42,6 +42,15 @@ export default function FinancialAnalysisPage() {
   }, [orgSlug])
 
   const checkRoleAndLoad = async () => {
+    // 1. Instant Cache Render
+    const cachedRecords = getApiCachedData<OrgFinancialRecord[]>(`/org-financial/${orgSlug}`)
+    const cachedMembers = getApiCachedData<any[]>(`/org/${orgSlug}/members`)
+
+    if (cachedRecords && cachedRecords.length > 0) {
+      setRecords(cachedRecords)
+      setLoading(false)
+    }
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       router.push('/login')
@@ -49,27 +58,38 @@ export default function FinancialAnalysisPage() {
     }
 
     try {
-      const membersRes = await api.get(`/org/${orgSlug}/members`)
-      const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-      if (!currentMember) {
-        router.push('/personal/dashboard')
-        return
+      const [membersRes, recordsRes] = await Promise.allSettled([
+        api.get(`/org/${orgSlug}/members`),
+        api.get(`/org-financial/${orgSlug}`)
+      ])
+
+      if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
+        const currentMember = membersRes.value.data.find((m: any) => m.profile_id === user.id)
+        if (!currentMember) {
+          router.push('/personal/dashboard')
+          return
+        }
       }
-      await fetchRecords()
+
+      if (recordsRes.status === 'fulfilled' && recordsRes.value?.data) {
+        setRecords(recordsRes.value.data)
+      }
     } catch (err) {
       console.error('Error verifying org access:', err)
+    } finally {
       setLoading(false)
     }
   }
 
-  const fetchRecords = async () => {
+  const fetchRecords = async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true)
       const res = await api.get(`/org-financial/${orgSlug}`)
       setRecords(res.data)
     } catch (err) {
       console.error('Error fetching financial records:', err)
     } finally {
-      setLoading(false)
+      if (showLoading) setLoading(false)
     }
   }
 

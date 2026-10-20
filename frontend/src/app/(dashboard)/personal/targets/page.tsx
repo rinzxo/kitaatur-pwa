@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Target, PlusCircle, CheckCircle } from '@phosphor-icons/react'
 
@@ -23,18 +23,27 @@ export default function PersonalTargetsPage() {
   const [addAmounts, setAddAmounts] = useState<Record<string, string>>({})
   const [updating, setUpdating] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchGoals = async () => {
-      try {
-        const res = await api.get('/personal/goals')
-        setGoals(res.data)
-      } catch (err) {
-        console.error('Failed to fetch personal goals:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchGoals = async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true)
+      const res = await api.get('/personal/goals')
+      setGoals(res.data)
+    } catch (err) {
+      console.error('Failed to fetch personal goals:', err)
+    } finally {
+      if (showLoading) setLoading(false)
     }
-    fetchGoals()
+  }
+
+  useEffect(() => {
+    const cached = getApiCachedData<Goal[]>('/personal/goals')
+    if (cached && cached.length > 0) {
+      setGoals(cached)
+      setLoading(false)
+      fetchGoals(false)
+    } else {
+      fetchGoals(true)
+    }
   }, [])
 
   const handleAddProgress = async (goalId: string) => {

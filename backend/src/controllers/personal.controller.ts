@@ -49,41 +49,39 @@ export async function getPersonalSummary(req: AuthenticatedRequest, res: Respons
   }
 
   try {
-    // Ambil data transaksi personal (organization_id IS NULL)
-    const records = await prisma.financial_records.findMany({
-      where: {
-        profile_id: userId,
-        organization_id: null
-      },
-      orderBy: {
-        transaction_date: 'desc'
-      },
-      take: 10
-    })
-
-    // Agregasi Pemasukan
-    const incomeAgg = await prisma.financial_records.aggregate({
-      where: {
-        profile_id: userId,
-        organization_id: null,
-        type: 'income'
-      },
-      _sum: {
-        amount: true
-      }
-    })
-
-    // Agregasi Pengeluaran
-    const expenseAgg = await prisma.financial_records.aggregate({
-      where: {
-        profile_id: userId,
-        organization_id: null,
-        type: 'expense'
-      },
-      _sum: {
-        amount: true
-      }
-    })
+    // Ambil data transaksi & agregasi secara paralel (memanfaatkan idx_financial_records_personal)
+    const [records, incomeAgg, expenseAgg] = await Promise.all([
+      prisma.financial_records.findMany({
+        where: {
+          profile_id: userId,
+          organization_id: null
+        },
+        orderBy: {
+          transaction_date: 'desc'
+        },
+        take: 10
+      }),
+      prisma.financial_records.aggregate({
+        where: {
+          profile_id: userId,
+          organization_id: null,
+          type: 'income'
+        },
+        _sum: {
+          amount: true
+        }
+      }),
+      prisma.financial_records.aggregate({
+        where: {
+          profile_id: userId,
+          organization_id: null,
+          type: 'expense'
+        },
+        _sum: {
+          amount: true
+        }
+      })
+    ])
 
     const totalIncome = incomeAgg._sum.amount ? Number(incomeAgg._sum.amount) : 0
     const totalExpense = expenseAgg._sum.amount ? Number(expenseAgg._sum.amount) : 0

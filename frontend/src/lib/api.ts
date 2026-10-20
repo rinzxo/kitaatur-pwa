@@ -27,14 +27,29 @@ const CACHE_CONFIGS: { pattern: RegExp; ttlMs: number }[] = [
   { pattern: /^\/org\/me\/list$/, ttlMs: 30_000 },
   { pattern: /^\/subscription\/me$/, ttlMs: 60_000 },
   { pattern: /^\/admin\/announcements\/active$/, ttlMs: 120_000 },
+  { pattern: /^\/org\/[^\/]+\/overview$/, ttlMs: 20_000 },
   { pattern: /^\/org\/[^\/]+\/settings$/, ttlMs: 30_000 },
-  { pattern: /^\/org\/[^\/]+\/members$/, ttlMs: 20_000 },
+  { pattern: /^\/org\/[^\/]+\/members$/, ttlMs: 30_000 },
   { pattern: /^\/org-financial\/[^\/]+\/summary$/, ttlMs: 15_000 },
   { pattern: /^\/org-financial\/[^\/]+$/, ttlMs: 15_000 },
   { pattern: /^\/org\/[^\/]+\/goals$/, ttlMs: 20_000 },
   { pattern: /^\/org-attendance\/[^\/]+\/agenda$/, ttlMs: 20_000 },
   { pattern: /^\/notifications$/, ttlMs: 20_000 },
+  { pattern: /^\/org-schedule\/[^\/]+$/, ttlMs: 30_000 },
+  { pattern: /^\/org-attendance\/[^\/]+\/sessions$/, ttlMs: 20_000 },
+  { pattern: /^\/org-meeting\/[^\/]+$/, ttlMs: 30_000 },
+  { pattern: /^\/org-attendance\/[^\/]+\/stats$/, ttlMs: 30_000 },
+  { pattern: /^\/org-attendance\/[^\/]+\/guests\/analytics$/, ttlMs: 30_000 },
+  { pattern: /^\/school\/schools$/, ttlMs: 60_000 },
 ]
+
+export function getApiCachedData<T = any>(url: string): T | null {
+  const cached = apiCache.get(url)
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.data as T
+  }
+  return null
+}
 
 export function clearApiCache(prefix?: string) {
   if (!prefix) {
@@ -77,13 +92,35 @@ api.interceptors.request.use(
   }
 )
 
-// Response interceptor untuk menangani 503 Maintenance dan auto-clear cache pada mutasi
+// Response interceptor untuk menangani 503 Maintenance dan scoped invalidasi cache
 api.interceptors.response.use(
   (response) => {
     const method = response.config?.method?.toLowerCase()
+    const url = response.config?.url || ''
     if (method && ['post', 'put', 'patch', 'delete'].includes(method)) {
-      // Ketika ada aksi perubahan data, invalidate cache agar data selalu konsisten
-      clearApiCache()
+      // Scoped cache invalidation agar tidak menghapus seluruh cache aplikasi
+      if (url.includes('financial') || url.includes('org-financial')) {
+        clearApiCache('/org-financial')
+        clearApiCache('/overview')
+      } else if (url.includes('attendance') || url.includes('session')) {
+        clearApiCache('/org-attendance')
+        clearApiCache('/agenda')
+        clearApiCache('/overview')
+      } else if (url.includes('schedule') || url.includes('org-schedule')) {
+        clearApiCache('/org-schedule')
+        clearApiCache('/agenda')
+      } else if (url.includes('meeting') || url.includes('org-meeting')) {
+        clearApiCache('/org-meeting')
+      } else if (url.includes('personal')) {
+        clearApiCache('/personal')
+      } else if (url.includes('notifications')) {
+        clearApiCache('/notifications')
+      } else if (url.includes('org')) {
+        clearApiCache('/org')
+        clearApiCache('/overview')
+      } else {
+        clearApiCache()
+      }
     }
     return response
   },

@@ -1,18 +1,25 @@
 import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../config/db';
 
-const prisma = new PrismaClient();
+async function resolveOrgId(req: Request, orgIdOrSlug: string): Promise<string | null> {
+  const memberOrgId = (req as any).orgMember?.organizationId;
+  if (memberOrgId) return memberOrgId;
+
+  const org = await prisma.organizations.findFirst({
+    where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] },
+    select: { id: true }
+  });
+  return org ? org.id : null;
+}
 
 export const getSchedules = async (req: Request, res: Response) => {
   const { orgIdOrSlug } = req.params;
   try {
-    const org = await prisma.organizations.findFirst({
-      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
-    });
-    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+    const orgId = await resolveOrgId(req, orgIdOrSlug);
+    if (!orgId) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
 
     const schedules = await prisma.attendance_schedules.findMany({
-      where: { organization_id: org.id },
+      where: { organization_id: orgId },
       orderBy: { created_at: 'desc' }
     });
     res.json(schedules);
@@ -27,14 +34,12 @@ export const createSchedule = async (req: Request, res: Response) => {
   const { title, session_type, latitude, longitude, radius_meters, days_of_week, start_time, end_time, late_time } = req.body;
 
   try {
-    const org = await prisma.organizations.findFirst({
-      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
-    });
-    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
+    const orgId = await resolveOrgId(req, orgIdOrSlug);
+    if (!orgId) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
 
     const schedule = await prisma.attendance_schedules.create({
       data: {
-        organization_id: org.id,
+        organization_id: orgId,
         created_by: (req as any).user!.id,
         title: title || 'Sesi Rutin',
         session_type: session_type || 'in_only',
@@ -57,13 +62,8 @@ export const createSchedule = async (req: Request, res: Response) => {
 };
 
 export const deleteSchedule = async (req: Request, res: Response) => {
-  const { orgIdOrSlug, scheduleId } = req.params;
+  const { scheduleId } = req.params;
   try {
-    const org = await prisma.organizations.findFirst({
-      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
-    });
-    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
-
     await prisma.attendance_schedules.delete({
       where: { id: scheduleId }
     });
@@ -76,14 +76,9 @@ export const deleteSchedule = async (req: Request, res: Response) => {
 };
 
 export const toggleSchedule = async (req: Request, res: Response) => {
-  const { orgIdOrSlug, scheduleId } = req.params;
+  const { scheduleId } = req.params;
   const { is_active } = req.body;
   try {
-    const org = await prisma.organizations.findFirst({
-      where: { OR: [{ id: orgIdOrSlug.length === 36 ? orgIdOrSlug : undefined }, { slug: orgIdOrSlug }] }
-    });
-    if (!org) return res.status(404).json({ error: 'Organisasi tidak ditemukan' });
-
     const updated = await prisma.attendance_schedules.update({
       where: { id: scheduleId },
       data: { is_active }

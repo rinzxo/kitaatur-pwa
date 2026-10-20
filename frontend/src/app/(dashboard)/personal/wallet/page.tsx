@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { api } from '@/lib/api'
+import { api, getApiCachedData } from '@/lib/api'
 import Link from 'next/link'
 import { ArrowLeft, Wallet, TrendUp as TrendingUp, TrendDown as TrendingDown, PlusCircle } from '@phosphor-icons/react'
 
@@ -18,19 +18,29 @@ export default function PersonalWalletPage() {
   const [summary, setSummary] = useState({ income: 0, expense: 0, balance: 0 })
   const [records, setRecords] = useState<FinancialRecord[]>([])
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await api.get('/personal/summary')
-        setSummary(res.data.summary)
-        setRecords(res.data.records)
-      } catch (err) {
-        console.error('Failed to fetch personal summary:', err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchData = async (showLoading = true) => {
+    try {
+      if (showLoading) setLoading(true)
+      const res = await api.get('/personal/summary')
+      setSummary(res.data.summary)
+      setRecords(res.data.records)
+    } catch (err) {
+      console.error('Failed to fetch personal summary:', err)
+    } finally {
+      if (showLoading) setLoading(false)
     }
-    fetchData()
+  }
+
+  useEffect(() => {
+    const cached = getApiCachedData<any>('/personal/summary')
+    if (cached) {
+      setSummary(cached.summary || { income: 0, expense: 0, balance: 0 })
+      setRecords(cached.records || [])
+      setLoading(false)
+      fetchData(false)
+    } else {
+      fetchData(true)
+    }
   }, [])
 
   if (loading) {

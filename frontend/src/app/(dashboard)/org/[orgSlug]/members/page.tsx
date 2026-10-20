@@ -3,7 +3,7 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -150,31 +150,67 @@ export default function OrganizationMembersPage() {
   }
 
   useEffect(() => {
-    const init = async () => {
+    let isMounted = true
+
+    // 1. Instant cache render
+    const cachedMembers = getApiCachedData<Member[]>(`/org/${orgSlug}/members`)
+    const cachedSettings = getApiCachedData<any>(`/org/${orgSlug}/settings`)
+
+    if (cachedMembers && cachedMembers.length > 0) {
+      setMembers(cachedMembers)
+      if (cachedSettings?.custom_fields_schema) {
+        setCustomFieldsSchema(cachedSettings.custom_fields_schema)
+      }
+      setLoading(false)
+    } else {
       setLoading(true)
+    }
+
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      if (!isMounted) return
+
       if (user) {
         setCurrentUserId(user.id)
+        if (cachedMembers) {
+          const activeUser = cachedMembers.find((m: Member) => m.profile_id === user.id)
+          if (activeUser) setCurrentUserRole(activeUser.role)
+        }
       } else {
         router.push('/login')
         return
       }
 
-      await fetchMembers(user.id)
-      
       try {
-        const settingsRes = await api.get(`/org/${orgSlug}/settings`)
-        if (settingsRes.data.custom_fields_schema) {
-          setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
+        const [membersRes, settingsRes] = await Promise.allSettled([
+          api.get(`/org/${orgSlug}/members`),
+          api.get(`/org/${orgSlug}/settings`)
+        ])
+
+        if (!isMounted) return
+
+        if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
+          const data = membersRes.value.data
+          setMembers(data)
+          const activeUser = data.find((m: Member) => m.profile_id === user.id)
+          if (activeUser) setCurrentUserRole(activeUser.role)
+        }
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value?.data?.custom_fields_schema) {
+          setCustomFieldsSchema(settingsRes.value.data.custom_fields_schema)
         }
       } catch (err) {
-        console.error('Failed to load custom fields schema')
+        console.error('Error fetching organization data:', err)
+      } finally {
+        if (isMounted) setLoading(false)
       }
-      
-      setLoading(false)
     }
 
     init()
+
+    return () => {
+      isMounted = false
+    }
   }, [orgSlug, router])
 
   const handleRefresh = async () => {

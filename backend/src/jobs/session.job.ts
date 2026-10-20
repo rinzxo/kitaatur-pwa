@@ -1,7 +1,5 @@
 import cron from 'node-cron';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../config/db';
 
 // Function to generate a random 4-digit PIN
 const generatePin = () => {
