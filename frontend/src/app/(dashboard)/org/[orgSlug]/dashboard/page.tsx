@@ -190,20 +190,103 @@ export default function OrgDashboardPage() {
       if (cached && isMounted) {
         applyOverviewData(cached)
         setLoading(false)
+      } else {
+        // Quick cross-cache hydration from financial page cache if available
+        const cachedFin = getApiCachedData<any>(`/org-financial/${orgSlug}/summary`)
+        if (cachedFin?.summary && isMounted) {
+          setFinancialSummary(cachedFin.summary)
+        }
       }
 
+      let dataApplied = false
       try {
         const res = await api.get(cacheUrl).catch(() => null)
         if (!isMounted) return
 
-        if (res?.data) {
+        if (res?.data && (res.data.org || res.data.financialSummary)) {
           applyOverviewData(res.data)
+          dataApplied = true
         }
       } catch (err) {
-        console.error('Error fetching org dashboard data:', err)
-      } finally {
-        if (isMounted) setLoading(false)
+        console.warn('Overview endpoint failed, triggering fallback:', err)
       }
+
+      // Graceful fallback to individual endpoints if /overview is not yet available on remote backend
+      if (!dataApplied && isMounted) {
+        try {
+          const [
+            goalsRes, finRes, recordsRes, settingsRes, membersRes, agendaRes
+          ] = await Promise.all([
+            api.get(`/org/${orgSlug}/goals`).catch(() => ({ data: [] })),
+            api.get(`/org-financial/${orgSlug}/summary`).catch(() => ({ data: { summary: { income: 0, expense: 0, balance: 0 } } })),
+            api.get(`/org-financial/${orgSlug}`).catch(() => ({ data: [] })),
+            api.get(`/org/${orgSlug}/settings`).catch(() => ({ data: null })),
+            api.get(`/org/${orgSlug}/members`).catch(() => ({ data: [] })),
+            api.get(`/org-attendance/${orgSlug}/agenda`).catch(() => ({ data: [] })),
+          ])
+
+          if (!isMounted) return
+
+          setGoals(goalsRes.data || [])
+          setFinancialSummary(finRes.data?.summary || { income: 0, expense: 0, balance: 0 })
+          setRecords(recordsRes.data || [])
+          const validMembers = (membersRes.data || []).filter((m: any) => m.role !== 'auditor')
+          setMembersCount(validMembers.length)
+
+          let orgAgendas: any[] = []
+          if (agendaRes.data && agendaRes.data.length > 0) {
+            const orgName = currentOrg?.name || orgSlug
+            orgAgendas = agendaRes.data.map((a: any) => ({
+              ...a,
+              orgSlug: orgSlug,
+              orgName: orgName
+            }))
+            orgAgendas.sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
+          }
+          setAgendas(orgAgendas)
+
+          const targetAmt = settingsRes.data?.dues_target_amount ? parseFloat(settingsRes.data.dues_target_amount) : 0
+          setTargetAmount(targetAmt)
+
+          if (store.user?.id) {
+            const currentMember = (membersRes.data || []).find((m: any) => m.profile_id === store.user?.id)
+            const isOrgOwner = currentOrg && (currentOrg as any).owner_id === store.user?.id
+            const detectedRole = (isOrgOwner ? 'head' : (currentMember?.role || 'member')) as 'head' | 'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
+            setCurrentUserRole(detectedRole)
+
+            if (currentMember && currentMember.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
+              const joined = new Date(currentMember.joined_at)
+              const now = new Date()
+              let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
+              if (months < 1) months = 1
+
+              const expected = months * targetAmt
+              let paid = 0
+              ;(recordsRes.data || []).forEach((r: any) => {
+                if (r.profile_id === store.user?.id && r.category === 'Uang Kas') {
+                  paid += parseFloat(r.amount)
+                }
+              })
+              setMyTunggakan(Math.max(0, expected - paid))
+            } else {
+              setMyTunggakan(0)
+            }
+
+            const isOrgLeader = detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'bendahara'
+            const hasCompletedOnboarding = localStorage.getItem(`kitaatur_onboarding_completed_${orgSlug}`) === 'true'
+            const isDismissedOnboarding = localStorage.getItem(`kitaatur_onboarding_dismissed_${orgSlug}`) === 'true'
+            const isBrandNewOrg = targetAmt === 0 && orgAgendas.length === 0
+
+            if (isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
+              setShowOnboarding(true)
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching org dashboard fallback data:', err)
+        }
+      }
+
+      if (isMounted) setLoading(false)
     }
 
     if (orgSlug) {

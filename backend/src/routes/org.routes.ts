@@ -55,7 +55,7 @@ router.get('/me/list', getMyOrganizations)
 router.post('/create', createOrganization)
 
 // Overview Dashboard Konsolidasian (1-roundtrip batch load)
-router.get('/:orgIdOrSlug/overview', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrgDashboardOverview)
+router.get('/:orgIdOrSlug/overview', requireOrgRole(['head', 'vice_head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrgDashboardOverview)
 
 // Update Profil Organisasi (Akses: Head)
 router.put('/:orgIdOrSlug', requireOrgRole(['head']), updateOrganization)
