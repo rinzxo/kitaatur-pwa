@@ -29,6 +29,7 @@ const CACHE_CONFIGS: { pattern: RegExp; ttlMs: number }[] = [
   { pattern: /^\/admin\/announcements\/active$/, ttlMs: 120_000 },
   { pattern: /^\/org\/[^\/]+\/overview$/, ttlMs: 20_000 },
   { pattern: /^\/org\/[^\/]+\/settings$/, ttlMs: 30_000 },
+  { pattern: /^\/org\/[^\/]+\/family$/, ttlMs: 30_000 },
   { pattern: /^\/org\/[^\/]+\/members$/, ttlMs: 30_000 },
   { pattern: /^\/org-financial\/[^\/]+\/summary$/, ttlMs: 15_000 },
   { pattern: /^\/org-financial\/[^\/]+$/, ttlMs: 15_000 },

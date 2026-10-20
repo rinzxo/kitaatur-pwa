@@ -3,7 +3,8 @@ import toast from 'react-hot-toast'
 
 
 import { useState, useEffect, useMemo } from 'react'
-import { api, supabase } from '@/lib/api'
+import { api, supabase, getApiCachedData } from '@/lib/api'
+import { useDashboardStore } from '@/lib/dashboard-store'
 import { useParams, useRouter } from 'next/navigation'
 import { 
   GearSix as Settings, 
@@ -56,9 +57,15 @@ export default function OrgSettingsPage() {
   const params = useParams()
   const router = useRouter()
   const orgSlug = params.orgSlug as string
+  const store = useDashboardStore()
+
+  // Instant store resolution (0ms delay)
+  const initialOrg = useMemo(() => store.orgs.find(o => o.slug === orgSlug) || null, [store.orgs, orgSlug])
+  const initialRole = useMemo(() => store.getCurrentRole(orgSlug) || 'member', [store, orgSlug])
 
   const [activeView, setActiveView] = useState<ViewType>('main')
-  const [loading, setLoading] = useState(true)
+  // Instant load: If store already has user and org loaded, avoid skeleton flash completely
+  const [loading, setLoading] = useState<boolean>(() => !store.user && !initialOrg)
   const [saving, setSaving] = useState(false)
   const [showTour, setShowTour] = useState(false)
 
@@ -95,23 +102,23 @@ export default function OrgSettingsPage() {
     }
   ]
 
-  const [currentUserRole, setCurrentUserRole] = useState<string>('member')
-  const [orgData, setOrgData] = useState<{ id: string; name: string; logo_url: string | null; slug: string } | null>(null)
-  const [myOrgs, setMyOrgs] = useState<any[]>([])
+  const [currentUserRole, setCurrentUserRole] = useState<string>(initialRole)
+  const [orgData, setOrgData] = useState<{ id: string; name: string; logo_url: string | null; slug: string } | null>(initialOrg)
+  const [myOrgs, setMyOrgs] = useState<any[]>(store.orgs || [])
 
-  const [orgName, setOrgName] = useState('')
-  const [orgLogo, setOrgLogo] = useState<string | null>(null)
+  const [orgName, setOrgName] = useState(initialOrg?.name || '')
+  const [orgLogo, setOrgLogo] = useState<string | null>(initialOrg?.logo_url || null)
   const [isSchool, setIsSchool] = useState(false)
   const [schoolPin, setSchoolPin] = useState('')
-  const [hasSchoolPlan, setHasSchoolPlan] = useState(false)
-  const [userEmail, setUserEmail] = useState('')
-  const [userName, setUserName] = useState('Pengguna')
-  const [userAvatar, setUserAvatar] = useState<string | null>(null)
+  const [hasSchoolPlan, setHasSchoolPlan] = useState(store.hasSchoolPlan)
+  const [userEmail, setUserEmail] = useState(store.user?.email || '')
+  const [userName, setUserName] = useState(store.user?.name || 'Pengguna')
+  const [userAvatar, setUserAvatar] = useState<string | null>(store.user?.avatar_url || null)
   
   const [customFieldsSchema, setCustomFieldsSchema] = useState<any[]>([])
   const [myCustomData, setMyCustomData] = useState<any>({})
-  const [currentMemberId, setCurrentMemberId] = useState<string>('')
-  const [isVerified, setIsVerified] = useState(false)
+  const [currentMemberId, setCurrentMemberId] = useState<string>(store.user?.id || '')
+  const [isVerified, setIsVerified] = useState(store.isVerified)
   
   // State Keluarga Organisasi
   const [familyData, setFamilyData] = useState<{
@@ -122,7 +129,7 @@ export default function OrgSettingsPage() {
     children: Array<{ id: string; name: string; slug: string; logo_url: string | null; created_at: string; members_count: number }>
     covered_by_family: boolean
     has_family_subscription: boolean
-  } | null>(null)
+  } | null>(() => getApiCachedData<any>(`/org/${orgSlug}/family`))
   const [familyLoading, setFamilyLoading] = useState(false)
   const [familyCodeInput, setFamilyCodeInput] = useState('')
   const [copiedCode, setCopiedCode] = useState(false)
@@ -152,83 +159,108 @@ export default function OrgSettingsPage() {
   }, [])
   
   useEffect(() => {
+    let isMounted = true
+
+    // 1. Instant Cache Hydration
+    const cachedSettings = getApiCachedData<any>(`/org/${orgSlug}/settings`)
+    if (cachedSettings) {
+      if (cachedSettings.custom_fields_schema) setCustomFieldsSchema(cachedSettings.custom_fields_schema)
+      if (cachedSettings.is_edu !== undefined) setIsSchool(cachedSettings.is_edu)
+      if (cachedSettings.edu_pin) setSchoolPin(cachedSettings.edu_pin)
+    }
+
+    const cachedOverview = getApiCachedData<any>(`/org/${orgSlug}/overview`)
+    if (cachedOverview) {
+      if (cachedOverview.org?.is_edu !== undefined) setIsSchool(cachedOverview.org.is_edu)
+      if (cachedOverview.memberInfo?.custom_data) setMyCustomData(cachedOverview.memberInfo.custom_data)
+      if (cachedOverview.role) setCurrentUserRole(cachedOverview.role)
+    }
+
+    // 2. Fast Parallel Non-Blocking Fetch
     const init = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          router.push('/login')
-          return
-        }
-        
-        setUserEmail(user.email || '')
-        try {
-          const res = await api.get('/personal/profile')
-          setUserName(res.data?.full_name || 'Pengguna')
-          setUserAvatar(res.data?.avatar_url || null)
-        } catch (e) {
-          setUserName('Pengguna')
-          setUserAvatar(null)
+        const [
+          profileRes,
+          settingsRes,
+          membersRes,
+          orgsRes,
+          subRes
+        ] = await Promise.all([
+          api.get('/personal/profile').catch(() => null),
+          api.get(`/org/${orgSlug}/settings`).catch(() => null),
+          api.get(`/org/${orgSlug}/members`).catch(() => null),
+          api.get('/org/me/list').catch(() => null),
+          api.get('/subscription/me').catch(() => null)
+        ])
+
+        if (!isMounted) return
+
+        // Update profile state
+        if (profileRes?.data) {
+          if (profileRes.data.email) setUserEmail(profileRes.data.email)
+          if (profileRes.data.full_name) setUserName(profileRes.data.full_name)
+          setUserAvatar(profileRes.data.avatar_url || null)
         }
 
-        // Fetch user role in this org
-        const membersRes = await api.get(`/org/${orgSlug}/members`)
-        const currentMember = membersRes.data.find((m: any) => m.profile_id === user.id)
-        if (currentMember) {
-          setCurrentUserRole(currentMember.role)
-          setCurrentMemberId(currentMember.profile_id)
-          setMyCustomData(currentMember.custom_data || {})
-        } else {
-          router.push('/personal/dashboard')
-          return
+        // Update org settings
+        if (settingsRes?.data) {
+          if (settingsRes.data.custom_fields_schema) {
+            setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
+          }
+          if (settingsRes.data.is_edu !== undefined) {
+            setIsSchool(settingsRes.data.is_edu)
+          }
+          if (settingsRes.data.edu_pin) {
+            setSchoolPin(settingsRes.data.edu_pin)
+          }
         }
 
-        // Fetch org settings
-        const settingsRes = await api.get(`/org/${orgSlug}/settings`)
-        if (settingsRes.data.custom_fields_schema) {
-          setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
-        }
-        if (settingsRes.data.is_edu !== undefined) {
-          setIsSchool(settingsRes.data.is_edu)
-        }
-        if (settingsRes.data.edu_pin) {
-          setSchoolPin(settingsRes.data.edu_pin)
+        // Update user organizations
+        if (orgsRes?.data && Array.isArray(orgsRes.data)) {
+          setMyOrgs(orgsRes.data)
+          const current = orgsRes.data.find((o: any) => o.slug === orgSlug)
+          if (current) {
+            setOrgData(current)
+            setOrgName(current.name)
+            setOrgLogo(current.logo_url)
+          }
         }
 
-        // Fetch all user orgs to find this one and its ID
-        const switcherOrgsRes = await api.get('/org/me/list')
-        setMyOrgs(switcherOrgsRes.data)
-        
-        try {
-          const subRes = await api.get('/subscription/me')
+        // Update subscription info
+        if (subRes?.data && Array.isArray(subRes.data)) {
           setIsVerified(subRes.data.some((s: any) => s.status === 'active'))
-          setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))))
-        } catch (e) {
-          console.error('Failed to fetch subs', e)
-        }
-        
-        const currentOrg = switcherOrgsRes.data.find((o: any) => o.slug === orgSlug)
-
-        if (currentOrg) {
-          setOrgData(currentOrg)
-          setOrgName(currentOrg.name)
-          setOrgLogo(currentOrg.logo_url)
+          setHasSchoolPlan(subRes.data.some((s: any) => s.status === 'active' && (s.plan_type?.toLowerCase().includes('school') || s.plan_type?.toLowerCase().includes('edu'))))
         }
 
-        // Fetch family data
-        try {
-          const famRes = await api.get(`/org/${orgSlug}/family`)
-          setFamilyData(famRes.data)
-        } catch (e) {
-          console.error('Failed to fetch family data', e)
+        // Update member role & custom data
+        const currentUserId = store.user?.id || profileRes?.data?.id
+        if (membersRes?.data && Array.isArray(membersRes.data)) {
+          const currentMember = currentUserId 
+            ? membersRes.data.find((m: any) => m.profile_id === currentUserId)
+            : membersRes.data[0]
+          if (currentMember) {
+            setCurrentUserRole(currentMember.role)
+            setCurrentMemberId(currentMember.profile_id)
+            setMyCustomData(currentMember.custom_data || {})
+          }
         }
       } catch (err) {
-        console.error('Error fetching org data', err)
+        console.error('Error fetching org settings data', err)
       } finally {
-        setLoading(false)
+        if (isMounted) setLoading(false)
       }
     }
+
     init()
-  }, [orgSlug, router])
+    return () => { isMounted = false }
+  }, [orgSlug, store.user?.id])
+
+  // Lazy-load family data when user opens family view or if not loaded yet
+  useEffect(() => {
+    if (activeView === 'org_family' && !familyData && !familyLoading) {
+      fetchFamilyData()
+    }
+  }, [activeView, familyData, familyLoading])
 
   const fetchFamilyData = async () => {
     setFamilyLoading(true)
