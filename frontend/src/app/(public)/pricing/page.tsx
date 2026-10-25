@@ -118,7 +118,7 @@ export default function PricingPage() {
               <ul className="space-y-4 mb-8 font-medium">
                 {[
                   "Buat dan kelola 1 Organisasi Penuh",
-                  "Maksimal 100 anggota organisasi",
+                  "Anggota organisasi tanpa batas (Unlimited)",
                   "Pemindai Kehadiran QR (Internal)",
                   "Akses fitur Validasi Bukti dengan AI",
                   "Laporan Presensi & Keuangan Ekspor ke Excel",
@@ -133,7 +133,15 @@ export default function PricingPage() {
               </ul>
             </div>
 
-            <CheckoutButton planType={isYearly ? "plus-yearly" : "plus-monthly"} amount={isYearly ? 400000 : 40000} />
+            <div className="space-y-2">
+              <CheckoutButton planType={isYearly ? "plus-yearly" : "plus-monthly"} amount={isYearly ? 400000 : 40000} />
+              <Link
+                href="/promo/trial"
+                className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 font-semibold rounded-xl text-center text-xs transition-colors block border border-slate-200"
+              >
+                Uji Coba Gratis 7 Hari
+              </Link>
+            </div>
           </div>
 
           {/* PRO PLAN */}
@@ -159,8 +167,7 @@ export default function PricingPage() {
                   <span>Semua fitur KitaAtur Plus, ditambah:</span>
                 </li>
                 {[
-                  "Anggota organisasi tanpa batas",
-                  "Portal Publik KitaAtur School",
+                  "Portal Publik KitaAtur School (Akses Siswa & Wali)",
                   "Import Data Massal via Excel (Siswa/Tamu)",
                   "Pembuatan PIN Akses Wali Murid",
                   "Manajemen Tamu / Siswa Lanjutan",

@@ -17,7 +17,8 @@ import {
   Receipt, 
   Plus, 
   DownloadSimple as Download,
-  Compass
+  Compass,
+  CalendarBlank as Calendar
 } from '@phosphor-icons/react'
 import { SpotlightTour, type TourStep } from '@/components/ui/SpotlightTour'
 
@@ -37,6 +38,8 @@ interface Member {
 interface OrgSettings {
   dues_target_amount: string | null
   dues_presets: string | null
+  dues_start_period?: string | null
+  dues_end_period?: string | null
 }
 
 // Helpers for Auto-Formatting Currency Inputs
@@ -58,7 +61,7 @@ export default function OrgDuesCollectionPage() {
   // Data states
   const [members, setMembers] = useState<Member[]>([])
   const [paidTotals, setPaidTotals] = useState<Record<string, number>>({}) // profile_id -> total paid this month
-  const [settings, setSettings] = useState<OrgSettings>({ dues_target_amount: null, dues_presets: null })
+  const [settings, setSettings] = useState<OrgSettings>({ dues_target_amount: null, dues_presets: null, dues_start_period: null, dues_end_period: null })
   const [customFieldsSchema, setCustomFieldsSchema] = useState<any[]>([])
   
   // UI states
@@ -71,6 +74,9 @@ export default function OrgDuesCollectionPage() {
   const [targetAmountStr, setTargetAmountStr] = useState('')
   const [presetList, setPresetList] = useState<number[]>([10000, 20000, 50000])
   const [newPresetStr, setNewPresetStr] = useState('')
+  const [periodMode, setPeriodMode] = useState<'auto' | 'custom'>('auto')
+  const [duesStartPeriod, setDuesStartPeriod] = useState<string>('')
+  const [duesEndPeriod, setDuesEndPeriod] = useState<string>('')
   const [savingSettings, setSavingSettings] = useState(false)
 
   // Payment Modal state (Central Input)
@@ -89,29 +95,45 @@ export default function OrgDuesCollectionPage() {
     {
       target: '[data-tour="tour-target-header"]',
       title: 'Target Kas Bulanan',
-      description: 'Lihat target iuran kas per anggota per bulan. Pengurus dapat mengubah target nominal kapan saja melalui ikon pengaturan.'
+      description: 'Menampilkan target nominal iuran kas rutin per anggota per bulan. Nominal ini dijadikan acuan dasar kewajiban kas bulanan anggota.',
+      position: 'bottom'
+    },
+    {
+      target: '[data-tour="tour-period-badge"]',
+      title: 'Rentang Periode Kas Organisasi',
+      description: 'Periode kas dapat dibatasi sesuai masa kepengurusan (misal: September 2026 s.d. September 2027) atau berjalan otomatis sejak anggota bergabung. Klik badge ini kapan saja untuk mengubahnya.',
+      position: 'bottom'
+    },
+    {
+      target: '[data-tour="tour-dues-settings"]',
+      title: 'Pengaturan Target, Periode & Preset',
+      description: 'Pengurus (Ketua & Bendahara) dapat mengubah target kas, menentukan batas bulan mulai & selesai periode, serta mengatur tombol nominal preset cepat untuk mempermudah pencatatan.',
+      position: 'bottom'
     },
     {
       target: '[data-tour="tour-dues-tabs"]',
-      title: 'Daftar Nunggak vs Lunas',
-      description: 'Pantau siapa saja anggota yang masih memiliki tunggakan kas bulan ini, dan siapa yang sudah lunas terverifikasi.'
+      title: 'Daftar Nunggak vs Aman / Lunas',
+      description: 'Tunggakan kas HANYA dihitung dari bulan mulai periode sampai bulan saat ini yang telah jatuh tempo. Bulan-bulan di depan belum jatuh tempo dan tidak dihitung sebagai tunggakan!',
+      position: 'bottom'
     },
     {
       target: '[data-tour="tour-tagih-btn"]',
-      title: 'Kirim Tagihan & Catat Pembayaran',
-      description: 'Klik kartu anggota untuk membuka opsi: kirim pesan tagihan otomatis ke WhatsApp siswa, atau catat nominal uang kas yang telah diterima.'
+      title: 'Catat Kas & Rincian Bulanan',
+      description: 'Klik kartu anggota untuk membuka lembar tagihan: pantau rincian bulan yang sudah lunas, lunasi tunggakan, catat pembayaran kas di awal (prepaid) untuk bulan mendatang, atau kirim tagihan WhatsApp otomatis.',
+      position: 'bottom'
     },
     {
       target: '[data-tour="tour-export-excel"]',
-      title: 'Ekspor Laporan Kas',
-      description: 'Unduh rekapitulasi data pembayaran kas seluruh anggota dalam format Excel untuk laporan pertanggungjawaban bendahara.'
+      title: 'Ekspor Rekapitulasi Kas Excel',
+      description: 'Unduh rekapitulasi data pembayaran kas seluruh anggota dalam format Excel rapi untuk arsip pertanggungjawaban bendahara, lengkap dengan status akumulasi dan periode kas.',
+      position: 'bottom'
     }
   ]
 
   // User States
   const [currentUserId, setCurrentUserId] = useState<string>('')
   const [currentUserRole, setCurrentUserRole] = useState<string>('member')
-  const isEditor = currentUserRole === 'bendahara'
+  const isEditor = currentUserRole === 'bendahara' || currentUserRole === 'head' || currentUserRole === 'vice_head'
 
   const router = useRouter()
 
@@ -168,6 +190,15 @@ export default function OrgDuesCollectionPage() {
         const arr = settingsRes.data.dues_presets.split(',').map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n))
         if (arr.length > 0) setPresetList(arr)
       }
+
+      if (settingsRes.data?.dues_start_period) {
+        setDuesStartPeriod(settingsRes.data.dues_start_period)
+        setPeriodMode('custom')
+      } else {
+        setDuesStartPeriod('')
+        setPeriodMode('auto')
+      }
+      setDuesEndPeriod(settingsRes.data?.dues_end_period || '')
       
       if (settingsRes.data?.custom_fields_schema) {
         setCustomFieldsSchema(settingsRes.data.custom_fields_schema)
@@ -208,13 +239,17 @@ export default function OrgDuesCollectionPage() {
       const parsedTarget = parseNumberFromDots(targetAmountStr)
       const presetsString = presetList.join(',')
       
-      const res = await api.patch(`/org/${orgSlug}/settings`, {
+      const payload: any = {
         dues_target_amount: parsedTarget > 0 ? parsedTarget : null,
-        dues_presets: presetsString
-      })
+        dues_presets: presetsString,
+        dues_start_period: periodMode === 'custom' && duesStartPeriod ? duesStartPeriod : null,
+        dues_end_period: periodMode === 'custom' && duesStartPeriod && duesEndPeriod ? duesEndPeriod : null
+      }
+
+      const res = await api.patch(`/org/${orgSlug}/settings`, payload)
       setSettings(res.data)
       setIsSettingsOpen(false)
-      toast.success('Pengaturan berhasil disimpan!')
+      toast.success('Pengaturan iuran & periode kas berhasil disimpan!')
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal menyimpan pengaturan')
     } finally {
@@ -266,6 +301,56 @@ export default function OrgDuesCollectionPage() {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val)
   }
 
+  const formatPeriodLabel = (startStr?: string | null, endStr?: string | null) => {
+    if (!startStr) return 'Sejak Bergabung (Otomatis)'
+    const [sY, sM] = startStr.split('-').map(Number)
+    const startDate = new Date(sY, sM - 1, 1)
+    const startName = startDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+    
+    if (endStr) {
+      const [eY, eM] = endStr.split('-').map(Number)
+      const endDate = new Date(eY, eM - 1, 1)
+      const endName = endDate.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+      const count = (eY - sY) * 12 + (eM - sM) + 1
+      return `${startName} - ${endName} (${count} Bulan)`
+    }
+    
+    return `Mulai ${startName} (Berjalan)`
+  }
+
+  const getPeriodMonthsList = () => {
+    const startStr = settings.dues_start_period
+    const endStr = settings.dues_end_period
+    
+    if (!startStr) return null // auto mode
+    
+    const [sYear, sMonth] = startStr.split('-').map(Number)
+    let eYear: number
+    let eMonth: number
+    
+    if (endStr) {
+      const [endY, endM] = endStr.split('-').map(Number)
+      eYear = endY
+      eMonth = endM
+    } else {
+      const now = new Date()
+      eYear = now.getFullYear()
+      eMonth = now.getMonth() + 1
+    }
+    
+    const count = (eYear - sYear) * 12 + (eMonth - sMonth) + 1
+    if (count <= 0) return []
+    
+    const list = []
+    for (let i = 0; i < count; i++) {
+      const d = new Date(sYear, sMonth - 1 + i, 1)
+      const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const monthName = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+      list.push({ monthStr, monthName, date: d })
+    }
+    return list
+  }
+
   const calculateMonthsSinceJoined = (joinedAt: string) => {
     if (!joinedAt) return 1
     const joined = new Date(joinedAt)
@@ -274,44 +359,117 @@ export default function OrgDuesCollectionPage() {
     return months > 0 ? months : 1
   }
 
+  // Menghitung jumlah bulan yang sudah berjalan/jatuh tempo sampai saat ini (now)
+  const calculateElapsedMonths = (m?: Member) => {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1 // 1-12
+
+    const startStr = settings.dues_start_period
+    const endStr = settings.dues_end_period
+
+    if (startStr) {
+      const [sY, sM] = startStr.split('-').map(Number)
+
+      // Jika sekarang masih sebelum bulan mulai periode, belum ada bulan yang jatuh tempo (0 bulan)
+      if (currentYear < sY || (currentYear === sY && currentMonth < sM)) {
+        return 0
+      }
+
+      // Default batas akhir adalah bulan berjalan sekarang (now)
+      let eY = currentYear
+      let eM = currentMonth
+
+      // Namun jika ada bulan selesai dan sekarang sudah melewati bulan selesai, batasi sampai bulan selesai
+      if (endStr) {
+        const [endY, endM] = endStr.split('-').map(Number)
+        if (currentYear > endY || (currentYear === endY && currentMonth >= endM)) {
+          eY = endY
+          eM = endM
+        }
+      }
+
+      const elapsed = (eY - sY) * 12 + (eM - sM) + 1
+      return Math.max(0, elapsed)
+    }
+
+    // Mode Otomatis (sejak tanggal bergabung sampai sekarang)
+    if (!m?.joined_at) return 1
+    const joined = new Date(m.joined_at)
+    const months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
+    return Math.max(1, months)
+  }
+
   const getTunggakan = (m: Member) => {
-    const months = calculateMonthsSinceJoined(m.joined_at)
-    const expected = months * targetAmount
+    // Tunggakan HANYA dihitung dari bulan start sampai bulan berjalan sekarang (elapsed), bukan bulan di depannya
+    const elapsedMonths = calculateElapsedMonths(m)
+    const expected = elapsedMonths * targetAmount
     const paid = paidTotals[m.profile.id] || 0
-    return expected - paid
+    return Math.max(0, expected - paid)
   }
 
   const generateMonthlyBreakdown = (m: Member) => {
-    if (!m.joined_at || targetAmount <= 0) return []
-    const joined = new Date(m.joined_at)
-    const now = new Date()
-    const totalMonths = calculateMonthsSinceJoined(m.joined_at)
+    if (targetAmount <= 0) return []
     const paid = paidTotals[m.profile.id] || 0
+    const customList = getPeriodMonthsList()
+    const now = new Date()
+    const currentYear = now.getFullYear()
+    const currentMonth = now.getMonth() + 1
     
     const breakdown = []
     let currentExpected = 0
     
-    for (let i = 0; i < totalMonths; i++) {
-      const d = new Date(joined.getFullYear(), joined.getMonth() + i, 1)
-      const monthName = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
-      currentExpected += targetAmount
-      
-      let isPaid = paid >= currentExpected
-      let shortfall = 0
-      
-      if (!isPaid) {
-        if (paid > currentExpected - targetAmount) {
-          shortfall = currentExpected - paid
-        } else {
-          shortfall = targetAmount
+    if (customList !== null) {
+      for (const item of customList) {
+        currentExpected += targetAmount
+        let isPaid = paid >= currentExpected
+        let shortfall = 0
+        if (!isPaid) {
+          if (paid > currentExpected - targetAmount) {
+            shortfall = currentExpected - paid
+          } else {
+            shortfall = targetAmount
+          }
         }
+
+        const [itemY, itemM] = item.monthStr.split('-').map(Number)
+        const isFuture = (itemY > currentYear) || (itemY === currentYear && itemM > currentMonth)
+
+        breakdown.push({
+          monthName: item.monthName,
+          isPaid,
+          shortfall,
+          isFuture
+        })
       }
-      
-      breakdown.push({
-        monthName,
-        isPaid,
-        shortfall
-      })
+    } else {
+      if (!m.joined_at) return []
+      const joined = new Date(m.joined_at)
+      const totalMonths = calculateMonthsSinceJoined(m.joined_at)
+      for (let i = 0; i < totalMonths; i++) {
+        const d = new Date(joined.getFullYear(), joined.getMonth() + i, 1)
+        const monthName = d.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+        currentExpected += targetAmount
+        
+        let isPaid = paid >= currentExpected
+        let shortfall = 0
+        if (!isPaid) {
+          if (paid > currentExpected - targetAmount) {
+            shortfall = currentExpected - paid
+          } else {
+            shortfall = targetAmount
+          }
+        }
+
+        const isFuture = (d.getFullYear() > currentYear) || (d.getFullYear() === currentYear && (d.getMonth() + 1) > currentMonth)
+
+        breakdown.push({
+          monthName,
+          isPaid,
+          shortfall,
+          isFuture
+        })
+      }
     }
     
     return breakdown.reverse() // show latest first
@@ -327,6 +485,11 @@ export default function OrgDuesCollectionPage() {
         'Email': m.profile.email,
         'Role': m.role,
         'Tanggal Bergabung': m.joined_at ? new Date(m.joined_at).toLocaleDateString('id-ID') : '-',
+        'Periode Kas': formatPeriodLabel(settings.dues_start_period, settings.dues_end_period),
+        'Bulan Jatuh Tempo': calculateElapsedMonths(m),
+        'Akumulasi Dibayar': paidTotals[m.profile.id] || 0,
+        'Jumlah Nunggak': isUnpaid ? tunggakan : 0,
+        'Status': isUnpaid ? 'Nunggak' : 'Aman/Lunas'
       }
       
       // Add custom fields
@@ -409,19 +572,40 @@ export default function OrgDuesCollectionPage() {
               <Receipt className="h-6 w-6 text-blue-600" />
               Tagih Kas
             </h1>
-            <p data-tour="tour-target-header" className="text-slate-500 font-medium text-xs mt-1">
-              Target: <strong className="text-blue-600">{formatCurrency(targetAmount)}</strong> / bulan
-            </p>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <p data-tour="tour-target-header" className="text-slate-500 font-medium text-xs">
+                Target: <strong className="text-blue-600">{formatCurrency(targetAmount)}</strong> / bulan
+              </p>
+              <span className="text-slate-300">•</span>
+              <p className="text-slate-500 font-medium text-xs flex items-center gap-1.5">
+                <span>Periode:</span>
+                <button
+                  data-tour="tour-period-badge"
+                  type="button"
+                  onClick={() => isEditor && setIsSettingsOpen(true)}
+                  disabled={!isEditor}
+                  className={`font-bold px-2 py-0.5 rounded-md text-[11px] transition-all ${
+                    settings.dues_start_period 
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                      : 'bg-slate-100 text-slate-700'
+                  } ${isEditor ? 'hover:ring-2 hover:ring-blue-400 cursor-pointer' : 'cursor-default'}`}
+                  title={isEditor ? "Klik untuk mengubah periode kas" : undefined}
+                >
+                  {formatPeriodLabel(settings.dues_start_period, settings.dues_end_period)}
+                </button>
+              </p>
+            </div>
           </div>
           {isEditor && (
             <div className="flex gap-2 items-center">
               <button
                 type="button"
                 onClick={() => setShowTour(true)}
-                className="p-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-full transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 rounded-xl font-bold text-xs transition-colors shadow-2xs"
                 title="Panduan Interaktif Fitur"
               >
-                <Compass className="h-5 w-5" />
+                <Compass className="h-4 w-4" />
+                <span className="hidden sm:inline">Panduan</span>
               </button>
               <button
                 data-tour="tour-export-excel"
@@ -432,9 +616,10 @@ export default function OrgDuesCollectionPage() {
                 <Download className="h-5 w-5" />
               </button>
               <button
+                data-tour="tour-dues-settings"
                 onClick={() => setIsSettingsOpen(true)}
                 className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-full text-slate-500 hover:text-slate-900 transition-colors shadow-sm"
-                title="Pengaturan Target"
+                title="Pengaturan Target & Periode"
               >
                 <Settings className="h-5 w-5" />
               </button>
@@ -546,8 +731,20 @@ export default function OrgDuesCollectionPage() {
 
           {activeTab === 'paid' && (
             <div className="divide-y divide-slate-100">
-              {paidMembers.map(member => (
-                <div key={member.id} className="p-4 flex justify-between items-center bg-slate-50/50">
+              {paidMembers.map((member, index) => (
+                <div 
+                  key={member.id} 
+                  data-tour={index === 0 && unpaidMembers.length === 0 ? "tour-tagih-btn" : undefined}
+                  onClick={() => {
+                    if (!isEditor) return;
+                    setSelectedMember(member)
+                    setAmountStr('')
+                    setActiveModalTab('rincian')
+                  }}
+                  className={`p-4 flex justify-between items-center bg-slate-50/50 transition-colors ${
+                    isEditor ? 'hover:bg-blue-50 cursor-pointer group' : ''
+                  }`}
+                >
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-lg overflow-hidden border-2 border-emerald-400">
@@ -562,12 +759,17 @@ export default function OrgDuesCollectionPage() {
                       </div>
                     </div>
                     <div>
-                      <h4 className="font-bold text-slate-900">
+                      <h4 className="font-bold text-slate-900 group-hover:text-blue-700 transition-colors">
                         {member.profile.full_name || 'Tanpa Nama'}
                       </h4>
                       <p className="text-xs text-emerald-600 font-bold mt-0.5">AMAN / LUNAS (Akumulasi: {formatCurrency(paidTotals[member.profile.id] || 0)})</p>
                     </div>
                   </div>
+                  {isEditor && (
+                    <span className="text-xs font-bold text-slate-500 group-hover:text-blue-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs transition-colors">
+                      Lihat Rincian
+                    </span>
+                  )}
                 </div>
               ))}
               {paidMembers.length === 0 && (
@@ -643,21 +845,42 @@ export default function OrgDuesCollectionPage() {
                     {generateMonthlyBreakdown(selectedMember).map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-3 border border-slate-100 rounded-xl bg-slate-50/50">
                         <div>
-                          <p className="font-bold text-slate-800 text-sm">{item.monthName}</p>
-                          <p className={`text-xs font-bold mt-0.5 ${item.isPaid ? 'text-emerald-600' : 'text-rose-500'}`}>
-                            {item.isPaid ? 'LUNAS' : `Kurang ${formatCurrency(item.shortfall)}`}
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-bold text-slate-800 text-sm">{item.monthName}</p>
+                            {item.isFuture && !item.isPaid && (
+                              <span className="text-[10px] font-semibold text-slate-500 bg-slate-200/70 px-1.5 py-0.5 rounded">
+                                Bulan Mendatang
+                              </span>
+                            )}
+                          </div>
+                          <p className={`text-xs font-bold mt-0.5 ${
+                            item.isPaid 
+                              ? 'text-emerald-600' 
+                              : item.isFuture 
+                                ? 'text-slate-500' 
+                                : 'text-rose-500'
+                          }`}>
+                            {item.isPaid 
+                              ? (item.isFuture ? 'LUNAS (DI MUKA)' : 'LUNAS') 
+                              : item.isFuture 
+                                ? `Belum Jatuh Tempo (${formatCurrency(item.shortfall)})` 
+                                : `NUNGGAK (${formatCurrency(item.shortfall)})`}
                           </p>
                         </div>
                         {!item.isPaid && (
                           <button
                             onClick={() => {
-                              setMonth(`Tunggakan ${item.monthName}`)
+                              setMonth(`Kas ${item.monthName}`)
                               setAmountStr(formatNumberWithDots(item.shortfall.toString()))
                               setActiveModalTab('bayar')
                             }}
-                            className="text-xs font-bold bg-white border border-rose-200 text-rose-600 px-3 py-1.5 rounded-lg hover:bg-rose-50 transition-colors shadow-sm"
+                            className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-colors shadow-sm border ${
+                              item.isFuture
+                                ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                                : 'bg-white border-rose-200 text-rose-600 hover:bg-rose-50'
+                            }`}
                           >
-                            Bayar Ini
+                            {item.isFuture ? 'Bayar di Awal' : 'Bayar Ini'}
                           </button>
                         )}
                         {item.isPaid && (
@@ -750,11 +973,11 @@ export default function OrgDuesCollectionPage() {
       {/* Settings Modal */}
       {isSettingsOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-3xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 shrink-0">
               <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
                 <Settings className="h-5 w-5 text-slate-500" />
-                Pengaturan Target
+                Pengaturan Iuran & Periode Kas
               </h3>
               <button 
                 onClick={() => setIsSettingsOpen(false)}
@@ -784,8 +1007,100 @@ export default function OrgDuesCollectionPage() {
                 </div>
               </div>
 
+              {/* Periode Kas Section */}
+              <div className="space-y-3 pt-2 border-t border-slate-100">
+                <div className="flex justify-between items-center">
+                  <label className="block text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span>Periode Perhitungan Kas</span>
+                  </label>
+                  <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                    Opsi Periode
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 font-normal leading-relaxed">
+                  Pilih apakah iuran dihitung otomatis sejak tanggal bergabung anggota, atau ditentukan rentang bulan tertentu oleh bendahara.
+                </p>
+
+                {/* Mode Selector */}
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setPeriodMode('auto')}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                      periodMode === 'auto'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Otomatis (Join Date)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPeriodMode('custom')
+                      if (!duesStartPeriod) {
+                        const now = new Date()
+                        setDuesStartPeriod(`${now.getFullYear()}-01`)
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                      periodMode === 'custom'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Atur Periode Khusus
+                  </button>
+                </div>
+
+                {periodMode === 'custom' && (
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 animate-in fade-in duration-200">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">
+                          Bulan Mulai (Dari)
+                        </label>
+                        <input
+                          type="month"
+                          value={duesStartPeriod}
+                          onChange={(e) => setDuesStartPeriod(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-600 mb-1">
+                          Bulan Selesai (Sampai)
+                        </label>
+                        <input
+                          type="month"
+                          value={duesEndPeriod}
+                          onChange={(e) => setDuesEndPeriod(e.target.value)}
+                          placeholder="Kosongkan jika berjalan"
+                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="p-3 bg-blue-50/70 border border-blue-100 rounded-xl text-[11px] text-blue-900 leading-relaxed">
+                      {duesStartPeriod ? (
+                        <>
+                          <strong>Status:</strong> Kas hanya akan ditagihkan untuk rentang{' '}
+                          <span className="font-extrabold underline">
+                            {formatPeriodLabel(duesStartPeriod, duesEndPeriod || null)}
+                          </span>
+                          . Bulan di luar rentang ini tidak akan dihitung sebagai tunggakan.
+                        </>
+                      ) : (
+                        'Pilih bulan mulai untuk mengaktifkan periode perhitungan kas.'
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Presets List */}
-              <div>
+              <div className="pt-2 border-t border-slate-100">
                 <label className="block text-sm font-bold text-slate-700 mb-2">
                   Daftar Pilihan Nominal (Preset)
                 </label>

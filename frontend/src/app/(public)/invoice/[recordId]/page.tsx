@@ -4,11 +4,9 @@ import { api } from '@/lib/api'
 import { useParams, useRouter } from 'next/navigation'
 import { Printer, ArrowLeft, Scissors, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
-import { Playfair_Display, Space_Mono, Caveat } from 'next/font/google'
-
-const playfair = Playfair_Display({ subsets: ['latin'] })
-const spaceMono = Space_Mono({ weight: ['400', '700'], subsets: ['latin'] })
-const caveat = Caveat({ subsets: ['latin'], weight: ['600', '700'] })
+const playfair = { className: 'font-serif' }
+const spaceMono = { className: 'font-mono' }
+const caveat = { className: 'font-sans italic' }
 
 export default function PublicInvoicePrintPage() {
   const params = useParams()

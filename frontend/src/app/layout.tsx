@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "KitaAtur",
     images: [
       {
-        url: "/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp",
+        url: "/images/mockups/KitaAturMockNew (5).png",
         width: 1080,
         height: 2340,
         alt: "KitaAtur App Mockup",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "KitaAtur - Presensi & Keuangan Organisasi",
     description: "Platform SaaS Manajemen Presensi QR dan Arus Kas Organisasi Terintegrasi",
-    images: ["/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp"],
+    images: ["/images/mockups/KitaAturMockNew (5).png"],
   },
   manifest: '/manifest.json',
   icons: {

@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, Clock, CheckCircle2, Package } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Clock, CheckCircle2, Package, Sparkles } from 'lucide-react'
 import dayjs from 'dayjs'
 import 'dayjs/locale/id'
 
@@ -68,8 +68,20 @@ export default function SubscriptionSettingsPage() {
                 >
                   <div>
                     <div className="flex items-center gap-3 mb-1">
-                      <span className="font-bold text-slate-900 capitalize">KitaAtur {sub.plan_type.replace('-', ' ')}</span>
-                      {sub.status === 'unpaid' ? (
+                      <span className="font-bold text-slate-900 capitalize">
+                        {sub.plan_type.includes('trial') ? 'KitaAtur Plus (Trial 7 Hari)' : `KitaAtur ${sub.plan_type.replace('-', ' ')}`}
+                      </span>
+                      {sub.plan_type.includes('trial') ? (
+                        sub.status === 'active' && new Date(sub.expires_at) > new Date() ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-bold uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3 text-blue-600" /> Uji Coba Aktif
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                            Uji Coba Berakhir
+                          </span>
+                        )
+                      ) : sub.status === 'unpaid' ? (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider">
                           <Clock className="w-3 h-3" /> Menunggu Pembayaran
                         </span>

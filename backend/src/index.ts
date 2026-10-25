@@ -20,6 +20,7 @@ import notificationRoutes from './routes/notification.routes'
 import scheduleRoutes from './routes/schedule.routes'
 import schoolRoutes from './routes/school.routes'
 import adminRoutes from './routes/admin.routes'
+import trialRoutes from './routes/trial.routes'
 
 import { maintenanceCheck } from './middleware/maintenance.middleware'
 
@@ -81,6 +82,7 @@ app.use('/api/org-meeting', meetingRoutes)
 app.use('/api/org-schedule', scheduleRoutes)
 app.use('/api/school', schoolRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/trial', trialRoutes)
 
 // Health check endpoint
 app.get('/health', (req, res) => {

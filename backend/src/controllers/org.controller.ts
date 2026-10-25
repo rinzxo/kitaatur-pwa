@@ -212,19 +212,8 @@ export async function addOrganizationMember(req: Request, res: Response) {
       return res.status(400).json({ error: 'Pengguna tersebut sudah tergabung dalam organisasi ini' })
     }
 
-    // Limit check for Plus tier
-    const orgData = await prisma.organizations.findUnique({
-      where: { id: orgMemberContext.organizationId },
-      include: {
-        _count: {
-          select: { organization_members: true }
-        }
-      }
-    });
+    // Note: Paket KitaAtur Plus kini mendukung anggota tanpa batas (unlimited)
 
-    if (orgData && (orgData as any).subscription_tier === 'plus' && orgData._count.organization_members >= 100) {
-      return res.status(403).json({ error: 'Limit paket Plus (maksimal 100 anggota) telah tercapai. Silakan upgrade ke paket Pro untuk anggota tanpa batas.' });
-    }
 
     // D. Hubungkan user ke organisasi sebagai member
     const newMemberRelation = await prisma.organization_members.create({
@@ -814,9 +803,9 @@ export async function getOrganizationSettings(req: Request, res: Response) {
   try {
     let result;
     try {
-      // Coba query dengan kolom Edu (bisa gagal jika db push belum berhasil)
+      // Coba query dengan kolom Edu & Periode Kas
       result = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT dues_target_amount, dues_presets, custom_fields_schema, is_edu, edu_pin FROM public.organizations WHERE id = $1::uuid`,
+        `SELECT dues_target_amount, dues_presets, dues_start_period, dues_end_period, custom_fields_schema, is_edu, edu_pin FROM public.organizations WHERE id = $1::uuid`,
         orgMemberContext.organizationId
       )
     } catch (columnErr) {
@@ -901,7 +890,7 @@ export async function updateOrganization(req: Request, res: Response) {
 // 8. Menyimpan Pengaturan Organisasi (Akses: Head & Bendahara)
 export async function updateOrganizationSettings(req: Request, res: Response) {
   const orgMemberContext = (req as any).orgMember
-  const { dues_target_amount, dues_presets } = req.body
+  const { dues_target_amount, dues_presets, dues_start_period, dues_end_period } = req.body
 
   if (!orgMemberContext || (orgMemberContext.role !== 'bendahara' && orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head')) {
     return res.status(403).json({ error: 'Akses ditolak: Hanya Pengurus (Ketua atau Bendahara) yang dapat mengubah pengaturan iuran' })
@@ -910,15 +899,24 @@ export async function updateOrganizationSettings(req: Request, res: Response) {
   try {
     // Menggunakan executeRaw untuk menghindari error Prisma Schema
     await prisma.$executeRawUnsafe(
-      `UPDATE public.organizations SET dues_target_amount = $1, dues_presets = $2 WHERE id = $3::uuid`,
+      `UPDATE public.organizations 
+       SET dues_target_amount = $1, 
+           dues_presets = $2, 
+           dues_start_period = $3, 
+           dues_end_period = $4 
+       WHERE id = $5::uuid`,
       dues_target_amount || null,
       dues_presets || null,
+      dues_start_period || null,
+      dues_end_period || null,
       orgMemberContext.organizationId
     )
 
     return res.status(200).json({
       dues_target_amount: dues_target_amount || null,
-      dues_presets: dues_presets || null
+      dues_presets: dues_presets || null,
+      dues_start_period: dues_start_period || null,
+      dues_end_period: dues_end_period || null
     })
   } catch (err) {
     console.error('Error updating org settings:', err)
@@ -1708,7 +1706,8 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
       expenseSum,
       recentRecords,
       userKasRecords,
-      agendas
+      agendas,
+      periodRecords
     ] = await Promise.all([
       // 1. Org info & settings
       prisma.organizations.findUnique({
@@ -1814,20 +1813,57 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
         },
         orderBy: { start_time: 'asc' },
         take: 5
-      })
+      }),
+
+      // 10. Dues Period Settings
+      prisma.$queryRawUnsafe<any[]>(
+        `SELECT dues_start_period, dues_end_period FROM public.organizations WHERE id = $1::uuid`,
+        orgId
+      ).catch(() => [])
     ]);
 
     const income = incomeSum._sum.amount ? Number(incomeSum._sum.amount) : 0;
     const expense = expenseSum._sum.amount ? Number(expenseSum._sum.amount) : 0;
     const balance = income - expense;
 
+    // Attach dues period settings to org object
+    const periodSettings = (periodRecords && periodRecords[0]) ? periodRecords[0] : {};
+    const duesStartPeriod = periodSettings.dues_start_period || null;
+    const duesEndPeriod = periodSettings.dues_end_period || null;
+    if (org) {
+      (org as any).dues_start_period = duesStartPeriod;
+      (org as any).dues_end_period = duesEndPeriod;
+    }
+
     // Hitung tunggakan kas jika ada target iuran
     const targetAmt = org?.dues_target_amount ? Number(org.dues_target_amount) : 0;
     let myTunggakan = 0;
-    if (currentMember?.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
-      const joined = new Date(currentMember.joined_at);
-      let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1;
-      if (months < 1) months = 1;
+    if (targetAmt > 0 && currentMember?.role !== 'auditor') {
+      let months = 0;
+      if (duesStartPeriod) {
+        // Mode Periode Kas (misal: 2025-01 s.d. 2025-06)
+        const [sYear, sMonth] = duesStartPeriod.split('-').map(Number);
+        if (now.getFullYear() < sYear || (now.getFullYear() === sYear && (now.getMonth() + 1) < sMonth)) {
+          months = 0;
+        } else {
+          let eYear = now.getFullYear();
+          let eMonth = now.getMonth() + 1;
+          if (duesEndPeriod) {
+            const [endY, endM] = duesEndPeriod.split('-').map(Number);
+            // Batasi jika sekarang sudah melewati akhir periode
+            if (now.getFullYear() > endY || (now.getFullYear() === endY && (now.getMonth() + 1) >= endM)) {
+              eYear = endY;
+              eMonth = endM;
+            }
+          }
+          months = (eYear - sYear) * 12 + (eMonth - sMonth) + 1;
+          if (months < 1) months = 0;
+        }
+      } else if (currentMember?.joined_at) {
+        const joined = new Date(currentMember.joined_at);
+        months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1;
+        if (months < 1) months = 1;
+      }
       const expected = months * targetAmt;
       const paid = userKasRecords.reduce((acc, curr) => acc + Number(curr.amount), 0);
       myTunggakan = Math.max(0, expected - paid);
@@ -1838,6 +1874,33 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
       ? 'head'
       : (currentMember?.role || orgMemberContext.role || 'member');
 
+    // Cek informasi langganan / masa uji coba (trial) dari pemilik organisasi
+    let trialInfo: any = null;
+    if (org?.owner_id) {
+      const ownerSub = await prisma.subscriptions.findFirst({
+        where: { profile_id: org.owner_id },
+        orderBy: { created_at: 'desc' }
+      });
+
+      if (ownerSub) {
+        const isTrial = (ownerSub.plan_type || '').toLowerCase().includes('trial');
+        const isExpired = new Date(ownerSub.expires_at) < now || ownerSub.status !== 'active';
+        const diffMs = new Date(ownerSub.expires_at).getTime() - now.getTime();
+        const daysLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+        const hoursLeft = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60)));
+
+        trialInfo = {
+          isTrial,
+          planType: ownerSub.plan_type,
+          status: ownerSub.status,
+          isExpired,
+          expiresAt: ownerSub.expires_at,
+          daysLeft,
+          hoursLeft
+        };
+      }
+    }
+
     return res.status(200).json({
       org,
       role: detectedRole,
@@ -1847,7 +1910,8 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
       financialSummary: { income, expense, balance },
       records: recentRecords || [],
       myTunggakan,
-      agendas: agendas || []
+      agendas: agendas || [],
+      trialInfo
     });
   } catch (err: any) {
     console.error('Error fetching org overview:', err);

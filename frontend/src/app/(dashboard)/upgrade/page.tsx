@@ -113,7 +113,7 @@ export default function UpgradePage() {
             <ul className="space-y-4 mb-10 text-sm">
               {[
                 'Buat dan kelola 1 Organisasi Penuh',
-                'Maksimal 100 anggota organisasi',
+                'Anggota organisasi tanpa batas (Unlimited)',
                 'Pemindai Kehadiran QR (Internal)',
                 'Akses fitur Validasi Bukti dengan AI',
                 'Laporan Presensi & Keuangan Ekspor ke Excel',
@@ -158,8 +158,7 @@ export default function UpgradePage() {
                 <span>Semua fitur KitaAtur Plus, ditambah:</span>
               </li>
               {[
-                'Anggota organisasi tanpa batas',
-                'Portal Publik KitaAtur School',
+                'Portal Publik KitaAtur School (Akses Siswa & Wali)',
                 'Import Data Massal via Excel (Siswa/Tamu)',
                 'Pembuatan PIN Akses Wali Murid',
                 'Manajemen Tamu / Siswa Lanjutan',

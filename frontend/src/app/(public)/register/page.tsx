@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, Check } from 'lucide-react'
 
 function SubmitButton({ pending }: { pending: boolean }) {
   return (
@@ -23,7 +24,10 @@ function SubmitButton({ pending }: { pending: boolean }) {
   )
 }
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams()
+  const isTrialPromo = searchParams.get('promo') === 'trial7d'
+
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [pending, setPending] = useState(false)
@@ -36,9 +40,9 @@ export default function RegisterPage() {
     setSuccess(false)
 
     const formData = new FormData(e.currentTarget)
-    const email = formData.get('email') as string
+    const email = (formData.get('email') as string || '').trim().toLowerCase()
     const password = formData.get('password') as string
-    const fullName = formData.get('fullName') as string
+    const fullName = (formData.get('fullName') as string || '').trim()
 
     if (!email || !password || !fullName) {
       setError('Semua field wajib diisi')
@@ -46,11 +50,13 @@ export default function RegisterPage() {
       return
     }
 
+    const nextRedirect = isTrialPromo ? '/promo/trial' : '/app'
+
     const { error: registerError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextRedirect)}`,
         data: {
           full_name: fullName,
         }
@@ -71,8 +77,8 @@ export default function RegisterPage() {
     setPending(true)
     setError(null)
 
-    // Ambil redirect URL jika ada, lalu hapus agar tidak tersangkut
-    const redirectUrl = localStorage.getItem('redirect_after_login') || '/app'
+    const defaultNext = isTrialPromo ? '/promo/trial' : '/app'
+    const redirectUrl = localStorage.getItem('redirect_after_login') || defaultNext
     localStorage.removeItem('redirect_after_login')
 
     const { error } = await supabase.auth.signInWithOAuth({
@@ -99,14 +105,26 @@ export default function RegisterPage() {
           <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight mb-4">
             Mulai Perjalanan<br/>Lebih Teratur.
           </h1>
-          <p className="text-blue-100 text-lg max-w-md">
-            Buat akun sekarang dan nikmati kemudahan mengelola keuangan serta presensi bersama tim Anda.
+          <p className="text-blue-100 text-base max-w-sm font-medium">
+            Satu dasbor terpadu untuk keuangan personal, kas organisasi, presensi instan, hingga sistem terpadu sekolah.
           </p>
         </div>
 
-        {/* Decorative Shapes */}
-        <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute top-10 -right-10 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        {/* Feature Cards Showcase */}
+        <div className="relative z-10 space-y-4 max-w-sm">
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-blue-200">Keuangan Personal</span>
+            <p className="text-sm font-bold mt-0.5">Catat kas, tabungan, dan dompet secara cerdas & otomatis.</p>
+          </div>
+          <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+            <span className="text-xs uppercase font-extrabold tracking-wider text-sky-200">Organisasi & Sekolah</span>
+            <p className="text-sm font-bold mt-0.5">Manajemen kas transparan, presensi QR, dan rekap instan.</p>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-xs text-blue-100 font-medium">
+          © {new Date().getFullYear()} KitaAtur. Solusi Teratur Komunitas Anda.
+        </div>
       </div>
 
       {/* Right Pane (Form) */}
@@ -122,9 +140,25 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-md bg-white p-8 md:p-10 rounded-[2rem] md:rounded-3xl shadow-2xl shadow-slate-200/50 border border-slate-100 mt-24 md:mt-0">
+          
+          {/* Promo Trial Applied Bar */}
+          {isTrialPromo && (
+            <div className="mb-6 px-3.5 py-2.5 rounded-xl bg-blue-50/80 border border-blue-100 flex items-center justify-between text-left">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-[#0087FF] shrink-0" />
+                <span className="text-xs font-semibold text-slate-800">Uji Coba 7 Hari Aktif</span>
+              </div>
+              <span className="text-[11px] font-bold text-[#0087FF] bg-white px-2 py-0.5 rounded-md border border-blue-200">
+                0 Biaya
+              </span>
+            </div>
+          )}
+
           <div className="mb-8 text-center">
             <h2 className="text-2xl font-black text-slate-900 mb-1">Daftar Akun</h2>
-            <p className="text-slate-500 text-sm font-medium">Buat akun gratis Anda dalam hitungan detik.</p>
+            <p className="text-slate-500 text-sm font-medium">
+              {isTrialPromo ? 'Buat akun Anda untuk langsung menikmati masa uji coba 7 hari gratis.' : 'Buat akun gratis Anda dalam hitungan detik.'}
+            </p>
           </div>
           
           {success ? (
@@ -136,7 +170,10 @@ export default function RegisterPage() {
               <p className="text-emerald-700 text-sm mb-6">
                 Silakan periksa kotak masuk email Anda untuk melakukan verifikasi akun.
               </p>
-              <Link href="/login" className="inline-block px-6 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors shadow-sm">
+              <Link 
+                href={isTrialPromo ? `/login?redirect=${encodeURIComponent('/promo/trial')}` : '/login'} 
+                className="inline-block px-6 py-2.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl transition-colors shadow-sm"
+              >
                 Kembali ke Login
               </Link>
             </div>
@@ -224,12 +261,27 @@ export default function RegisterPage() {
           
           <p className="text-slate-500 text-center text-sm mt-8 font-medium">
             Sudah punya akun?{' '}
-            <Link href="/login" className="text-[#0087FF] hover:text-[#0077E6] transition-colors font-bold">
+            <Link 
+              href={isTrialPromo ? `/login?redirect=${encodeURIComponent('/promo/trial')}` : '/login'} 
+              className="text-[#0087FF] hover:text-[#0077E6] transition-colors font-bold"
+            >
               Masuk Sekarang
             </Link>
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   )
 }

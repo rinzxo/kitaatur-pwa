@@ -80,25 +80,30 @@ export default function OrgFinancialPage() {
     {
       target: '[data-tour="tour-financial-summary"]',
       title: 'Kartu Saldo & Arus Kas',
-      description: 'Pantau saldo kas aktif organisasi, total pemasukan, dan akumulasi pengeluaran kegiatan secara real-time.'
+      description: 'Pantau saldo kas aktif organisasi, akumulasi uang masuk, dan total pengeluaran kegiatan secara real-time.'
+    },
+    {
+      target: '[data-tour="tour-subnav-features"]',
+      title: 'Fitur Lengkap Keuangan Organisasi',
+      description: 'Akses cepat ke Grafik Analisis arus kas, Target Tabungan & Anggaran Kegiatan (Goals), serta Pengelolaan Iuran Kas Bulanan & Tagihan WhatsApp.'
     },
     {
       target: '[data-tour="tour-dues-link"]',
-      title: 'Uang Kas & Tagihan WhatsApp',
-      description: 'Modul tagih kas: pantau siapa yang masih nunggak kas dan kirim pengingat tagihan otomatis ke WhatsApp siswa dalam 1-klik.'
+      title: 'Iuran Kas & Tagihan WhatsApp',
+      description: 'Atur target nominal & periode kas kepengurusan, pantau tunggakan bulan yang sudah jatuh tempo, catat pembayaran kas (termasuk bayar di awal), dan kirim pengingat tagihan WhatsApp otomatis.'
     },
     {
       target: '[data-tour="tour-transaction-box"]',
-      title: isEditor ? 'Pencatatan Kas Baru' : 'Transparansi Kas Terbuka',
+      title: isEditor ? 'Pencatatan Kas Masuk / Keluar' : 'Transparansi Kas Terbuka',
       description: isEditor 
-        ? 'Bendahara dapat mencatat setiap pemasukan atau pengeluaran kas lengkap dengan kategori dan lampiran nota/struk.'
+        ? 'Bendahara dapat mencatat setiap mutasi kas masuk atau keluar lengkap dengan kategori dan lampiran foto nota/struk belanja.'
         : 'Seluruh mutasi kas dicatat secara transparan oleh Bendahara dan dapat dipantau langsung oleh seluruh anggota.',
       position: 'left'
     },
     {
       target: '[data-tour="tour-export-report"]',
       title: 'Ekspor Buku Kas Excel',
-      description: 'Unduh laporan pembukuan kas organisasi dalam format Excel yang rapi untuk arsip pertanggungjawaban.',
+      description: 'Unduh laporan pembukuan kas organisasi berformat Excel lengkap dengan mutasi debet, kredit, dan saldo berjalan untuk arsip LPJ bendahara.',
       position: 'bottom'
     }
   ]
@@ -462,7 +467,7 @@ export default function OrgFinancialPage() {
 
         <div className="flex flex-wrap lg:flex-nowrap items-center gap-2 sm:gap-2.5 w-full md:w-auto mt-4 md:mt-0 justify-start md:justify-end">
           {/* Sub-feature Navigation Group */}
-          <div className="inline-flex items-center p-1 bg-white border border-slate-200/90 rounded-2xl shadow-2xs gap-0.5 text-xs font-bold text-slate-600">
+          <div data-tour="tour-subnav-features" className="inline-flex items-center p-1 bg-white border border-slate-200/90 rounded-2xl shadow-2xs gap-0.5 text-xs font-bold text-slate-600">
             <Link
               href={`/org/${orgSlug}/financial/analysis`}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-all"

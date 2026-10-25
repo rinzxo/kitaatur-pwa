@@ -15,15 +15,18 @@ import {
   TrendingUp,
   Globe2,
   ClipboardCheck,
-  GraduationCap
+  GraduationCap,
+  Sparkles
 } from "lucide-react";
 
 import { createClient } from '@/lib/supabase/client'
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isYearly, setIsYearly] = useState(false);
+  const [promoUrl, setPromoUrl] = useState('https://kitatur.rinzgroup.web.id/promo/trial');
 
   // Auto-redirect logged-in users directly to /app
   useEffect(() => {
@@ -42,6 +45,7 @@ export default function Home() {
       if (searchParams.has('code')) {
         window.location.href = `/auth/callback${window.location.search}`
       }
+      setPromoUrl(`${window.location.origin}/promo/trial`);
     }
   }, [])
 
@@ -142,14 +146,14 @@ export default function Home() {
           <div className="mt-16 md:mt-24 relative mx-auto max-w-6xl animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-500 flex justify-center items-center h-[500px] md:h-[700px] mb-12">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full flex justify-center items-center">
               
-              {/* Wallet Mockup (Back) */}
+              {/* Back Mockup: Kartu Presensi Digital QR */}
               <div className="absolute left-1/2 -translate-x-[65%] md:-translate-x-[60%] top-[10%] md:top-12 z-10 w-48 md:w-[320px] rotate-[-8deg] hover:rotate-[-4deg] transition-transform duration-700">
-                 <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (1).webp" alt="KitaAtur Wallet" className="w-full h-auto drop-shadow-2xl" />
+                 <img src="/images/mockups/KitaAturMockNew (6).png" alt="KitaAtur Kartu Presensi Digital" className="w-full h-auto drop-shadow-2xl" />
               </div>
               
-              {/* Main App Mockup (Front) */}
+              {/* Main App Mockup (Front): Dashboard */}
               <div className="absolute left-1/2 -translate-x-[35%] md:-translate-x-[30%] top-[-5%] md:-top-4 z-20 w-56 md:w-[380px] rotate-[6deg] hover:rotate-[3deg] transition-transform duration-700">
-                 <img src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id.webp" alt="KitaAtur Mobile App" className="w-full h-auto drop-shadow-2xl" />
+                 <img src="/images/mockups/KitaAturMockNew (5).png" alt="KitaAtur Dasbor Utama" className="w-full h-auto drop-shadow-2xl" />
               </div>
 
               {/* Floating UI Elements */}
@@ -172,11 +176,36 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-slate-500 uppercase">Kas Organisasi</p>
-                    <p className="font-bold text-slate-900">Rp 1.500.000</p>
+                    <p className="font-bold text-slate-900">Rp 1.004.000</p>
                   </div>
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* School Partner Social Proof */}
+      <section className="py-12 bg-white border-y border-slate-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400 mb-6">
+            Sekolah yang Telah Bertransformasi Bersama KitaAtur
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-6">
+            <div className="flex items-center gap-4 px-6 py-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 hover:border-blue-200 transition-all shadow-sm">
+              <div className="w-12 h-12 relative flex items-center justify-center shrink-0">
+                <img 
+                  src="/images/partners/sman2babelan.png" 
+                  alt="SMA Negeri 2 Babelan" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="text-left">
+                <h4 className="text-sm font-extrabold text-slate-900 leading-tight">SMA Negeri 2 Babelan</h4>
+                <p className="text-xs text-slate-500 font-medium">Kabupaten Bekasi • Implementasi Presensi Digital</p>
+              </div>
             </div>
           </div>
         </div>
@@ -211,9 +240,9 @@ export default function Home() {
               <div className="w-full md:w-1/2 relative flex justify-center">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-emerald-200/40 rounded-full blur-3xl -z-10" />
                 <img 
-                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (3).webp" 
-                  alt="Presensi QR" 
-                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                  src="/images/mockups/KitaAturMockNew (2).png" 
+                  alt="Kelola dan Validasi Presensi" 
+                  className="w-52 sm:w-64 md:w-72 h-auto drop-shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
                 />
               </div>
             </div>
@@ -232,9 +261,9 @@ export default function Home() {
               <div className="w-full md:w-1/2 relative flex justify-center">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-blue-200/40 rounded-full blur-3xl -z-10" />
                 <img 
-                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (6).webp" 
-                  alt="Keuangan App" 
-                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                  src="/images/mockups/KitaAturMockNew(8).png" 
+                  alt="Manajemen Kas dan Keuangan Organisasi" 
+                  className="w-52 sm:w-64 md:w-72 h-auto drop-shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
                 />
               </div>
             </div>
@@ -253,9 +282,9 @@ export default function Home() {
               <div className="w-full md:w-1/2 relative flex justify-center">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-80 md:h-80 bg-indigo-200/40 rounded-full blur-3xl -z-10" />
                 <img 
-                  src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (4).webp" 
-                  alt="Database Anggota" 
-                  className="w-48 md:w-64 rounded-[2rem] md:rounded-[2.5rem] shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
+                  src="/images/mockups/KitaAturMockNew(7).png" 
+                  alt="Analisis Kehadiran dan Rapor AI" 
+                  className="w-52 sm:w-64 md:w-72 h-auto drop-shadow-2xl transition-transform hover:-translate-y-2 duration-500" 
                 />
               </div>
             </div>
@@ -287,9 +316,9 @@ export default function Home() {
             <div className="order-2 lg:order-1 relative">
               <div className="absolute inset-0 bg-blue-200/50 rounded-3xl transform rotate-3 scale-105 -z-10" />
               <img 
-                src="/images/mockups/Google-Pixel5-kitatur.rinzgroup.web.id (5).webp" 
-                alt="Dashboard Mockup" 
-                className="rounded-[2rem] md:rounded-[3rem] shadow-2xl w-full h-auto"
+                src="/images/mockups/KitaAturMockNew (4).png" 
+                alt="Akses Cepat dan Fleksibel" 
+                className="w-56 sm:w-72 md:w-80 mx-auto h-auto drop-shadow-2xl"
               />
               
               {/* Floating Stat */}
@@ -327,6 +356,100 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7-Day Trial Promotional Section (Clean KitaAtur Brand) */}
+      <section className="py-16 bg-slate-50 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-3xl border border-slate-200 p-8 sm:p-12 shadow-sm relative">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+              
+              {/* Left: Value Proposition */}
+              <div className="lg:col-span-7 flex flex-col items-start text-left">
+                <p className="text-[#0087FF] font-bold tracking-wider uppercase text-xs sm:text-sm mb-2">
+                  Uji Coba 7 Hari
+                </p>
+
+                <h3 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight mb-4">
+                  Coba Gratis Fitur KitaAtur Plus
+                </h3>
+
+                <p className="text-slate-600 text-base sm:text-lg leading-relaxed mb-6 max-w-xl font-normal">
+                  Rasakan kemudahan presensi digital QR, pencatatan kas transparan, dan kelola anggota organisasi tanpa batas tanpa biaya dan tanpa perlu kartu kredit.
+                </p>
+
+                {/* Benefit highlights */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-8 text-sm text-slate-700 font-medium">
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-[#0087FF] shrink-0" />
+                    <span>Anggota organisasi tanpa batas (unlimited)</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-[#0087FF] shrink-0" />
+                    <span>Presensi QR & pencatatan kehadiran digital</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-[#0087FF] shrink-0" />
+                    <span>Buku kas pemasukan & pengeluaran terbuka</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <CheckCircle2 className="w-5 h-5 text-[#0087FF] shrink-0" />
+                    <span>Ekspor rekapitulasi data ke format Excel</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-3.5 w-full">
+                  <Link
+                    href="/promo/trial"
+                    className="px-6 py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl shadow-lg shadow-blue-600/20 text-sm sm:text-base flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <span>Coba Gratis 7 Hari Sekarang</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+
+                  <Link
+                    href="/promo/trial"
+                    className="px-5 py-3.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 text-sm flex items-center gap-2 transition-colors"
+                  >
+                    <QrCode className="w-4 h-4 text-[#0087FF]" />
+                    <span>Lihat Halaman Promo & QR</span>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right: Clean Branded QR Card */}
+              <div className="lg:col-span-5 flex justify-center">
+                <div className="w-full max-w-xs rounded-2xl bg-slate-50 p-6 border border-slate-200 flex flex-col items-center text-center">
+                  <div className="p-3.5 bg-white rounded-xl shadow-sm border border-slate-200 mb-4">
+                    <QRCodeSVG 
+                      value={promoUrl} 
+                      size={160}
+                      level="H"
+                      includeMargin={false}
+                    />
+                  </div>
+
+                  <p className="text-slate-900 text-sm font-bold tracking-tight mb-1">
+                    Pindai dari Smartphone
+                  </p>
+                  <p className="text-slate-500 text-xs font-normal mb-4 leading-relaxed">
+                    Arahkan kamera smartphone Anda untuk langsung mengklaim uji coba di ponsel.
+                  </p>
+
+                  <Link
+                    href="/promo/trial"
+                    className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-[#0087FF] text-xs font-bold border border-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span>Buka Halaman Promo</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -429,7 +552,7 @@ export default function Home() {
                 <ul className="space-y-4 mb-8 font-medium">
                   {[
                     "Buat dan kelola 1 Organisasi Penuh",
-                    "Maksimal 100 anggota organisasi",
+                    "Anggota organisasi tanpa batas (Unlimited)",
                     "Pemindai Kehadiran QR (Internal)",
                     "Akses fitur Validasi Bukti dengan AI",
                     "Laporan Presensi & Keuangan Ekspor ke Excel",
@@ -444,12 +567,20 @@ export default function Home() {
                 </ul>
               </div>
 
-              <Link
-                href="/register"
-                className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl text-center shadow-lg transition-all duration-300 block"
-              >
-                Berlangganan Sekarang
-              </Link>
+              <div className="space-y-2">
+                <Link
+                  href="/register"
+                  className="w-full py-3.5 bg-[#0087FF] hover:bg-[#0077E6] text-white font-bold rounded-xl text-center shadow-md shadow-blue-500/20 hover:shadow-lg transition-all duration-200 block text-sm"
+                >
+                  Berlangganan Sekarang
+                </Link>
+                <Link
+                  href="/promo/trial"
+                  className="w-full py-2.5 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 font-semibold rounded-xl text-center text-xs transition-colors block border border-slate-200"
+                >
+                  Uji Coba Gratis 7 Hari
+                </Link>
+              </div>
             </div>
 
             {/* PRO PLAN */}
@@ -475,8 +606,7 @@ export default function Home() {
                     <span>Semua fitur KitaAtur Plus, ditambah:</span>
                   </li>
                   {[
-                    "Anggota organisasi tanpa batas",
-                    "Portal Publik KitaAtur School",
+                    "Portal Publik KitaAtur School (Akses Siswa & Wali)",
                     "Import Data Massal via Excel (Siswa/Tamu)",
                     "Pembuatan PIN Akses Wali Murid",
                     "Manajemen Tamu / Siswa Lanjutan",
@@ -561,9 +691,9 @@ export default function Home() {
               <p className="text-slate-600 font-medium leading-relaxed">
                 Selain fitur, perbedaannya ada pada batasan dan harga langganan:
                 <br/><br/>
-                - <strong>Paket Plus (Rp 40.000/bulan):</strong> Cocok untuk komunitas/UKM dengan batas maksimal 100 anggota dan memiliki fitur dasar QR Presensi internal.
+                - <strong>Paket Plus (Rp 40.000/bulan):</strong> Cocok untuk komunitas/UKM dengan anggota tanpa batas (unlimited) dan memiliki fitur dasar QR Presensi internal serta manajemen keuangan.
                 <br/>
-                - <strong>Paket School (Rp 110.000/bulan):</strong> Bebas mendaftarkan anggota tanpa batas (unlimited), dilengkapi fitur ekstra seperti Portal Publik Edukasi, Import Data Massal via Excel, dan PIN khusus untuk wali murid.
+                - <strong>Paket School (Rp 110.000/bulan):</strong> Didesain khusus institusi & sekolah dengan Portal Publik Edukasi, Import Data Massal Siswa via Excel, dan PIN khusus untuk wali murid.
               </p>
             </div>
 

@@ -90,7 +90,11 @@ export default function PaymentPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <span className="text-slate-500 text-sm">Status</span>
-              {sub.status === 'unpaid' ? (
+              {sub.plan_type.includes('trial') ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Masa Uji Coba 7 Hari
+                </span>
+              ) : sub.status === 'unpaid' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-bold uppercase tracking-wider">
                   <Clock className="w-3.5 h-3.5" /> Menunggu Pembayaran
                 </span>
@@ -104,11 +108,15 @@ export default function PaymentPage() {
             <div className="space-y-3 mb-8">
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Paket</span>
-                <span className="font-medium text-slate-900 capitalize">{sub.plan_type.replace('-', ' ')}</span>
+                <span className="font-medium text-slate-900 capitalize">
+                  {sub.plan_type.includes('trial') ? 'KitaAtur Plus (Trial 7 Hari)' : sub.plan_type.replace('-', ' ')}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Total Harga</span>
-                <span className="font-bold text-slate-900 text-lg">Rp {Number(sub.amount_paid).toLocaleString('id-ID')}</span>
+                <span className="text-slate-500">Total Biaya</span>
+                <span className="font-bold text-slate-900 text-lg">
+                  {sub.plan_type.includes('trial') ? 'Rp 0 (Gratis Uji Coba)' : `Rp ${Number(sub.amount_paid).toLocaleString('id-ID')}`}
+                </span>
               </div>
             </div>
 

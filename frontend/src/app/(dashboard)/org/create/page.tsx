@@ -91,8 +91,18 @@ export default function CreateOrganizationPage() {
             </div>
 
             {error && (
-              <div className="text-rose-500 bg-rose-50 border border-rose-200 px-4 py-3 rounded-xl text-sm font-medium">
-                {error}
+              <div className="text-rose-600 bg-rose-50 border border-rose-200 px-4 py-3.5 rounded-2xl text-sm font-medium space-y-2">
+                <p>{error}</p>
+                {error.toLowerCase().includes('berlangganan') && (
+                  <div className="pt-2 border-t border-rose-100">
+                    <Link
+                      href="/promo/trial"
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#0087FF] hover:underline"
+                    >
+                      Coba gratis KitaAtur Plus selama 7 hari sekarang &rarr;
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 

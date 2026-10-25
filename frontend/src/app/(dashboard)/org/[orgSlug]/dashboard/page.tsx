@@ -84,6 +84,7 @@ export default function OrgDashboardPage() {
   const [slotFullNotice, setSlotFullNotice] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false)
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0)
+  const [trialInfo, setTrialInfo] = useState<any>(null)
 
   // Load custom shortcuts from localStorage
   useEffect(() => {
@@ -150,6 +151,9 @@ export default function OrgDashboardPage() {
     setFinancialSummary(data.financialSummary || { income: 0, expense: 0, balance: 0 })
     setRecords(data.records || [])
     setMembersCount(data.membersCount || 0)
+    if (data.trialInfo) {
+      setTrialInfo(data.trialInfo)
+    }
     
     // Process agenda for THIS org
     let orgAgendas: any[] = []
@@ -254,11 +258,34 @@ export default function OrgDashboardPage() {
             const detectedRole = (isOrgOwner ? 'head' : (currentMember?.role || 'member')) as 'head' | 'vice_head' | 'bendahara' | 'sekretaris' | 'member' | 'auditor'
             setCurrentUserRole(detectedRole)
 
-            if (currentMember && currentMember.joined_at && targetAmt > 0 && currentMember.role !== 'auditor') {
-              const joined = new Date(currentMember.joined_at)
+            if (currentMember && targetAmt > 0 && currentMember.role !== 'auditor') {
+              const startPeriod = settingsRes.data?.dues_start_period
+              const endPeriod = settingsRes.data?.dues_end_period
               const now = new Date()
-              let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
-              if (months < 1) months = 1
+              let months = 0
+
+              if (startPeriod) {
+                const [sY, sM] = startPeriod.split('-').map(Number)
+                if (now.getFullYear() < sY || (now.getFullYear() === sY && (now.getMonth() + 1) < sM)) {
+                  months = 0
+                } else {
+                  let eY = now.getFullYear()
+                  let eM = now.getMonth() + 1
+                  if (endPeriod) {
+                    const [endY, endM] = endPeriod.split('-').map(Number)
+                    if (now.getFullYear() > endY || (now.getFullYear() === endY && (now.getMonth() + 1) >= endM)) {
+                      eY = endY
+                      eM = endM
+                    }
+                  }
+                  months = (eY - sY) * 12 + (eM - sM) + 1
+                  if (months < 1) months = 0
+                }
+              } else if (currentMember.joined_at) {
+                const joined = new Date(currentMember.joined_at)
+                months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth()) + 1
+                if (months < 1) months = 1
+              }
 
               const expected = months * targetAmt
               let paid = 0
@@ -548,6 +575,60 @@ export default function OrgDashboardPage() {
       {/* Main Content */}
       <main className="max-w-4xl mx-auto p-4 md:px-8 pb-32">
         
+        {/* Trial Status Notice (if organization is on trial) */}
+        {trialInfo?.isTrial && (
+          !trialInfo.isExpired ? (
+            <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200/80 text-slate-900 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-blue-100 text-[#0087FF] flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-xs font-bold text-slate-900">
+                      Masa Uji Coba 7 Hari Aktif
+                    </span>
+                    <span className="text-xs text-slate-500 font-medium">
+                      • Sisa {trialInfo.daysLeft} hari ({trialInfo.hoursLeft} jam)
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 font-normal">
+                    Organisasi ini memiliki akses penuh ke fitur KitaAtur Plus.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/upgrade"
+                className="px-4 py-2 bg-[#0087FF] hover:bg-[#0077E6] text-white text-xs font-bold rounded-xl transition-colors shrink-0 shadow-sm shadow-blue-500/20"
+              >
+                Berlangganan Sekarang
+              </Link>
+            </div>
+          ) : (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 border border-amber-200 text-slate-900 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-900 mb-0.5">
+                    Masa Uji Coba Telah Selesai
+                  </p>
+                  <p className="text-xs text-slate-600 font-normal">
+                    Masa aktif trial 7 hari telah selesai. Upgrade sekarang untuk melanjutkan akses penuh ke seluruh data dan presensi.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/upgrade"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-colors shrink-0"
+              >
+                Upgrade Sekarang
+              </Link>
+            </div>
+          )
+        )}
+
         {/* Quick Onboarding Wizard for Organization Leaders */}
         {showOnboarding && (currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'bendahara') && (
           <QuickOnboardingWizard

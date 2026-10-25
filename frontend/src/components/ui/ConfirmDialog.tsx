@@ -1,7 +1,7 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { Warning, WarningCircle, CheckCircle, Question, X } from '@phosphor-icons/react'
+import { AlertTriangle, AlertCircle, CheckCircle2, HelpCircle, X } from 'lucide-react'
 
 export type ConfirmVariant = 'danger' | 'warning' | 'primary' | 'success'
 
@@ -172,26 +172,26 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
       case 'danger':
         return (
           <div className="w-12 h-12 rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center shrink-0 shadow-sm">
-            <Warning size={26} weight="duotone" className="text-rose-600" />
+            <AlertTriangle className="w-6 h-6 text-rose-600" />
           </div>
         )
       case 'warning':
         return (
           <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center shrink-0 shadow-sm">
-            <WarningCircle size={26} weight="duotone" className="text-amber-600" />
+            <AlertCircle className="w-6 h-6 text-amber-600" />
           </div>
         )
       case 'success':
         return (
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 shadow-sm">
-            <CheckCircle size={26} weight="duotone" className="text-emerald-600" />
+            <CheckCircle2 className="w-6 h-6 text-emerald-600" />
           </div>
         )
       case 'primary':
       default:
         return (
           <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center shrink-0 shadow-sm">
-            <Question size={26} weight="duotone" className="text-blue-600" />
+            <HelpCircle className="w-6 h-6 text-blue-600" />
           </div>
         )
     }
@@ -233,7 +233,7 @@ export const ConfirmProvider = ({ children }: { children: ReactNode }) => {
               className="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center transition-colors"
               aria-label="Tutup"
             >
-              <X size={15} weight="bold" />
+              <X className="w-4 h-4" />
             </button>
 
             {/* Modal Body */}
