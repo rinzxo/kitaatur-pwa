@@ -36,6 +36,15 @@ export async function middleware(request: NextRequest) {
   const hostname = hostHeader.split(':')[0]
   const { pathname } = request.nextUrl
 
+  // Enforce HTTPS on production / custom domains
+  const proto = request.headers.get('x-forwarded-proto')
+  const isLocal = hostname.includes('localhost') || hostname === '127.0.0.1'
+  if (!isLocal && proto === 'http') {
+    const httpsUrl = request.nextUrl.clone()
+    httpsUrl.protocol = 'https:'
+    return NextResponse.redirect(httpsUrl, 301)
+  }
+
   // Bypass auth and api endpoints immediately on all domains
   if (pathname.startsWith('/auth') || pathname.startsWith('/api')) {
     return supabaseResponse

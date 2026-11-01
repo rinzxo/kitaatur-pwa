@@ -18,6 +18,12 @@ function AdminLoginContent() {
   const urlError = searchParams.get('error')
 
   useEffect(() => {
+    // 0. Enforce HTTPS in production if page loaded over insecure HTTP
+    if (typeof window !== 'undefined' && window.location.protocol === 'http:' && !window.location.hostname.includes('localhost')) {
+      window.location.href = window.location.href.replace('http:', 'https:')
+      return
+    }
+
     // 1. If returning with an auth code (?code=...), exchange code for session immediately
     const code = searchParams.get('code')
     if (code) {
@@ -69,7 +75,9 @@ function AdminLoginContent() {
         await supabase.auth.signOut()
       }
 
-      const redirectTarget = `${window.location.origin}/auth/callback?next=${encodeURIComponent(dashboardHref)}`
+      const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
+      const origin = isLocal ? window.location.origin : `https://${window.location.host}`
+      const redirectTarget = `${origin}/auth/callback?next=${encodeURIComponent(dashboardHref)}`
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
