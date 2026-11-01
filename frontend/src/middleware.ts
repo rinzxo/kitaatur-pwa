@@ -34,10 +34,14 @@ export async function middleware(request: NextRequest) {
 
   const hostHeader = (request.headers.get('x-forwarded-host') || request.headers.get('host') || request.nextUrl.host || '').toLowerCase()
   const hostname = hostHeader.split(':')[0]
+  const { pathname } = request.nextUrl
 
-  // Share auth session cookie across subdomains (*.rinzgroup.web.id) in production
-  const isRinzDomain = hostname.includes('rinzgroup.web.id')
-  const cookieDomain = (process.env.NODE_ENV === 'production' || isRinzDomain) && isRinzDomain ? '.rinzgroup.web.id' : undefined
+  // Bypass auth and api endpoints immediately on all domains
+  if (pathname.startsWith('/auth') || pathname.startsWith('/api')) {
+    return supabaseResponse
+  }
+
+
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,7 +57,6 @@ export async function middleware(request: NextRequest) {
             name,
             value,
             ...options,
-            domain: cookieDomain,
             secure: process.env.NODE_ENV === 'production',
           })
         },
@@ -63,7 +66,6 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
-            domain: cookieDomain,
             secure: process.env.NODE_ENV === 'production',
           })
         },
@@ -80,7 +82,6 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) => {
             supabaseResponse.cookies.set(name, value, {
               ...options,
-              domain: cookieDomain,
               secure: process.env.NODE_ENV === 'production',
             })
           })
@@ -101,7 +102,6 @@ export async function middleware(request: NextRequest) {
     (process.env.NODE_ENV !== 'production' && request.nextUrl.searchParams.has('__admin_domain'))
 
   const url = request.nextUrl.clone()
-  const { pathname } = url
 
   // Normalize accidental caret typo (e.g. /^?code=...) from external OAuth redirect misconfigurations
   if (pathname.startsWith('/^')) {
@@ -229,7 +229,7 @@ export async function middleware(request: NextRequest) {
   // If user navigates to /admin on the main domain:
   if (pathname.startsWith('/admin')) {
     // In production, enforce redirect to the dedicated admin domain!
-    if (process.env.NODE_ENV === 'production' || isRinzDomain) {
+    if (process.env.NODE_ENV === 'production' || hostname.includes('rinzgroup.web.id')) {
       const cleanPath = pathname === '/admin' ? '/' : pathname.replace(/^\/admin/, '')
       const adminTarget = new URL(`https://${ADMIN_DOMAIN}${cleanPath}${url.search}`)
       return redirectWithCookies(adminTarget, supabaseResponse)

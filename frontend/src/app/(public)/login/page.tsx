@@ -123,16 +123,40 @@ function LoginPageContent() {
     }
   }, [searchParams])
 
-  // Cek apakah user sudah terautentikasi sebelumnya
+  // Cek apakah user sudah terautentikasi sebelumnya secara valid
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // Hanya redirect jika tidak sedang memproses parameter auth code
-      if (session && !searchParams.get('code') && !searchParams.get('token_hash')) {
-        const nextParam = searchParams.get('next')
-        const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
-        localStorage.removeItem('redirect_after_login')
-        window.location.href = redirectUrl
+    // Jangan redirect jika sedang memproses verifikasi kode auth
+    if (searchParams.get('code') || searchParams.get('token_hash')) return
+
+    // Bersihkan cookie residu dengan domain .rinzgroup.web.id jika ada
+    if (typeof document !== 'undefined') {
+      try {
+        const cookies = document.cookie.split(';')
+        for (const cookie of cookies) {
+          const name = cookie.split('=')[0].trim()
+          if (name.startsWith('sb-')) {
+            document.cookie = `${name}=; domain=.rinzgroup.web.id; path=/; max-age=0`
+          }
+        }
+      } catch (e) {
+        // Abaikan kegagalan akses cookie
       }
+    }
+
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error || !user) {
+        // Jika sesi lokal ternyata tidak valid / kedaluwarsa, bersihkan agar tidak terjadi redirect loop!
+        if (error) {
+          supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        }
+        return
+      }
+
+      // User valid terverifikasi oleh server
+      const nextParam = searchParams.get('next')
+      const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
+      localStorage.removeItem('redirect_after_login')
+      window.location.href = redirectUrl
     })
   }, [supabase, searchParams])
 

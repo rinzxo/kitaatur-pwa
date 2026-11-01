@@ -56,8 +56,9 @@ function AppDispatcher() {
     const dispatchUser = async () => {
       try {
         // 1. Verifikasi Auth
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (!user || userError) {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
           const targetParam = searchParams.get('target')
           const nextUrl = targetParam ? `/app?target=${encodeURIComponent(targetParam)}` : '/app'
           window.location.href = `/login?next=${encodeURIComponent(nextUrl)}`

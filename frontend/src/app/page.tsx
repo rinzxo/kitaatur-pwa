@@ -31,9 +31,11 @@ export default function Home() {
   // Auto-redirect logged-in users directly to /app
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (user) {
         window.location.href = '/app'
+      } else if (error) {
+        supabase.auth.signOut({ scope: 'local' }).catch(() => {})
       }
     })
   }, [])

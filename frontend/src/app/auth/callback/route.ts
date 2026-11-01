@@ -23,9 +23,6 @@ export async function GET(request: NextRequest) {
   const protocol = request.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'development' ? 'http' : 'https')
   const redirectTarget = `${protocol}://${host}${next}`
 
-  const isRinz = host.toLowerCase().includes('rinzgroup.web.id')
-  const cookieDomain = (process.env.NODE_ENV === 'production' || isRinz) && isRinz ? '.rinzgroup.web.id' : undefined
-
   // Jika penyedia OAuth (misal Google) membatalkan atau mengembalikan error langsung
   if (errorParam || errorDesc) {
     const errorMsg = errorDesc || errorParam || 'Autentikasi dibatalkan atau gagal'
@@ -39,7 +36,6 @@ export async function GET(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        // Kompatibilitas untuk @supabase/ssr 0.3.x (menggunakan get, set, remove)
         get(name: string) {
           return request.cookies.get(name)?.value
         },
@@ -48,7 +44,6 @@ export async function GET(request: NextRequest) {
           response.cookies.set(name, value, {
             ...options,
             path: options?.path || '/',
-            domain: cookieDomain,
             secure: process.env.NODE_ENV === 'production',
           })
         },
@@ -57,12 +52,10 @@ export async function GET(request: NextRequest) {
           response.cookies.set(name, '', {
             ...options,
             path: options?.path || '/',
-            domain: cookieDomain,
             maxAge: 0,
             secure: process.env.NODE_ENV === 'production',
           })
         },
-        // Kompatibilitas untuk versi @supabase/ssr yang lebih baru
         getAll() {
           return request.cookies.getAll()
         },
@@ -72,7 +65,6 @@ export async function GET(request: NextRequest) {
             response.cookies.set(name, value, {
               ...options,
               path: options?.path || '/',
-              domain: cookieDomain,
               secure: process.env.NODE_ENV === 'production',
             })
           })
