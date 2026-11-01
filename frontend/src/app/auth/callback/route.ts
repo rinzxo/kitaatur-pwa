@@ -133,14 +133,22 @@ export async function GET(request: NextRequest) {
         .split(',')
         .map((e) => e.trim().toLowerCase())
       const isSuperadmin = data.user.email ? adminEmails.includes(data.user.email.toLowerCase()) : false
+      const isAdminLoginCookie = request.cookies.get('kitaatur_admin_login')?.value === '1'
 
-      // Jika user adalah superadmin dan tujuannya adalah admin panel:
-      if (isSuperadmin && (isAdminHost || next.startsWith('/admin') || (next === '/' && isAdminHost))) {
+      // Jika user adalah superadmin dan request ini diawali dari admin panel:
+      if (isSuperadmin && (isAdminLoginCookie || isAdminHost || next.startsWith('/admin') || (next === '/' && isAdminHost))) {
+        // Hapus tracking cookie
+        response.cookies.set('kitaatur_admin_login', '', {
+          domain: cookieDomain,
+          path: '/',
+          maxAge: 0,
+        })
         const adminDomain = process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'admin-kitatur.rinzgroup.web.id'
         const destination = isAdminHost ? `${protocol}://${host}/` : `https://${adminDomain}/`
         return NextResponse.redirect(destination, { headers: response.headers })
       }
     }
+
 
     return response
   }

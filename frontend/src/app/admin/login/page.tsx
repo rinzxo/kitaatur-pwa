@@ -69,6 +69,13 @@ function AdminLoginContent() {
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
     try {
+      // Set tracking cookie so auth/callback knows user initiated login from admin panel
+      if (typeof document !== 'undefined') {
+        const isRinz = window.location.hostname.includes('rinzgroup.web.id')
+        const domainAttr = isRinz ? '; domain=.rinzgroup.web.id' : ''
+        document.cookie = `kitaatur_admin_login=1; path=/${domainAttr}; max-age=300; SameSite=Lax; Secure`
+      }
+
       // If currently signed in as non-superadmin, sign out first
       if (currentEmail) {
         await supabase.auth.signOut()
