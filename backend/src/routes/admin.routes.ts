@@ -27,11 +27,14 @@ import {
 
 const router = Router()
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+const getAdminEmails = (): string[] => {
+  const env = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+  return env.split(',').map((e) => e.trim().toLowerCase())
+}
 
-// Middleware khusus dev
+// Middleware khusus dev / Superadmin
 const requireDev = (req: any, res: any, next: any) => {
-  if (!req.user?.email || req.user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+  if (!req.user?.email || !getAdminEmails().includes(req.user.email.toLowerCase())) {
     return res.status(403).json({ error: 'Access denied: Dev only' })
   }
   next()

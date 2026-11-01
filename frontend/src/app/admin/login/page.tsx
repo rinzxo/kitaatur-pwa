@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/api'
 import { Loader2, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useAdminRoute } from '../useAdminRoute'
+import { useAdminRoute, isSuperadminEmail } from '../useAdminRoute'
 
 function AdminLoginContent() {
   const router = useRouter()
@@ -30,8 +30,7 @@ function AdminLoginContent() {
       setCheckingInitialAuth(true)
       supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data?.user) {
-          const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
-          if (data.user.email?.toLowerCase() === adminEmail.toLowerCase()) {
+          if (isSuperadminEmail(data.user.email)) {
             toast.success('Selamat datang kembali, Superadmin!')
             router.replace(dashboardHref)
           } else {
@@ -43,7 +42,8 @@ function AdminLoginContent() {
           toast.error(error?.message || 'Gagal memproses kode autentikasi.')
           setCheckingInitialAuth(false)
         }
-      }).catch((err) => {
+      })
+.catch((err) => {
         toast.error(err.message || 'Terjadi kesalahan sistem saat otentikasi.')
         setCheckingInitialAuth(false)
       })
@@ -53,8 +53,7 @@ function AdminLoginContent() {
     // 2. Check if already authenticated
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
-        const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
-        if (user.email?.toLowerCase() === adminEmail.toLowerCase()) {
+        if (isSuperadminEmail(user.email)) {
           router.replace(dashboardHref)
           return
         } else {
@@ -145,7 +144,7 @@ function AdminLoginContent() {
             <div>
               <div className="font-semibold text-amber-900">Bukan Akun Superadmin</div>
               <div className="mt-0.5 text-amber-700 leading-relaxed">
-                Anda masuk sebagai <span className="font-medium text-slate-800">{currentEmail}</span>. Panel ini khusus Superadmin terotorisasi.
+                Anda masuk sebagai <span className="font-medium text-slate-800">{currentEmail}</span>. Panel ini khusus Superadmin terdaftar (<span className="font-semibold text-slate-800">{process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'}</span>).
               </div>
             </div>
           </div>

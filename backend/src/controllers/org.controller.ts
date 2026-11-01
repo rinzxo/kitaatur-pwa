@@ -4,7 +4,12 @@ import { sendPushNotification } from './notification.controller'
 import { supabaseAdmin } from '../config/supabaseAdmin'
 import { org_member_role, Prisma } from '@prisma/client'
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+const isSuperAdminEmail = (email?: string | null): boolean => {
+  if (!email) return false
+  const env = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+  const list = env.split(',').map((e) => e.trim().toLowerCase())
+  return list.includes(email.toLowerCase())
+}
 
 // 1. Membuat Organisasi Baru (Akses: Pengguna Premium / Head)
 export async function createOrganization(req: Request, res: Response) {
@@ -20,7 +25,7 @@ export async function createOrganization(req: Request, res: Response) {
     return res.status(400).json({ error: 'Nama dan Slug organisasi wajib diisi' })
   }
 
-  const isAdmin = Boolean(userEmail && userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+  const isAdmin = isSuperAdminEmail(userEmail)
 
   try {
     // A. Cek Subscription User (Bypass penuh jika admin)
@@ -127,7 +132,7 @@ export async function getOrganizationMembers(req: Request, res: Response) {
 
     const visibleMembers = members.filter((m: any) => {
       // Jika profil adalah admin, dan bukan pemilik murni dari non-edu org, sembunyikan dari daftar anggota
-      if (m.profile?.email && m.profile.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+      if (isSuperAdminEmail(m.profile?.email)) {
         if (org?.is_edu || org?.owner_id !== m.profile_id) {
           return false;
         }
@@ -864,7 +869,7 @@ export async function updateOrganization(req: Request, res: Response) {
   if (is_edu !== undefined && is_edu === true) {
     const userEmail = (req as any).user?.email
     const userId = (req as any).user?.id
-    if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    if (!isSuperAdminEmail(userEmail)) {
       const subs = await prisma.subscriptions.findMany({
         where: { profile_id: userId, status: 'active' }
       })
@@ -1325,7 +1330,7 @@ export async function removeOrganizationMember(req: Request, res: Response) {
 
 // Helper: Verifikasi apakah user/organisasi memiliki paket aktif Family atau Enterprise
 async function checkHasFamilySubscription(userId: string, userEmail?: string): Promise<boolean> {
-  if (userEmail && userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return true
+  if (isSuperAdminEmail(userEmail)) return true
   try {
     const subs = await prisma.subscriptions.findMany({
       where: {
@@ -1916,7 +1921,7 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
     }
 
     // Role fallback jika developer god-mode
-    const isAdminUser = Boolean(req.user?.email && req.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    const isAdminUser = isSuperAdminEmail(req.user?.email);
     const detectedRole = (isAdminUser || (org && org.owner_id === userId))
       ? 'head'
       : (currentMember?.role || orgMemberContext.role || 'member');

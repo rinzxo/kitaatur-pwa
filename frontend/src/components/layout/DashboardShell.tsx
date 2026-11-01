@@ -333,15 +333,15 @@ export default function DashboardShell({ children }: DashboardShellProps) {
 
   const orgNavItems = isCurrentSchool ? schoolNavItems : regularOrgNavItems
 
-  const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
-  if (currentUserInfo?.email?.toLowerCase() === adminEmail) {
-    const adminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://admin-kitatur.rinzgroup.web.id'
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').split(',').map((e) => e.trim().toLowerCase())
+  if (currentUserInfo?.email && adminEmails.includes(currentUserInfo.email.toLowerCase())) {
     personalNavItems.push({ 
       name: 'Admin Panel', 
-      href: process.env.NODE_ENV === 'production' ? adminUrl : '/admin', 
+      href: '/admin', 
       icon: Package 
     })
   }
+
 
   // Render Sidebar items conditionally based on active mode
   let activeSidebarItems = []

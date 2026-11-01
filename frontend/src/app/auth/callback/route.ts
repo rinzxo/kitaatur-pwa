@@ -20,13 +20,15 @@ export async function GET(request: NextRequest) {
   if (!next.startsWith('/') || next.startsWith('//')) {
     next = isAdminHost ? '/' : '/app'
   }
-  const protocol = request.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'development' ? 'http' : 'https')
+  const isLocal = host.includes('localhost') || host === '127.0.0.1'
+  const protocol = isLocal ? 'http' : 'https'
   const redirectTarget = `${protocol}://${host}${next}`
 
   // Jika penyedia OAuth (misal Google) membatalkan atau mengembalikan error langsung
   if (errorParam || errorDesc) {
     const errorMsg = errorDesc || errorParam || 'Autentikasi dibatalkan atau gagal'
-    return NextResponse.redirect(`${protocol}://${host}/login?error=${encodeURIComponent(errorMsg)}`)
+    const loginPath = isAdminHost ? (host.includes('admin') ? '/login' : '/admin/login') : '/login'
+    return NextResponse.redirect(`${protocol}://${host}${loginPath}?error=${encodeURIComponent(errorMsg)}`)
   }
 
   const response = NextResponse.redirect(redirectTarget)
@@ -104,7 +106,8 @@ export async function GET(request: NextRequest) {
         )
       }
 
-      return NextResponse.redirect(`${protocol}://${host}/login?error=${encodeURIComponent(error.message)}`)
+      const loginPath = isAdminHost ? (host.includes('admin') ? '/login' : '/admin/login') : '/login'
+      return NextResponse.redirect(`${protocol}://${host}${loginPath}?error=${encodeURIComponent(error.message)}`)
     }
 
     return response

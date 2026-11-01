@@ -27,7 +27,10 @@ export function clearRoleCache(userId?: string, orgIdOrSlug?: string) {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+const getAdminEmails = (): string[] => {
+  const env = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+  return env.split(',').map((e) => e.trim().toLowerCase())
+}
 
 export function requireOrgRole(allowedRoles: (org_member_role | 'auditor' | 'vice_head')[]) {
   return async (req: OrganizationRequest, res: Response, next: NextFunction) => {
@@ -61,7 +64,7 @@ export function requireOrgRole(allowedRoles: (org_member_role | 'auditor' | 'vic
     }
 
     // God Mode Bypass
-    if (req.user?.email && req.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+    if (req.user?.email && getAdminEmails().includes(req.user.email.toLowerCase())) {
       try {
         const isId = UUID_REGEX.test(orgIdOrSlug)
         const orgs = isId

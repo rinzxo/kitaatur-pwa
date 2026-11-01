@@ -5,6 +5,14 @@ import { NextResponse, type NextRequest } from 'next/server'
 const ADMIN_DOMAIN = (process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'admin-kitatur.rinzgroup.web.id').split(':')[0].toLowerCase()
 const MAIN_DOMAIN = (process.env.NEXT_PUBLIC_MAIN_DOMAIN || 'kitatur.rinzgroup.web.id').split(':')[0].toLowerCase()
 
+// Helper: check if email is Superadmin (supports multiple comma-separated emails)
+function isSuperadminEmail(email?: string | null): boolean {
+  if (!email) return false
+  const envAdmins = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
+  const list = envAdmins.split(',').map((e) => e.trim().toLowerCase())
+  return list.includes(email.toLowerCase())
+}
+
 // Helper: preserve updated Supabase cookies when rewriting
 function rewriteWithCookies(targetUrl: URL, request: NextRequest, supabaseResponse: NextResponse) {
   const response = NextResponse.rewrite(targetUrl, {
@@ -18,9 +26,13 @@ function rewriteWithCookies(targetUrl: URL, request: NextRequest, supabaseRespon
   return response
 }
 
-// Helper: preserve updated Supabase cookies when redirecting
+// Helper: preserve updated Supabase cookies when redirecting, strictly enforcing HTTPS on non-localhost
 function redirectWithCookies(targetUrl: URL | string, supabaseResponse: NextResponse) {
-  const response = NextResponse.redirect(targetUrl)
+  const urlObj = typeof targetUrl === 'string' ? new URL(targetUrl) : new URL(targetUrl.toString())
+  if (!urlObj.hostname.includes('localhost') && urlObj.hostname !== '127.0.0.1') {
+    urlObj.protocol = 'https:'
+  }
+  const response = NextResponse.redirect(urlObj)
   supabaseResponse.cookies.getAll().forEach((cookie) => {
     response.cookies.set(cookie.name, cookie.value, cookie)
   })
@@ -49,8 +61,6 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/auth') || pathname.startsWith('/api')) {
     return supabaseResponse
   }
-
-
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -150,29 +160,19 @@ export async function middleware(request: NextRequest) {
       return redirectWithCookies(loginRedirect, supabaseResponse)
     }
 
-    // 2. Authenticated user but NOT the Superadmin
-    const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
-    if (user.email?.toLowerCase() !== adminEmail) {
-      // If user is accessing login page, allow them so they can see warning and switch account
-      if (pathname === '/login' || pathname === '/admin/login') {
+    // 2. Authenticated user on Login page:
+    // If superadmin, proceed to dashboard. If not superadmin, show login page with warning & switch account button.
+    if (pathname === '/login' || pathname === '/admin/login') {
+      if (isSuperadminEmail(user.email)) {
+        const homeRedirect = new URL('/', request.url)
+        return redirectWithCookies(homeRedirect, supabaseResponse)
+      } else {
         url.pathname = '/admin/login'
         return rewriteWithCookies(url, request, supabaseResponse)
       }
-      // Non-admin attempting to access admin domain -> redirect back to main app
-      const mainAppTarget = process.env.NODE_ENV === 'production'
-        ? `https://${MAIN_DOMAIN}/app`
-        : (hostname.includes('localhost') ? 'http://localhost:3000/app' : `https://${MAIN_DOMAIN}/app`)
-      const mainRedirect = new URL(mainAppTarget)
-      return redirectWithCookies(mainRedirect, supabaseResponse)
     }
 
-    // 3. Authenticated Superadmin on Login page -> redirect to Admin Dashboard
-    if (pathname === '/login' || pathname === '/admin/login') {
-      const homeRedirect = new URL('/', request.url)
-      return redirectWithCookies(homeRedirect, supabaseResponse)
-    }
-
-    // 4. Clean URL redirects on admin domain (strip /admin prefix if typed directly)
+    // 3. Clean URL redirects on admin domain (strip /admin prefix if typed directly)
     if (pathname === '/admin') {
       return redirectWithCookies(new URL('/', request.url), supabaseResponse)
     }
@@ -190,7 +190,7 @@ export async function middleware(request: NextRequest) {
       return redirectWithCookies(new URL(cleanPath, request.url), supabaseResponse)
     }
 
-    // 5. Rewrite clean paths to internal /admin App Router files
+    // 4. Rewrite clean paths to internal /admin App Router files
     if (pathname === '/') {
       url.pathname = '/admin'
       return rewriteWithCookies(url, request, supabaseResponse)
@@ -208,7 +208,7 @@ export async function middleware(request: NextRequest) {
       return rewriteWithCookies(url, request, supabaseResponse)
     }
 
-    // 6. If user visits main app paths (dashboard, personal, org) while on admin domain, redirect to main domain
+    // 5. If user visits main app paths (dashboard, personal, org) while on admin domain, redirect to main domain
     const isMainAppRoute =
       pathname.startsWith('/dashboard') ||
       pathname.startsWith('/personal') ||
@@ -235,18 +235,30 @@ export async function middleware(request: NextRequest) {
   // SCENARIO 2: REQUEST ON MAIN DOMAIN (e.g. kitatur.rinzgroup.web.id)
   // =========================================================================
 
-  // If user navigates to /admin on the main domain:
+  // Allow direct access to /admin routes on main domain seamlessly!
   if (pathname.startsWith('/admin')) {
-    // In production, enforce redirect to the dedicated admin domain!
-    if (process.env.NODE_ENV === 'production' || hostname.includes('rinzgroup.web.id')) {
-      const cleanPath = pathname === '/admin' ? '/' : pathname.replace(/^\/admin/, '')
-      const adminTarget = new URL(`https://${ADMIN_DOMAIN}${cleanPath}${url.search}`)
-      return redirectWithCookies(adminTarget, supabaseResponse)
+    if (!user) {
+      if (pathname === '/admin/login') {
+        return supabaseResponse
+      }
+      const adminLoginTarget = new URL('/admin/login', request.url)
+      return redirectWithCookies(adminLoginTarget, supabaseResponse)
     }
-    // In local development on plain localhost, allow /admin to be accessed directly
-    // so development is possible both with and without subdomains!
+
+    // If authenticated user is on /admin/login:
+    if (pathname === '/admin/login') {
+      if (isSuperadminEmail(user.email)) {
+        const adminDashboardTarget = new URL('/admin', request.url)
+        return redirectWithCookies(adminDashboardTarget, supabaseResponse)
+      }
+      // Non-superadmin stays on login page to see the warning and switch account
+      return supabaseResponse
+    }
+
+    // Allow authenticated user to proceed to /admin; AdminLayout will handle superadmin verification
     return supabaseResponse
   }
+
 
   // Auto-redirect logged-in users from root to /app
   if (pathname === '/') {

@@ -16,10 +16,8 @@ import {
   Ticket
 } from 'lucide-react'
 import { supabase } from '@/lib/api'
-import { useAdminRoute } from './useAdminRoute'
+import { useAdminRoute, isSuperadminEmail } from './useAdminRoute'
 import toast from 'react-hot-toast'
-
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -50,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return
       }
 
-      if (user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+      if (!isSuperadminEmail(user.email)) {
         setUser(user)
         setLoading(false)
         return
@@ -101,7 +99,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   // Unauthorized state (logged in user but not Superadmin)
-  if (user && user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+  if (user && !isSuperadminEmail(user.email)) {
+    const expectedAdmin = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-slate-800 font-sans">
         <div className="max-w-md w-full bg-white border border-rose-200 rounded-3xl p-8 text-center shadow-xs">
@@ -109,23 +108,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Lock className="w-7 h-7" />
           </div>
           <h1 className="text-xl font-bold mb-2 text-slate-900">Akses Ditolak</h1>
-          <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+          <p className="text-xs text-slate-500 mb-2 leading-relaxed">
             Akun <span className="text-slate-800 font-semibold">{user.email}</span> tidak terdaftar sebagai Superadmin sistem KitaAtur.
           </p>
+          <p className="text-[11px] text-slate-400 mb-6">
+            Silakan masuk dengan akun terotorisasi (<span className="text-slate-600 font-medium">{expectedAdmin}</span>).
+          </p>
           <div className="flex flex-col gap-2.5">
+            <button
+              onClick={handleLogout}
+              className="w-full py-3 px-4 bg-[#0087FF] hover:bg-[#0077E6] text-white rounded-xl font-semibold text-sm transition cursor-pointer"
+            >
+              Ganti Akun Google Superadmin
+            </button>
             <a
               href={mainAppUrl}
-              className="w-full py-3 px-4 bg-[#0087FF] hover:bg-[#0077E6] text-white rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition flex items-center justify-center gap-2"
             >
               <ExternalLink className="w-4 h-4" />
               Buka Aplikasi Utama
             </a>
-            <button
-              onClick={handleLogout}
-              className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition"
-            >
-              Keluar / Ganti Akun
-            </button>
           </div>
         </div>
       </div>

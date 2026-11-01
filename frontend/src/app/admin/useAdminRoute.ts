@@ -1,6 +1,13 @@
 'use client'
 import { usePathname } from 'next/navigation'
 
+export function isSuperadminEmail(email?: string | null): boolean {
+  if (!email) return false
+  const envAdmins = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com'
+  const list = envAdmins.split(',').map((e) => e.trim().toLowerCase())
+  return list.includes(email.toLowerCase())
+}
+
 export function useAdminRoute() {
   const pathname = usePathname() || ''
   const isPrefixed = pathname.startsWith('/admin')
@@ -22,3 +29,4 @@ export function useAdminRoute() {
     mainAppUrl,
   }
 }
+
