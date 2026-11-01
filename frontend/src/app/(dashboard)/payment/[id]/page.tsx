@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle2, Clock, ExternalLink } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock, ExternalLink, Tag } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
 export default function PaymentPage() {
@@ -112,7 +112,30 @@ export default function PaymentPage() {
                   {sub.plan_type.includes('trial') ? 'KitaAtur Plus (Trial 7 Hari)' : sub.plan_type.replace('-', ' ')}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
+
+              {sub.voucher_code && Number(sub.discount_amount) > 0 && (
+                <>
+                  {sub.original_amount && (
+                    <div className="flex justify-between text-sm text-slate-600">
+                      <span>Harga Normal</span>
+                      <span className="line-through text-slate-400">
+                        Rp {Number(sub.original_amount).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm text-emerald-600 font-medium bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100">
+                    <span className="flex items-center gap-1.5">
+                      <Tag className="w-3.5 h-3.5" />
+                      Voucher ({sub.voucher_code})
+                    </span>
+                    <span className="font-bold">
+                      - Rp {Number(sub.discount_amount).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-between text-sm border-t border-slate-100 pt-2">
                 <span className="text-slate-500">Total Biaya</span>
                 <span className="font-bold text-slate-900 text-lg">
                   {sub.plan_type.includes('trial') ? 'Rp 0 (Gratis Uji Coba)' : `Rp ${Number(sub.amount_paid).toLocaleString('id-ID')}`}

@@ -213,6 +213,19 @@ export default function OrgSettingsPage() {
           if (settingsRes.data.edu_pin) {
             setSchoolPin(settingsRes.data.edu_pin)
           }
+          if (settingsRes.data.name) {
+            setOrgName(settingsRes.data.name)
+            setOrgData(prev => ({
+              ...(prev || { id: settingsRes.data.id, slug: orgSlug }),
+              id: settingsRes.data.id || prev?.id || '',
+              slug: settingsRes.data.slug || orgSlug,
+              name: settingsRes.data.name,
+              logo_url: settingsRes.data.logo_url || prev?.logo_url || null
+            }))
+            if (settingsRes.data.logo_url) {
+              setOrgLogo(settingsRes.data.logo_url)
+            }
+          }
         }
 
         // Update user organizations
@@ -527,12 +540,12 @@ export default function OrgSettingsPage() {
 
   if (activeView !== 'main') {
     return (
-      <div className="min-h-screen bg-white text-slate-900 pb-24 animate-in slide-in-from-right-8 duration-300">
-        <header className="sticky top-0 bg-white/80 backdrop-blur-md z-10 border-b border-slate-100 px-6 py-4 flex items-center gap-4">
-          <button onClick={() => navigateToView('main')} className="p-2 hover:bg-slate-100 rounded-full transition-colors -ml-2">
-            <ArrowLeft className="w-6 h-6 text-slate-900" />
+      <div className="min-h-screen bg-slate-50/30 text-slate-900 pb-36 sm:pb-28 animate-in slide-in-from-right-8 duration-300">
+        <header className="sticky top-0 bg-white/90 backdrop-blur-md z-20 border-b border-slate-200/80 px-4 sm:px-6 py-3.5 sm:py-4 flex items-center gap-3">
+          <button onClick={() => navigateToView('main')} className="p-2 hover:bg-slate-100 active:bg-slate-200 rounded-full transition-colors -ml-1 text-slate-700" aria-label="Kembali">
+            <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
-          <h1 className="text-xl font-bold">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 truncate">
             {activeView === 'profile' && 'Informasi Pribadi'}
             {activeView === 'security' && 'Keamanan & Login'}
             {activeView === 'org_profile' && 'Profil Organisasi'}
@@ -545,7 +558,7 @@ export default function OrgSettingsPage() {
           </h1>
         </header>
 
-        <div className="p-6 max-w-2xl mx-auto">
+        <div className="p-4 sm:p-6 max-w-2xl mx-auto">
           {activeView === 'my_qr' && (
             <div className="space-y-6 flex flex-col items-center">
               {/* Digital Pass Card */}
@@ -713,25 +726,33 @@ export default function OrgSettingsPage() {
                 </Link>
 
                 {myOrgs.length > 0 && (
-                  myOrgs.map((org: any) => (
-                    <Link key={org.id} href={`/org/${org.slug}/dashboard`} className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 transition-colors group">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xl">
-                          {org.name.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-slate-900">{org.name}</h3>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wide">
-                              {org.role}
-                            </span>
+                  myOrgs.map((org: any) => {
+                    const isSchool = Boolean(org.is_edu || ((org._count?.school_links_as_school || 0) > 0))
+                    return (
+                      <Link key={org.id} href={isSchool ? `/org/${org.slug}/executive` : `/org/${org.slug}/dashboard`} className="flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 transition-colors group">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xl">
+                            {org.name.charAt(0).toUpperCase()}
                           </div>
-                          <p className="text-sm text-slate-500">Organisasi</p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-slate-900">{org.name}</h3>
+                              {isSchool && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-700 uppercase tracking-wide">
+                                  SEKOLAH
+                                </span>
+                              )}
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 uppercase tracking-wide">
+                                {org.role}
+                              </span>
+                            </div>
+                            <p className="text-sm text-slate-500">{isSchool ? 'Dasbor Eksekutif & Ekskul' : 'Organisasi'}</p>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500" />
-                    </Link>
-                  ))
+                        <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500" />
+                      </Link>
+                    )
+                  })
                 )}
               </div>
             </div>
@@ -749,19 +770,19 @@ export default function OrgSettingsPage() {
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 mb-8 text-left space-y-4 shadow-sm">
                   <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                     <span className="text-sm font-semibold text-slate-500">Versi Aplikasi</span>
-                    <span className="text-sm font-bold text-[#0087FF] bg-[#E0F4FE] border border-[#0087FF]/20 px-2.5 py-1 rounded-md">1.0.0-beta.2</span>
+                    <span className="text-sm font-bold text-[#0087FF] bg-[#E0F4FE] border border-[#0087FF]/20 px-2.5 py-1 rounded-md">{store.appInfo.version}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                     <span className="text-sm font-semibold text-slate-500">Build Number</span>
-                    <span className="text-sm font-mono font-medium text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-md">20260717.dev</span>
+                    <span className="text-sm font-mono font-medium text-slate-700 bg-white border border-slate-200 px-2.5 py-1 rounded-md">{store.appInfo.buildNumber}</span>
                   </div>
                   <div className="flex justify-between items-center border-b border-slate-200/60 pb-3">
                     <span className="text-sm font-semibold text-slate-500">Lingkungan</span>
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md uppercase tracking-wider">Production (Beta)</span>
+                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md uppercase tracking-wider">{store.appInfo.environment}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-semibold text-slate-500">Lisensi Pengguna</span>
-                    <span className="text-sm font-bold text-slate-700">Organisasi Terdaftar</span>
+                    <span className="text-sm font-bold text-slate-700">{store.appInfo.license || (initialOrg?.is_edu ? 'Institusi Sekolah Terdaftar' : 'Organisasi Terdaftar')}</span>
                   </div>
                 </div>
                 
@@ -1300,7 +1321,7 @@ export default function OrgSettingsPage() {
                           {`${typeof window !== 'undefined' ? window.location.origin : ''}/school`}
                         </a>
                       </p>
-                      {(!hasSchoolPlan && userEmail !== 'generalrino@gmail.com') && (
+                      {(!hasSchoolPlan && userEmail?.toLowerCase() !== (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()) && (
                         <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
                           Hanya untuk pelanggan Paket School 
                           <Link href="/personal/settings/subscription" className="underline ml-1">Upgrade</Link>
@@ -1310,7 +1331,7 @@ export default function OrgSettingsPage() {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input 
                         type="checkbox" 
-                        disabled={!isLeader || (!hasSchoolPlan && userEmail !== 'generalrino@gmail.com')}
+                        disabled={!isLeader || (!hasSchoolPlan && userEmail?.toLowerCase() !== (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase())}
                         checked={isSchool} 
                         onChange={(e) => setIsSchool(e.target.checked)}
                         className="sr-only peer"
@@ -1361,26 +1382,31 @@ export default function OrgSettingsPage() {
   // --- MAIN VIEW ---
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 pb-24 animate-in fade-in duration-500">
-      <div className="max-w-2xl mx-auto px-6 pt-12">
+    <div className="min-h-screen bg-slate-50/30 text-slate-900 pb-36 sm:pb-28 animate-in fade-in duration-500">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-4 sm:pt-8">
         
         {/* Header */}
-        <header className="flex justify-between items-end mb-8">
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight">Profil & Pengaturan</h1>
-          </div>
-          <div className="flex items-center gap-2">
+        <header className="flex items-center justify-between gap-3 mb-5 sm:mb-7">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Profil & Pengaturan
+          </h1>
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={() => setShowTour(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/60 rounded-xl text-xs font-bold transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 bg-blue-50 hover:bg-blue-100 text-[#0087FF] border border-blue-200/60 rounded-xl text-xs font-bold transition-all shadow-2xs active:scale-95"
             >
-              <Compass className="w-4 h-4" />
-              <span>Panduan Fitur</span>
+              <Compass className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Panduan Fitur</span>
+              <span className="sm:hidden">Panduan</span>
             </button>
-            <Link href="/notifications" className="relative p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Bell size={24} weight="duotone" className="text-slate-700" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+            <Link 
+              href="/notifications" 
+              className="relative p-2 text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-full transition-colors active:scale-95"
+              aria-label="Notifikasi"
+            >
+              <Bell size={22} weight="duotone" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
             </Link>
           </div>
         </header>
@@ -1389,207 +1415,293 @@ export default function OrgSettingsPage() {
         <button 
           data-tour="tour-settings-profile"
           onClick={() => navigateToView('profile')}
-          className="w-full flex items-center justify-between py-2 mb-8 group text-left"
+          className="w-full flex items-center justify-between p-3.5 sm:p-4 mb-4 sm:mb-5 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-300 shadow-2xs hover:shadow-xs transition-all group text-left active:scale-[0.99]"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-slate-200 flex items-center justify-center overflow-hidden shadow-sm">
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 aspect-square rounded-full bg-slate-100 flex items-center justify-center overflow-hidden ring-2 ring-slate-100 shrink-0">
               {userAvatar ? (
-                <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                <img src={userAvatar} alt="Profile" className="w-full h-full object-cover rounded-full" />
               ) : (
-                <span className="text-2xl font-semibold text-slate-500">{(userName || '?').charAt(0).toUpperCase()}</span>
+                <span className="text-xl sm:text-2xl font-bold text-slate-500">{(userName || '?').charAt(0).toUpperCase()}</span>
               )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-slate-900">{userName}</h2>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 truncate">{userName}</h2>
                 {isVerified && (
-                  <CheckCircle2 size={20} weight="fill" className="text-[#0087FF]" />
+                  <CheckCircle2 size={18} weight="fill" className="text-[#0087FF] shrink-0" />
                 )}
               </div>
-              <p className="text-slate-500">Tampilkan profil</p>
+              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Tampilkan profil & info akun</p>
             </div>
           </div>
-          <ChevronRight size={22} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+          <ChevronRight size={18} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
         </button>
 
-        {/* Organization Card (Current Org) */}
-        {orgData && (
-          <div className="block bg-[#E0F4FE]/40 border border-[#0087FF]/20 rounded-2xl p-6 mb-8 shadow-sm relative overflow-hidden">
-            <div className="relative z-10 flex items-center gap-4">
-              {orgData.logo_url && (
-                <div className="w-12 h-12 rounded-xl bg-white shadow-sm overflow-hidden flex-shrink-0">
-                  <img src={orgData.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                </div>
-              )}
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 mb-1">{orgData.name}</h3>
-                <p className="text-sm text-slate-600 font-medium">Anda terdaftar sebagai: <span className="uppercase font-bold text-[#007AE6]">{currentUserRole}</span></p>
-              </div>
-            </div>
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 h-full flex items-center justify-end pr-4 opacity-15 pointer-events-none">
-               <Building2 size={80} weight="duotone" className="text-[#0087FF]" />
-            </div>
-          </div>
-        )}
-
         {/* KARTU QR PRESENSI ANGGOTA */}
-        <div className="mb-10">
+        <div className="mb-5 sm:mb-6">
           <button
             type="button"
             onClick={() => navigateToView('my_qr')}
-            className="w-full text-left bg-gradient-to-r from-blue-600 via-sky-600 to-cyan-500 rounded-3xl p-5 md:p-6 text-white shadow-xl shadow-blue-500/20 hover:shadow-blue-500/30 hover:scale-[1.01] active:scale-[0.99] transition-all group relative overflow-hidden"
+            className="w-full text-left bg-gradient-to-r from-[#007AE6] via-[#0087FF] to-[#01B4F8] rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-white shadow-lg shadow-blue-500/15 hover:shadow-blue-500/25 active:scale-[0.99] transition-all group relative overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -mr-16 -mt-16 pointer-events-none group-hover:scale-110 transition-transform duration-700" />
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-2xl -mr-12 -mt-12 pointer-events-none group-hover:scale-110 transition-transform duration-700" />
             
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-white border border-white/30 shadow-inner group-hover:rotate-6 transition-transform">
-                  <QrCode size={32} weight="bold" />
+            <div className="flex items-center justify-between gap-3 relative z-10">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 aspect-square bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center text-white border border-white/30 shadow-inner shrink-0 group-hover:rotate-6 transition-transform">
+                  <QrCode size={26} weight="bold" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider bg-white/20 px-2.5 py-0.5 rounded-full border border-white/20">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-white/20 px-2 py-0.5 rounded-full border border-white/25">
                       Kartu Digital Anggota
                     </span>
-                    <span className="text-xs font-semibold text-white/80">Aktif</span>
+                    <span className="text-[11px] font-semibold text-white/90">Aktif</span>
                   </div>
-                  <h2 className="text-xl font-black tracking-tight">QR Code Presensi Saya</h2>
-                  <p className="text-xs text-white/80 font-medium">Buka dan tunjukkan ke panitia untuk scan presensi cepat</p>
+                  <h2 className="text-base sm:text-lg font-black tracking-tight truncate">QR Code Presensi Saya</h2>
+                  <p className="text-xs text-white/85 font-medium truncate sm:whitespace-normal">Buka dan tunjukkan ke panitia untuk scan presensi</p>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-1 bg-white text-blue-600 font-bold px-3.5 py-2 rounded-xl text-xs shadow-md">
+              <div className="hidden sm:flex items-center gap-1 bg-white text-[#0087FF] font-bold px-3 py-1.5 rounded-xl text-xs shadow-xs shrink-0">
                 <span>Buka QR</span>
                 <ChevronRight size={14} weight="bold" />
+              </div>
+              <div className="sm:hidden text-white/80 shrink-0">
+                <ChevronRight size={18} weight="bold" />
               </div>
             </div>
           </button>
         </div>
 
-        {/* Settings List */}
-        <div className="mb-4">
-          <h2 className="text-2xl font-semibold mb-4">Pengaturan</h2>
-          <div className="flex flex-col">
-            
-            <button data-tour="tour-settings-workspace" onClick={() => navigateToView('switcher')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Building2 size={24} weight="duotone" className="text-slate-700" />
-                <span className="text-lg text-slate-700">Workspace & Organisasi</span>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
-            </button>
-
-            <button onClick={() => navigateToView('profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <User size={24} weight="duotone" className="text-slate-700" />
-                <span className="text-lg text-slate-700">Informasi personal</span>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
-            </button>
-
-            <button onClick={() => navigateToView('security')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Shield size={24} weight="duotone" className="text-slate-700" />
-                <span className="text-lg text-slate-700">Login & keamanan</span>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
-            </button>
-
-            {/* ORG MANAGEMENT SECTION */}
-            <h2 className="text-xl font-bold mt-10 mb-2 text-slate-900">Pengelolaan Organisasi</h2>
-            <p className="text-sm text-slate-500 mb-4">Pengaturan khusus untuk workspace {orgData?.name || 'ini'}.</p>
-
-            {isManagement && (
-              <Link data-tour="tour-settings-members" href={`/org/${orgSlug}/members`} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-                <div className="flex items-center gap-4">
-                  <Users size={24} weight="duotone" className="text-[#0087FF]" />
-                  <span className="text-lg text-slate-700 font-medium">Kelola Anggota</span>
-                </div>
-                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-[#0087FF] transition-colors" />
-              </Link>
-            )}
-
-            {['head', 'vice_head', 'sekretaris'].includes(currentUserRole) && (
-              <Link href={`/org/${orgSlug}/members/qr`} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-                <div className="flex items-center gap-4">
-                  <IdentificationCard size={24} weight="duotone" className="text-[#0087FF]" />
-                  <div className="text-left">
-                    <span className="text-lg text-slate-700 font-medium block">QR Code Semua Anggota (Cetak & Unduh)</span>
-                    <span className="text-xs text-slate-400">Akses ID Card & cetak lembar QR presensi seluruh anggota</span>
+        {/* Grouped Settings Cards */}
+        <div className="space-y-5 sm:space-y-6">
+          
+          {/* 1. AKUN & WORKSPACE */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">
+              Akun & Workspace
+            </h2>
+            <div className="bg-white border border-slate-200/80 rounded-2xl divide-y divide-slate-100 shadow-2xs overflow-hidden">
+              
+              <button 
+                data-tour="tour-settings-workspace" 
+                onClick={() => navigateToView('switcher')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                    <Building2 size={18} weight="duotone" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Workspace & Organisasi</span>
+                    {orgData?.name && (
+                      <span className="text-[11px] text-slate-400 block truncate">Aktif: {orgData.name}</span>
+                    )}
                   </div>
                 </div>
-                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-[#0087FF] transition-colors" />
-              </Link>
-            )}
-
-            {/* KELUARGA & TAUTAN CABANG */}
-            <button data-tour="tour-settings-family" onClick={() => navigateToView('org_family')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Network size={24} weight="duotone" className="text-[#0087FF]" />
-                <div className="text-left">
-                  <span className="text-lg text-slate-700 font-medium block">Keluarga & Tautan Cabang</span>
-                  <span className="text-xs text-slate-400">
-                    {familyData?.role_in_family === 'branch'
-                      ? `Cabang dari ${familyData.parent?.name}`
-                      : (familyData?.role_in_family === 'parent'
-                          ? `Organisasi Induk (${familyData.children?.length || 0} Cabang)`
-                          : 'Hubungkan dengan organisasi lain')}
-                  </span>
-                </div>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-[#0087FF] transition-colors" />
-            </button>
-
-            {isLeader && (
-              <button onClick={() => navigateToView('org_custom_fields')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-                <div className="flex items-center gap-4">
-                  <IdentificationCard size={24} weight="duotone" className="text-[#0087FF]" />
-                  <span className="text-lg text-slate-700 font-medium">Data Tambahan Anggota</span>
-                </div>
-                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-[#0087FF] transition-colors" />
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </button>
-            )}
 
-            {customFieldsSchema.length > 0 && (
-              <button onClick={() => navigateToView('member_custom_data')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-                <div className="flex items-center gap-4">
-                  <AddressBook size={24} weight="duotone" className="text-slate-700" />
-                  <span className="text-lg text-slate-700">Data Profil Organisasi Anda</span>
+              <button 
+                onClick={() => navigateToView('profile')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                    <User size={18} weight="duotone" />
+                  </div>
+                  <span className="text-sm sm:text-base font-semibold text-slate-800 truncate">Informasi personal</span>
                 </div>
-                <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
               </button>
-            )}
 
-            <button data-tour="tour-settings-org-profile" onClick={() => navigateToView('org_profile')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Settings size={24} weight="duotone" className="text-slate-700" />
-                <span className="text-lg text-slate-700 font-medium">Profil Organisasi</span>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
-            </button>
+              <button 
+                onClick={() => navigateToView('security')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                    <Shield size={18} weight="duotone" />
+                  </div>
+                  <span className="text-sm sm:text-base font-semibold text-slate-800 truncate">Login & keamanan</span>
+                </div>
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </button>
 
-            <button onClick={() => navigateToView('about')} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Info size={24} weight="duotone" className="text-slate-700" />
-                <span className="text-lg text-slate-700">Tentang Aplikasi</span>
-              </div>
-              <ChevronRight size={20} weight="bold" className="text-slate-400 group-hover:text-slate-900 transition-colors" />
-            </button>
-
-            <button onClick={handleLeaveWorkspace} className="flex items-center justify-between py-5 border-b border-slate-100 group">
-              <div className="flex items-center gap-4">
-                <Door size={24} weight="duotone" className="text-rose-500" />
-                <span className="text-lg text-rose-500 font-medium">Keluar Workspace</span>
-              </div>
-            </button>
-
-            <button onClick={async () => { await supabase.auth.signOut(); window.location.href='/login' }} className="flex items-center justify-between py-5 group mt-8">
-              <div className="flex items-center gap-4">
-                <LogOut size={24} weight="duotone" className="text-slate-400" />
-                <span className="text-lg text-slate-500 font-medium">Keluar Akun</span>
-              </div>
-            </button>
-
+            </div>
           </div>
+
+          {/* 2. PENGELOLAAN ORGANISASI */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">
+              Pengelolaan Organisasi {orgData?.name ? `• ${orgData.name}` : ''}
+            </h2>
+            <div className="bg-white border border-slate-200/80 rounded-2xl divide-y divide-slate-100 shadow-2xs overflow-hidden">
+              
+              {isManagement && (
+                <Link 
+                  data-tour="tour-settings-members" 
+                  href={`/org/${orgSlug}/members`} 
+                  className="flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-[#0087FF] shrink-0">
+                      <Users size={18} weight="duotone" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Kelola Anggota</span>
+                      <span className="text-[11px] text-slate-400 block truncate">Atur pengurus, role & izin akses</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </Link>
+              )}
+
+              {['head', 'vice_head', 'sekretaris'].includes(currentUserRole) && (
+                <Link 
+                  href={`/org/${orgSlug}/members/qr`} 
+                  className="flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-[#0087FF] shrink-0">
+                      <IdentificationCard size={18} weight="duotone" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">QR Code Semua Anggota</span>
+                      <span className="text-[11px] text-slate-400 block truncate">Cetak & unduh lembar ID card anggota</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </Link>
+              )}
+
+              <button 
+                data-tour="tour-settings-family" 
+                onClick={() => navigateToView('org_family')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-[#0087FF] shrink-0">
+                    <Network size={18} weight="duotone" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Keluarga & Tautan Cabang</span>
+                    <span className="text-[11px] text-slate-400 block truncate">
+                      {familyData?.role_in_family === 'branch'
+                        ? `Cabang dari ${familyData.parent?.name}`
+                        : (familyData?.role_in_family === 'parent'
+                            ? `Organisasi Induk (${familyData.children?.length || 0} Cabang)`
+                            : 'Hubungkan dengan organisasi lain')}
+                    </span>
+                  </div>
+                </div>
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </button>
+
+              {isLeader && (
+                <button 
+                  onClick={() => navigateToView('org_custom_fields')} 
+                  className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center text-[#0087FF] shrink-0">
+                      <IdentificationCard size={18} weight="duotone" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Data Tambahan Anggota</span>
+                      <span className="text-[11px] text-slate-400 block truncate">Kustomisasi form data profil anggota</span>
+                    </div>
+                  </div>
+                  <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </button>
+              )}
+
+              {customFieldsSchema.length > 0 && (
+                <button 
+                  onClick={() => navigateToView('member_custom_data')} 
+                  className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                      <AddressBook size={18} weight="duotone" />
+                    </div>
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 truncate">Data Profil Organisasi Anda</span>
+                  </div>
+                  <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+                </button>
+              )}
+
+              <button 
+                data-tour="tour-settings-org-profile" 
+                onClick={() => navigateToView('org_profile')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                    <Settings size={18} weight="duotone" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Profil Organisasi</span>
+                    <span className="text-[11px] text-slate-400 block truncate">Nama, logo & pengaturan portal sekolah</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </button>
+
+            </div>
+          </div>
+
+          {/* 3. SISTEM & TENTANG */}
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 px-1 mb-2">
+              Sistem
+            </h2>
+            <div className="bg-white border border-slate-200/80 rounded-2xl divide-y divide-slate-100 shadow-2xs overflow-hidden">
+              
+              <button 
+                onClick={() => navigateToView('about')} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-slate-50/80 active:bg-slate-100 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-[#0087FF] transition-colors shrink-0">
+                    <Info size={18} weight="duotone" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-sm sm:text-base font-semibold text-slate-800 block truncate">Tentang Aplikasi</span>
+                    <span className="text-[11px] text-slate-400 block truncate">Versi {store.appInfo.version} • Build {store.appInfo.buildNumber}</span>
+                  </div>
+                </div>
+                <ChevronRight size={16} weight="bold" className="text-slate-400 group-hover:text-slate-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </button>
+
+              <button 
+                onClick={handleLeaveWorkspace} 
+                className="w-full flex items-center justify-between px-4 py-3.5 sm:py-4 hover:bg-rose-50/50 active:bg-rose-100/50 transition-colors group text-left"
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500 shrink-0">
+                    <Door size={18} weight="duotone" />
+                  </div>
+                  <span className="text-sm sm:text-base font-semibold text-rose-600 truncate">Keluar Workspace</span>
+                </div>
+                <ChevronRight size={16} weight="bold" className="text-rose-300 group-hover:text-rose-500 group-hover:translate-x-0.5 transition-all shrink-0 ml-2" />
+              </button>
+
+            </div>
+          </div>
+
+          {/* 4. KELUAR AKUN */}
+          <div className="pt-2">
+            <button 
+              onClick={async () => { await supabase.auth.signOut(); window.location.href='/login' }} 
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white hover:bg-rose-50/70 border border-slate-200/90 hover:border-rose-200 text-slate-600 hover:text-rose-600 text-sm font-bold transition-all shadow-2xs active:scale-[0.99]"
+            >
+              <LogOut size={18} weight="bold" />
+              <span>Keluar Akun</span>
+            </button>
+          </div>
+
         </div>
       </div>
 

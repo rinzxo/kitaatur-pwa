@@ -14,12 +14,23 @@ interface OrgData {
   name: string
   slug: string
   logo_url: string | null
+  is_edu?: boolean
+  _count?: {
+    school_links_as_school?: number
+  }
 }
 
 interface MemberData {
   profile_id: string
   role: string
   joined_at: string
+}
+
+export interface AppInfo {
+  version: string
+  buildNumber: string
+  environment: string
+  license: string
 }
 
 interface DashboardStore {
@@ -45,10 +56,14 @@ interface DashboardStore {
   // Notifications count
   unreadNotifs: number
 
+  // App Info (Synced from Admin / System Settings)
+  appInfo: AppInfo
+
   // Refresh functions
   refreshUser: () => Promise<void>
   refreshOrgs: () => Promise<void>
   refreshMembers: (orgSlug: string) => Promise<void>
+  refreshAppInfo: () => Promise<void>
   refreshAll: () => Promise<void>
 }
 
@@ -147,12 +162,39 @@ export function DashboardStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const [appInfo, setAppInfo] = useState<AppInfo>(() => {
+    const cached = getApiCachedData<AppInfo>('/admin/app-info')
+    return cached || {
+      version: '3.0.1',
+      buildNumber: '20261101.release',
+      environment: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
+      license: 'Organisasi Terdaftar',
+    }
+  })
+
+  const refreshAppInfo = useCallback(async () => {
+    try {
+      const res = await api.get('/admin/app-info').catch(() => null)
+      if (res?.data?.version) {
+        setAppInfo({
+          version: res.data.version,
+          buildNumber: res.data.buildNumber || '20261101.release',
+          environment: res.data.environment || (process.env.NODE_ENV === 'production' ? 'Production' : 'Development'),
+          license: res.data.license || 'Organisasi Terdaftar',
+        })
+      }
+    } catch (e) {
+      console.warn('Failed to fetch app info', e)
+    }
+  }, [])
+
   const refreshAll = useCallback(async () => {
-    const [userRes, orgsRes, notifRes, subRes] = await Promise.allSettled([
+    const [userRes, orgsRes, notifRes, subRes, infoRes] = await Promise.allSettled([
       refreshUser(),
       refreshOrgs(),
       api.get('/notifications'),
       api.get('/subscription/me'),
+      refreshAppInfo(),
     ])
 
     if (notifRes.status === 'fulfilled' && notifRes.value?.data) {
@@ -167,7 +209,7 @@ export function DashboardStoreProvider({ children }: { children: ReactNode }) {
         s.status === 'active' && (s.plan_type.toLowerCase().includes('school') || s.plan_type.toLowerCase().includes('edu'))
       ))
     }
-  }, [refreshUser, refreshOrgs])
+  }, [refreshUser, refreshOrgs, refreshAppInfo])
 
   useEffect(() => {
     if (!fetchedRef.current) {
@@ -195,7 +237,8 @@ export function DashboardStoreProvider({ children }: { children: ReactNode }) {
       getCurrentRole,
       isVerified, hasSchoolPlan,
       unreadNotifs,
-      refreshUser, refreshOrgs, refreshMembers, refreshAll,
+      appInfo,
+      refreshUser, refreshOrgs, refreshMembers, refreshAppInfo, refreshAll,
     }}>
       {children}
     </DashboardStoreContext.Provider>

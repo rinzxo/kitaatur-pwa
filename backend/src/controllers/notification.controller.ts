@@ -84,16 +84,24 @@ export async function subscribePush(req: any, res: Response) {
   }
 }
 
-export async function sendPushNotification(profileId: string, title: string, body: string, url?: string) {
+export async function sendPushNotification(
+  profileId: string, 
+  title: string, 
+  body: string, 
+  url?: string,
+  saveToDb: boolean = true
+) {
   try {
-    // 1. Save to DB
-    await prisma.notifications.create({
-      data: {
-        profile_id: profileId,
-        title,
-        body
-      }
-    })
+    // 1. Save to DB if enabled
+    if (saveToDb) {
+      await prisma.notifications.create({
+        data: {
+          profile_id: profileId,
+          title,
+          body
+        }
+      })
+    }
 
     // 2. Send Web Push
     const subs = await prisma.push_subscriptions.findMany({
@@ -142,3 +150,45 @@ export async function testPush(req: any, res: Response) {
   
   return res.status(200).json({ message: 'Push notification sent' })
 }
+
+export async function sendBroadcastWebPush(
+  title: string,
+  body: string,
+  url: string = '/notifications'
+) {
+  try {
+    const subs: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM public.push_subscriptions`
+    )
+    if (!subs || subs.length === 0) return
+
+    const payload = JSON.stringify({
+      title,
+      body,
+      url: url || '/notifications'
+    })
+
+    for (const sub of subs) {
+      const pushSub = {
+        endpoint: sub.endpoint,
+        keys: {
+          p256dh: sub.p256dh,
+          auth: sub.auth
+        }
+      }
+      try {
+        await webpush.sendNotification(pushSub, payload)
+      } catch (e: any) {
+        if (e.statusCode === 410 || e.statusCode === 404) {
+          await prisma.$executeRawUnsafe(
+            `DELETE FROM public.push_subscriptions WHERE id = $1::uuid`,
+            sub.id
+          )
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error in sendBroadcastWebPush:', err)
+  }
+}
+

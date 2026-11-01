@@ -2,6 +2,11 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/auth.middleware'
 import { requireOrgRole } from '../middleware/role.middleware'
 import {
+  antiJoinRateLimiter,
+  antiMemberManageRateLimiter,
+  antiScriptHoneypot
+} from '../middleware/antiScript.middleware'
+import {
   createOrganization,
   getOrganizationMembers,
   addOrganizationMember,
@@ -32,20 +37,27 @@ import {
   getFamilyBranches,
   getOrgDashboardOverview
 } from '../controllers/org.controller'
+import {
+  getSchoolExecutiveOverview,
+  getSchoolLinkedOrgDetail,
+  getSchoolLinkedOrgSessionDetail,
+  getSchoolLinkedOrgFullReport,
+  deleteSchoolLinkedOrgSession
+} from '../controllers/school-executive.controller'
 
 const router = Router()
 
-// Public Route: Mengambil info org dari kode invite (tanpa auth)
-router.get('/invite/:code', getOrgByInviteCode)
+// Public Route: Mengambil info org dari kode invite (tanpa auth, dilindungi antiJoinRateLimiter)
+router.get('/invite/:code', antiJoinRateLimiter, getOrgByInviteCode)
+
+// Route bergabung via invite code (Dilindungi rate limiter & honeypot anti-script sebelum verifikasi auth)
+router.post('/join', antiJoinRateLimiter, antiScriptHoneypot, requireAuth, joinOrganization)
 
 // Seluruh rute organisasi wajib melalui otentikasi JWT
 router.use(requireAuth)
 
 // Route pencarian organisasi (untuk kolaborasi, dll)
 router.get('/search', searchOrgs)
-
-// Route bergabung via invite code
-router.post('/join', joinOrganization)
 
 // A1. Mendapatkan daftar organisasi pengguna yang login (Workspace Switcher)
 // Route ini harus di atas /:orgIdOrSlug agar 'me' tidak dianggap sebagai orgId
@@ -63,8 +75,8 @@ router.put('/:orgIdOrSlug', requireOrgRole(['head']), updateOrganization)
 // B. Mendapatkan seluruh anggota organisasi (Semua role dalam org bersangkutan)
 router.get('/:orgIdOrSlug/members', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrganizationMembers)
 
-// C. Menambahkan anggota baru ke dalam organisasi (Hanya Head organisasi)
-router.post('/:orgIdOrSlug/members', requireOrgRole(['head']), addOrganizationMember)
+// C. Menambahkan anggota baru ke dalam organisasi (Hanya Head organisasi & rate limited)
+router.post('/:orgIdOrSlug/members', antiMemberManageRateLimiter, requireOrgRole(['head']), addOrganizationMember)
 
 // C2. Mendapatkan Invite Code Organisasi
 router.get('/:orgIdOrSlug/invite-code', requireOrgRole(['head', 'sekretaris']), getInviteCode)
@@ -72,11 +84,11 @@ router.get('/:orgIdOrSlug/invite-code', requireOrgRole(['head', 'sekretaris']), 
 // C3. Mereset Invite Code Organisasi
 router.post('/:orgIdOrSlug/invite-code/reset', requireOrgRole(['head', 'sekretaris']), resetInviteCode)
 
-// D. Mengubah role anggota organisasi (Hanya Head organisasi)
-router.patch('/:orgIdOrSlug/members/:memberProfileId', requireOrgRole(['head']), updateMemberRole)
+// D. Mengubah role anggota organisasi (Hanya Head organisasi & rate limited)
+router.patch('/:orgIdOrSlug/members/:memberProfileId', antiMemberManageRateLimiter, requireOrgRole(['head']), updateMemberRole)
 
-// D2. Mengeluarkan anggota dari organisasi (Hanya Head organisasi)
-router.delete('/:orgIdOrSlug/members/:memberProfileId', requireOrgRole(['head']), removeOrganizationMember)
+// D2. Mengeluarkan anggota dari organisasi (Hanya Head organisasi & rate limited)
+router.delete('/:orgIdOrSlug/members/:memberProfileId', antiMemberManageRateLimiter, requireOrgRole(['head']), removeOrganizationMember)
 
 // E. Mendapatkan goals/target organisasi
 router.get('/:orgIdOrSlug/goals', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getOrgGoals)
@@ -129,4 +141,12 @@ router.post('/:orgIdOrSlug/family/unlink', requireOrgRole(['head']), unlinkBranc
 // G5. Daftar Cabang & Induk untuk Fast Switcher (Semua Anggota)
 router.get('/:orgIdOrSlug/family/branches', requireOrgRole(['head', 'bendahara', 'sekretaris', 'member', 'auditor']), getFamilyBranches)
 
+// H. School Executive Dashboard (Kepsek, Wakasek, Pembina, Auditor)
+router.get('/:orgIdOrSlug/school/executive-overview', requireOrgRole(['head', 'vice_head', 'auditor', 'sekretaris', 'bendahara']), getSchoolExecutiveOverview)
+router.get('/:orgIdOrSlug/school/linked-org/:targetOrgId/detail', requireOrgRole(['head', 'vice_head', 'auditor', 'sekretaris', 'bendahara']), getSchoolLinkedOrgDetail)
+router.get('/:orgIdOrSlug/school/linked-org/:targetOrgId/session/:sessionId', requireOrgRole(['head', 'vice_head', 'auditor', 'sekretaris', 'bendahara']), getSchoolLinkedOrgSessionDetail)
+router.get('/:orgIdOrSlug/school/linked-org/:targetOrgId/full-report', requireOrgRole(['head', 'vice_head', 'auditor', 'sekretaris', 'bendahara']), getSchoolLinkedOrgFullReport)
+router.delete('/:orgIdOrSlug/school/linked-org/:targetOrgId/session/:sessionId', requireOrgRole(['head', 'vice_head', 'sekretaris']), deleteSchoolLinkedOrgSession)
+
 export default router
+

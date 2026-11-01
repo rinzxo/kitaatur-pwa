@@ -111,6 +111,13 @@ export default function OrgDashboardPage() {
   const currentOrg = store.orgs.find(o => o.slug === orgSlug)
   const orgData = currentOrg || { name: orgSlug, logo_url: null }
 
+  // If this organization is a School, immediately redirect to Executive Dashboard
+  useEffect(() => {
+    if (currentOrg?.is_edu || ((currentOrg?._count?.school_links_as_school || 0) > 0)) {
+      router.replace(`/org/${orgSlug}/executive`)
+    }
+  }, [currentOrg, orgSlug, router])
+
   const [showTour, setShowTour] = useState(false)
 
   const dashboardTourSteps: TourStep[] = [
@@ -175,13 +182,19 @@ export default function OrgDashboardPage() {
     setCurrentUserRole(detectedRole)
     setMyTunggakan(data.myTunggakan || 0)
 
-    // Check if onboarding should be shown for this leader
+    const isSchoolOrg = Boolean(data.org?.is_edu || currentOrg?.is_edu || ((currentOrg?._count?.school_links_as_school || 0) > 0) || ((data.org?._count?.school_links_as_school || 0) > 0))
+    if (isSchoolOrg) {
+      router.replace(`/org/${orgSlug}/executive`)
+      return
+    }
+
+    // Check if onboarding should be shown for this leader (never for schools)
     const isOrgLeader = detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'bendahara'
     const hasCompletedOnboarding = localStorage.getItem(`kitaatur_onboarding_completed_${orgSlug}`) === 'true'
     const isDismissedOnboarding = localStorage.getItem(`kitaatur_onboarding_dismissed_${orgSlug}`) === 'true'
     const isBrandNewOrg = targetAmt === 0 && orgAgendas.length === 0
 
-    if (isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
+    if (!isSchoolOrg && isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
       setShowOnboarding(true)
     }
   }
@@ -299,12 +312,18 @@ export default function OrgDashboardPage() {
               setMyTunggakan(0)
             }
 
+            const isSchoolOrg = Boolean(settingsRes.data?.is_edu || currentOrg?.is_edu || ((currentOrg?._count?.school_links_as_school || 0) > 0))
+            if (isSchoolOrg) {
+              router.replace(`/org/${orgSlug}/executive`)
+              return
+            }
+
             const isOrgLeader = detectedRole === 'head' || detectedRole === 'vice_head' || detectedRole === 'bendahara'
             const hasCompletedOnboarding = localStorage.getItem(`kitaatur_onboarding_completed_${orgSlug}`) === 'true'
             const isDismissedOnboarding = localStorage.getItem(`kitaatur_onboarding_dismissed_${orgSlug}`) === 'true'
             const isBrandNewOrg = targetAmt === 0 && orgAgendas.length === 0
 
-            if (isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
+            if (!isSchoolOrg && isOrgLeader && isBrandNewOrg && !hasCompletedOnboarding && !isDismissedOnboarding) {
               setShowOnboarding(true)
             }
           }
@@ -511,7 +530,6 @@ export default function OrgDashboardPage() {
           <div className="flex items-center gap-1.5">
             <span className="text-[#0087FF] font-bold text-sm">Halo, {userName}</span>
             {isVerified && <CheckCircle2 className="w-4 h-4 text-[#0087FF] fill-[#E0F4FE]" />}
-            {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-[#0087FF] transition-colors">
             <Bell className="w-6 h-6" />
@@ -536,7 +554,7 @@ export default function OrgDashboardPage() {
                 <Settings className="w-5 h-5" />
               )}
             </Link>
-            <div className="bg-[#E0F4FE] text-[#007AE6] text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
+            <div suppressHydrationWarning className="bg-[#E0F4FE] text-[#007AE6] text-sm font-bold px-4 py-1.5 rounded-full uppercase tracking-wider">
               {orgData?.name || orgSlug}
             </div>
           </div>
@@ -560,7 +578,6 @@ export default function OrgDashboardPage() {
             <span className="font-bold text-sm text-slate-700">{userName}</span>
             <div className="flex items-center gap-1">
               {isVerified && <CheckCircle2 className="w-4 h-4 text-[#0087FF] fill-[#E0F4FE]" />}
-              {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
             </div>
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-[#0087FF] transition-colors">
@@ -630,7 +647,7 @@ export default function OrgDashboardPage() {
         )}
 
         {/* Quick Onboarding Wizard for Organization Leaders */}
-        {showOnboarding && (currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'bendahara') && (
+        {showOnboarding && !currentOrg?.is_edu && (currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'bendahara') && (
           <QuickOnboardingWizard
             orgSlug={orgSlug}
             orgName={orgData?.name || orgSlug}
@@ -647,7 +664,7 @@ export default function OrgDashboardPage() {
         )}
 
         {/* Compact Setup Guide Banner if not showing wizard but is brand new org */}
-        {!showOnboarding && (currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'bendahara') && targetAmount === 0 && agendas.length === 0 && (
+        {!showOnboarding && !currentOrg?.is_edu && (currentUserRole === 'head' || currentUserRole === 'vice_head' || currentUserRole === 'bendahara') && targetAmount === 0 && agendas.length === 0 && (
           <div className="mb-8 p-5 rounded-3xl bg-gradient-to-r from-blue-50 via-white to-blue-50/50 border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-blue-500/25">

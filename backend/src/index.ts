@@ -23,9 +23,11 @@ import adminRoutes from './routes/admin.routes'
 import trialRoutes from './routes/trial.routes'
 
 import { maintenanceCheck } from './middleware/maintenance.middleware'
+import { antiScriptBotGuard } from './middleware/antiScript.middleware'
 
 import { initJobs } from './jobs/reminder.job'
 import { initSessionJobs } from './jobs/session.job'
+import { initCleanupJob } from './jobs/cleanup.job'
 
 const app = express()
 const port = process.env.PORT || 5000
@@ -37,9 +39,11 @@ app.set('trust proxy', 1)
 app.use(helmet())
 
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // limit each IP to 1000 requests per windowMs
-  message: 'Too many requests from this IP, please try again after 15 minutes',
+  windowMs: 15 * 60 * 1000, // 15 menit
+  max: 600, // batasi tiap IP maksimal 600 request per 15 menit
+  message: {
+    error: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi setelah 15 menit'
+  },
   standardHeaders: true, 
   legacyHeaders: false,
 })
@@ -48,6 +52,7 @@ app.use(limiter)
 // Initialize background jobs
 initJobs()
 initSessionJobs()
+initCleanupJob()
 
 // Handle Chrome Private Network Access (PNA) block for Railway IPv6 addresses
 app.use((req, res, next) => {
@@ -61,10 +66,13 @@ app.use(cors({
   credentials: true
 }))
 app.use(compression())
-app.use(express.json())
+app.use(express.json({ limit: '1mb' }))
 
 // HTTP Parameter Pollution prevention
 app.use(hpp())
+
+// Anti-Script & Bot Shield (memblokir tools automasi seperti python, curl, scraper, dan prototype pollution)
+app.use(antiScriptBotGuard)
 
 // Maintenance Check Middleware (runs before all routes)
 app.use(maintenanceCheck)

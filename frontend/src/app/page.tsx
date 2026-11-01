@@ -79,6 +79,9 @@ export default function Home() {
             <Link href="#keunggulan" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Keunggulan</Link>
             <Link href="#faq" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">FAQ</Link>
             <Link href="/school" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Portal Siswa</Link>
+            <Link href="/changelog" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">
+              Changelog
+            </Link>
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
@@ -107,6 +110,9 @@ export default function Home() {
             <Link href="#keunggulan" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">Keunggulan</Link>
             <Link href="#faq" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">FAQ</Link>
             <Link href="/school" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">Portal Siswa</Link>
+            <Link href="/changelog" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800">
+              Changelog
+            </Link>
           </div>
           <div className="flex flex-col gap-3 mt-8">
             <Link href="/login" className="w-full text-center bg-slate-100 text-slate-800 font-bold py-3.5 rounded-xl">Masuk</Link>
@@ -764,6 +770,9 @@ export default function Home() {
           <div className="flex flex-col gap-4 md:pl-10">
             <h4 className="text-slate-900 font-bold mb-2">Tautan Penting</h4>
             <div className="flex flex-col gap-3 text-sm font-medium">
+              <Link href="/changelog" className="hover:text-blue-600 transition-colors">
+                Changelog
+              </Link>
               <Link href="/privacy" className="hover:text-blue-600 transition-colors">Kebijakan Privasi</Link>
               <Link href="/terms" className="hover:text-blue-600 transition-colors">Syarat & Ketentuan</Link>
               <Link href="#faq" className="hover:text-blue-600 transition-colors">FAQ</Link>

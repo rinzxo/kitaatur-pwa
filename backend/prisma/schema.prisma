@@ -65,8 +65,23 @@ model organizations {
   meeting_minutes      meeting_minutes[]
   org_guests           org_guests[]
   organization_members organization_members[]
+  school_links_as_school school_linked_orgs[]   @relation("SchoolParent")
+  school_links_as_linked school_linked_orgs[]   @relation("SchoolChild")
   owner                profiles?              @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+model school_linked_orgs {
+  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  school_org_id String        @db.Uuid
+  linked_org_id String        @db.Uuid
+  created_at    DateTime      @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  school_org    organizations @relation("SchoolParent", fields: [school_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  linked_org    organizations @relation("SchoolChild", fields: [linked_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([school_org_id, linked_org_id], map: "uq_school_linked_orgs")
+  @@index([linked_org_id], map: "idx_school_linked_orgs_child")
   @@schema("public")
 }
 
@@ -148,6 +163,7 @@ model attendance_sessions {
   is_active           Boolean            @default(true)
   created_at          DateTime           @default(now()) @db.Timestamptz(6)
   closed_at           DateTime?          @db.Timestamptz(6)
+  reminder_sent       Boolean            @default(false)
   checkout_pin_code   String?            @db.VarChar(10)
   checkout_start_time DateTime?          @db.Timestamptz(6)
   shared_with_orgs    String[]           @default([])
@@ -248,20 +264,44 @@ model goal_transactions {
 }
 
 model subscriptions {
-  id                      String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  profile_id              String               @db.Uuid
+  id                     String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profile_id             String               @db.Uuid
   kitapay_transaction_id String?              @unique
-  status                  subscription_status? @default(active)
-  plan_type               String
-  amount_paid             Decimal?             @db.Decimal
-  starts_at               DateTime             @db.Timestamptz(6)
-  expires_at              DateTime             @db.Timestamptz(6)
-  created_at              DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
-  updated_at              DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
-  payment_url             String?
-  profile                 profiles             @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  status                 subscription_status? @default(active)
+  plan_type              String
+  amount_paid            Decimal?             @db.Decimal
+  starts_at              DateTime             @db.Timestamptz(6)
+  expires_at             DateTime             @db.Timestamptz(6)
+  created_at             DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at             DateTime?            @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+  payment_url            String?
+  voucher_code           String?              @db.VarChar(50)
+  discount_amount        Decimal?             @db.Decimal(15, 2)
+  original_amount        Decimal?             @db.Decimal(15, 2)
+  profile                profiles             @relation(fields: [profile_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([profile_id, status], map: "idx_subscriptions_profile_status")
+  @@schema("public")
+}
+
+model vouchers {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code                String    @unique @db.VarChar(50)
+  description         String?
+  discount_type       String    @default("percentage")
+  discount_value      Decimal   @db.Decimal(15, 2)
+  max_discount_amount Decimal?  @db.Decimal(15, 2)
+  min_purchase_amount Decimal?  @default(0) @db.Decimal(15, 2)
+  applicable_plans    String?   @default("all")
+  usage_limit         Int?
+  used_count          Int       @default(0)
+  starts_at           DateTime? @db.Timestamptz(6)
+  expires_at          DateTime? @db.Timestamptz(6)
+  is_active           Boolean   @default(true)
+  created_at          DateTime  @default(dbgenerated("timezone('utc'::text, now())")) @db.Timestamptz(6)
+  updated_at          DateTime? @default(dbgenerated("timezone('utc'::text, now())")) @updatedAt @db.Timestamptz(6)
+
+  @@index([code, is_active], map: "idx_vouchers_code_active")
   @@schema("public")
 }
 

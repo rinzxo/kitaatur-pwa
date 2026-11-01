@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kitaatur-v2'
+const CACHE_NAME = 'kitaatur-v4'
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
@@ -85,27 +85,59 @@ self.addEventListener('fetch', (event) => {
   )
 })
 
-// Push notifications
+// Native Push notifications
 self.addEventListener('push', function (event) {
   if (event.data) {
-    const data = event.data.json()
+    let data = {}
+    try {
+      data = event.data.json()
+    } catch (e) {
+      data = { title: 'KitaAtur', body: event.data.text() }
+    }
+
+    const title = data.title || 'KitaAtur'
+    const targetUrl = data.url || '/'
+
+    // Rich Native Notification Options (Android / Windows / PWA)
     const options = {
-      body: data.body,
-      icon: '/icons/icon-192x192.png',
+      body: data.body || '',
+      icon: data.icon || '/icons/icon-192x192.png',
       badge: '/icons/icon-72x72.png',
-      vibrate: [100, 50, 100],
+      image: data.image || undefined,
+      tag: data.tag || 'kitaatur-' + (data.sessionId || 'alert'),
+      renotify: true,
+      vibrate: [200, 100, 200],
+      requireInteraction: false,
       data: {
         dateOfArrival: Date.now(),
-        primaryKey: '2',
-        url: data.url || '/'
-      }
+        url: targetUrl
+      },
+      actions: [
+        {
+          action: 'open_url',
+          title: 'Buka Presensi'
+        },
+        {
+          action: 'dismiss',
+          title: 'Tutup'
+        }
+      ]
     }
-    const notificationPromise = self.registration.showNotification(data.title, options)
 
-    // Kirim sinyal ke semua tab frontend yang terbuka agar memutar suara
-    const broadcastPromise = self.clients.matchAll().then((clients) => {
+    const notificationPromise = self.registration.showNotification(title, options)
+
+    // Broadcast ke semua window/tab frontend yang terbuka agar memicu Heads-Up Banner in-app
+    const broadcastPromise = self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       clients.forEach((client) => {
-        client.postMessage({ type: 'PUSH_RECEIVED', data: data })
+        client.postMessage({
+          type: 'PUSH_RECEIVED',
+          data: {
+            title: title,
+            body: data.body,
+            url: targetUrl,
+            icon: options.icon
+          }
+        })
       })
     })
 
@@ -113,7 +145,32 @@ self.addEventListener('push', function (event) {
   }
 })
 
+// Native Notification Click Handler
 self.addEventListener('notificationclick', function (event) {
   event.notification.close()
-  event.waitUntil(clients.openWindow(event.notification.data.url))
+
+  if (event.action === 'dismiss') {
+    return
+  }
+
+  const targetUrl = event.notification.data?.url || '/'
+
+  // Buka atau fokus ke tab yang sudah ada
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus()
+          if ('navigate' in client && targetUrl && targetUrl !== '/') {
+            return client.navigate(targetUrl)
+          }
+          return
+        }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(targetUrl)
+      }
+    })
+  )
 })
+

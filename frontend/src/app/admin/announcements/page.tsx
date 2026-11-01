@@ -6,8 +6,10 @@ import Link from 'next/link'
 import { Megaphone, Plus, Trash2, Calendar } from 'lucide-react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { useAdminRoute } from '../useAdminRoute'
 
 export default function AdminAnnouncementsPage() {
+  const { dashboardHref } = useAdminRoute()
   const [announcements, setAnnouncements] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isAdding, setIsAdding] = useState(false)
@@ -49,7 +51,7 @@ export default function AdminAnnouncementsPage() {
       setAnnouncements([res.data, ...announcements])
       setIsAdding(false)
       setFormData({ title: '', content: '', type: 'info' })
-      toast.success('Pengumuman berhasil dibuat')
+      toast.success('Pengumuman berhasil disiarkan ke notifikasi seluruh pengguna!')
     } catch (err) {
       toast.error('Gagal membuat pengumuman')
     }
@@ -59,14 +61,14 @@ export default function AdminAnnouncementsPage() {
     <div className="max-w-4xl mx-auto p-4 md:p-8 pb-20">
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-blue-600 font-semibold hover:underline text-sm mb-2 inline-block">
+          <Link href={dashboardHref} className="text-blue-600 font-semibold hover:underline text-sm mb-2 inline-block">
             &larr; Kembali ke Admin Panel
           </Link>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Megaphone />
-            Pusat Pengumuman
+            Pusat Pengumuman (Broadcast)
           </h1>
-          <p className="text-slate-500 mt-1">Kirim pesan yang akan muncul di layar semua pengguna.</p>
+          <p className="text-slate-500 mt-1">Kirim broadcast yang otomatis masuk ke daftar notifikasi seluruh pengguna dan muncul sekali di layar aplikasi mereka.</p>
         </div>
         <button onClick={() => setIsAdding(!isAdding)} className="bg-[#0087FF] text-white font-bold px-4 py-2 rounded-xl hover:bg-blue-700 flex items-center justify-center gap-2">
           {isAdding ? 'Batal' : <><Plus className="w-5 h-5"/> Buat Baru</>}

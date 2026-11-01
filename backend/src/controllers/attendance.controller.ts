@@ -1136,6 +1136,45 @@ export async function closeSession(req: any, res: Response) {
   }
 }
 
+// 3B. Delete Session (Hapus agenda agar tidak dihitung alpa bila salah buat)
+export async function deleteSession(req: any, res: Response) {
+  const orgMemberContext = req.orgMember;
+  const { sessionId } = req.params;
+
+  if (!orgMemberContext || (orgMemberContext.role !== 'head' && orgMemberContext.role !== 'vice_head' && orgMemberContext.role !== 'sekretaris')) {
+    return res.status(403).json({ error: 'Hanya Ketua, Wakil Ketua, dan Sekretaris yang bisa menghapus sesi agenda presensi' });
+  }
+
+  try {
+    const session = await prisma.attendance_sessions.findFirst({
+      where: {
+        id: sessionId.length === 36 ? sessionId : undefined,
+        organization_id: orgMemberContext.organizationId
+      }
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Sesi agenda presensi tidak ditemukan atau bukan milik organisasi ini' });
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.guest_leaves.deleteMany({ where: { session_id: session.id } });
+      await tx.guest_attendance.deleteMany({ where: { session_id: session.id } });
+      await tx.meeting_minutes.deleteMany({ where: { session_id: session.id } });
+      await tx.attendance.deleteMany({ where: { session_id: session.id } });
+      await tx.attendance_sessions.delete({ where: { id: session.id } });
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Sesi "${session.title}" berhasil dihapus. Data alpa anggota telah dihitung ulang.`
+    });
+  } catch (err: any) {
+    console.error('Error deleting session:', err);
+    return res.status(500).json({ error: 'Gagal menghapus sesi agenda presensi' });
+  }
+}
+
 // 4. Check-In (and Check-Out) with GPS and PIN
 export async function checkIn(req: any, res: Response) {
   const orgMemberContext = req.orgMember;

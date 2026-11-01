@@ -3,9 +3,10 @@ import toast from 'react-hot-toast'
 
 
 import { useEffect, useState } from 'react'
-import { ArrowLeft, GearSix as Settings, BellRinging as BellRing } from '@phosphor-icons/react'
+import { ArrowLeft, GearSix as Settings, BellRinging as BellRing, Sparkle, Megaphone } from '@phosphor-icons/react'
 import { useRouter } from 'next/navigation'
 import { api, supabase } from '@/lib/api'
+import { dispatchNativeNotification } from '@/components/ui/NativeNotificationBanner'
 
 // Helper function to convert base64 VAPID key to Uint8Array
 function urlBase64ToUint8Array(base64String: string) {
@@ -142,7 +143,24 @@ export default function NotificationsPage() {
       </header>
 
       <main className="max-w-3xl mx-auto px-4 mt-6">
-        <h1 className="text-[34px] font-extrabold tracking-tight mb-2">Notifikasi</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <h1 className="text-[34px] font-extrabold tracking-tight text-slate-900">Notifikasi</h1>
+          
+          <button
+            type="button"
+            onClick={() => {
+              dispatchNativeNotification({
+                title: 'Pengingat Presensi: 20 Menit Sebelum Sesi Ditutup',
+                body: 'Sesi "Latihan Rutin" di Basket SMAN 2 BABELAN akan segera ditutup dalam 20 menit. Segera lakukan presensi.',
+                url: '/personal/dashboard'
+              });
+            }}
+            className="self-start sm:self-auto inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs transition shadow-2xs active:scale-[0.98]"
+          >
+            <BellRing size={15} weight="bold" className="text-[#0087FF]" />
+            <span>Pratinjau Notifikasi</span>
+          </button>
+        </div>
         
         {pushStatus === 'default' && (
           <div className="mb-8 mt-4 bg-blue-50 border border-blue-200 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-4 justify-between">
@@ -191,27 +209,50 @@ export default function NotificationsPage() {
               <p className="font-semibold">Belum ada notifikasi</p>
             </div>
           ) : (
-            notifications.map((item) => (
-              <div 
-                key={item.id} 
-                className={`p-4 flex gap-4 rounded-2xl transition-colors border ${!item.is_read ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-slate-100'}`}
-              >
-                <div className={`mt-0.5 shrink-0 ${!item.is_read ? 'text-blue-600' : 'text-slate-400'}`}>
-                  <BellRing className="w-5 h-5" />
+            notifications.map((item) => {
+              const isBroadcast = item.title?.includes('[Pengumuman]') || item.title?.toLowerCase().includes('pengumuman')
+              return (
+                <div 
+                  key={item.id} 
+                  className={`p-4 flex gap-4 rounded-2xl transition-colors border ${
+                    isBroadcast
+                      ? (!item.is_read ? 'bg-indigo-50/70 border-indigo-200 shadow-2xs' : 'bg-white border-indigo-100/70')
+                      : (!item.is_read ? 'bg-blue-50/50 border-blue-100' : 'bg-white border-slate-100')
+                  }`}
+                >
+                  <div className={`mt-0.5 shrink-0 ${
+                    isBroadcast ? 'text-indigo-600' : (!item.is_read ? 'text-blue-600' : 'text-slate-400')
+                  }`}>
+                    {isBroadcast ? (
+                      <div className="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                        <Megaphone size={18} weight="fill" />
+                      </div>
+                    ) : (
+                      <BellRing className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-[15px] font-semibold text-slate-900 leading-tight">
+                        {item.title}
+                      </h3>
+                      {isBroadcast && (
+                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Broadcast
+                        </span>
+                      )}
+                      <span className="text-slate-500 font-normal text-xs">• {new Date(item.created_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <p className="text-[14px] text-slate-600 mt-1 leading-relaxed">
+                      {item.body}
+                    </p>
+                  </div>
+                  {!item.is_read && (
+                    <div className="w-2.5 h-2.5 bg-[#0087FF] rounded-full mt-1.5 shrink-0"></div>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <h3 className={`text-[15px] font-semibold text-slate-900 leading-tight`}>
-                    {item.title} <span className="text-slate-500 font-normal ml-1">• {new Date(item.created_at).toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit' })}</span>
-                  </h3>
-                  <p className="text-[14px] text-slate-600 mt-1 leading-relaxed">
-                    {item.body}
-                  </p>
-                </div>
-                {!item.is_read && (
-                  <div className="w-2.5 h-2.5 bg-[#0087FF] rounded-full mt-1.5 shrink-0"></div>
-                )}
-              </div>
-            ))
+              )
+            })
           )}
         </div>
       </main>

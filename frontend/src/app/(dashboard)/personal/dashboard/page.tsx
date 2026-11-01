@@ -186,7 +186,6 @@ export default function PersonalDashboard() {
           <div className="flex items-center gap-1.5">
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
             {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
-            {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
             <Bell className="w-6 h-6" />
@@ -231,7 +230,6 @@ export default function PersonalDashboard() {
             <span className="text-blue-600 font-bold text-sm">Halo, {userName}</span>
             <div className="flex items-center gap-1">
               {isVerified && <BadgeCheck className="w-4 h-4 text-blue-500 fill-blue-50" />}
-              {hasSchoolPlan && <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md">SCH</span>}
             </div>
           </div>
           <Link href="/notifications" className="relative p-2 text-slate-400 hover:text-blue-600 transition-colors">
@@ -359,32 +357,42 @@ export default function PersonalDashboard() {
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {store.orgs.map((org: any) => (
-                <Link
-                  key={org.id}
-                  href={`/org/${org.slug}/dashboard`}
-                  className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm hover:border-blue-500 hover:shadow-md transition-all flex items-center justify-between group active:scale-[0.98]"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-800 text-sm overflow-hidden shrink-0">
-                      {org.logo_url ? (
-                        <img src={org.logo_url} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        org.name.charAt(0).toUpperCase()
-                      )}
+              {store.orgs.map((org: any) => {
+                const isSchool = Boolean(org.is_edu || ((org._count?.school_links_as_school || 0) > 0))
+                return (
+                  <Link
+                    key={org.id}
+                    href={isSchool ? `/org/${org.slug}/executive` : `/org/${org.slug}/dashboard`}
+                    className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-sm hover:border-blue-500 hover:shadow-md transition-all flex items-center justify-between group active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-800 text-sm overflow-hidden shrink-0">
+                        {org.logo_url ? (
+                          <img src={org.logo_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          org.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                            {org.name}
+                          </p>
+                          {isSchool && (
+                            <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0">
+                              SEKOLAH
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-medium truncate">
+                          {isSchool ? 'Dasbor Eksekutif & Ekskul' : 'Buka Ruang Kerja & Presensi'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition-colors truncate">
-                        {org.name}
-                      </p>
-                      <p className="text-[11px] text-slate-400 font-medium truncate">
-                        Buka Ruang Kerja & Presensi
-                      </p>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
-                </Link>
-              ))}
+                    <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all shrink-0" />
+                  </Link>
+                )
+              })}
             </div>
           </div>
         )}

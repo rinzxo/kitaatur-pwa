@@ -5,6 +5,7 @@ import {
   createSession,
   getActiveSession,
   closeSession,
+  deleteSession,
   checkIn,
   getAttendanceRecords,
   getAttendanceStats,
@@ -62,6 +63,9 @@ router.get('/:orgIdOrSlug/sessions/active/:sessionId', requireOrgRole(['head', '
 
 // Tutup sesi absensi (Head & Sekretaris)
 router.put('/:orgIdOrSlug/sessions/:sessionId/close', requireOrgRole(['head', 'sekretaris']), closeSession)
+
+// Hapus sesi absensi / agenda lampau/salah buat (Head, Vice Head & Sekretaris)
+router.delete('/:orgIdOrSlug/sessions/:sessionId', requireOrgRole(['head', 'vice_head', 'sekretaris']), deleteSession)
 
 // Manual Bulk Check-in (Untuk Head/Sekretaris/Delegasi)
 router.post('/:orgIdOrSlug/sessions/:sessionId/manual-checkin', requireOrgRole(['head', 'sekretaris', 'member']), manualBulkCheckIn)

@@ -9,6 +9,7 @@ export const api = axios.create({
   baseURL: process.env.NODE_ENV === 'production' ? '/api' : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'),
   headers: {
     'Content-Type': 'application/json',
+    'X-Client-Platform': 'kitaatur-pwa'
   },
   timeout: 30000,
   withCredentials: true
@@ -27,6 +28,7 @@ const CACHE_CONFIGS: { pattern: RegExp; ttlMs: number }[] = [
   { pattern: /^\/org\/me\/list$/, ttlMs: 30_000 },
   { pattern: /^\/subscription\/me$/, ttlMs: 60_000 },
   { pattern: /^\/admin\/announcements\/active$/, ttlMs: 120_000 },
+  { pattern: /^\/admin\/app-info$/, ttlMs: 60_000 },
   { pattern: /^\/org\/[^\/]+\/overview$/, ttlMs: 20_000 },
   { pattern: /^\/org\/[^\/]+\/settings$/, ttlMs: 30_000 },
   { pattern: /^\/org\/[^\/]+\/family$/, ttlMs: 30_000 },
@@ -116,6 +118,10 @@ api.interceptors.response.use(
         clearApiCache('/personal')
       } else if (url.includes('notifications')) {
         clearApiCache('/notifications')
+      } else if (url.includes('admin') || url.includes('settings')) {
+        clearApiCache('/admin')
+        clearApiCache('/settings')
+        clearApiCache('/app-info')
       } else if (url.includes('org')) {
         clearApiCache('/org')
         clearApiCache('/overview')

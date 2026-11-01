@@ -272,6 +272,30 @@ function AttendanceManagementContent() {
     }
   }
 
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+
+  const handleDeleteSession = async (sessionId: string, sessionTitle: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation()
+    const ok = await confirm({
+      title: 'Hapus Sesi Agenda',
+      message: `Hapus sesi agenda "${sessionTitle}"? Seluruh data presensi pada sesi ini akan dihapus permanen, dan anggota tidak akan dianggap alpa pada agenda ini.`,
+      confirmText: 'Ya, Hapus Sesi',
+      variant: 'danger'
+    })
+    if (!ok) return
+
+    setDeletingSessionId(sessionId)
+    try {
+      await api.delete(`/org-attendance/${orgSlug}/sessions/${sessionId}`)
+      toast.success(`Sesi "${sessionTitle}" berhasil dihapus. Rekap alpa telah diperbarui!`)
+      fetchSessions(true)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal menghapus sesi agenda.')
+    } finally {
+      setDeletingSessionId(null)
+    }
+  }
+
   // -------------------------------------------------------------
   // FETCHERS
   // -------------------------------------------------------------
@@ -1221,6 +1245,17 @@ function AttendanceManagementContent() {
                           >
                             <Users className="w-3 h-3" />
                             <span>Bantu Absen</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteSession(session.id, session.title, e)}
+                            disabled={deletingSessionId === session.id}
+                            className="py-2 px-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl text-center transition-colors flex items-center justify-center gap-1"
+                            title="Hapus agenda ini agar tidak dihitung alpa"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Hapus</span>
                           </button>
                         </div>
                       </div>

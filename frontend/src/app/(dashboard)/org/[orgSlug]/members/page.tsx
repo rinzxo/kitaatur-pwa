@@ -140,9 +140,15 @@ export default function OrganizationMembersPage() {
       
       // Deteksi role user aktif
       const userIdToUse = overrideUserId || currentUserId
-      const activeUser = res.data.find((m: Member) => m.profile_id === userIdToUse)
-      if (activeUser) {
-        setCurrentUserRole(activeUser.role)
+      const { data: authData } = await supabase.auth.getUser()
+      const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
+      if (authData?.user?.email?.toLowerCase() === adminEmail) {
+        setCurrentUserRole('head')
+      } else {
+        const activeUser = res.data.find((m: Member) => m.profile_id === userIdToUse)
+        if (activeUser) {
+          setCurrentUserRole(activeUser.role)
+        }
       }
     } catch (err) {
       console.error('Error fetching organization members:', err)
@@ -172,7 +178,10 @@ export default function OrganizationMembersPage() {
 
       if (user) {
         setCurrentUserId(user.id)
-        if (cachedMembers) {
+        const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
+        if (user.email?.toLowerCase() === adminEmail) {
+          setCurrentUserRole('head')
+        } else if (cachedMembers) {
           const activeUser = cachedMembers.find((m: Member) => m.profile_id === user.id)
           if (activeUser) setCurrentUserRole(activeUser.role)
         }
@@ -192,8 +201,13 @@ export default function OrganizationMembersPage() {
         if (membersRes.status === 'fulfilled' && membersRes.value?.data) {
           const data = membersRes.value.data
           setMembers(data)
-          const activeUser = data.find((m: Member) => m.profile_id === user.id)
-          if (activeUser) setCurrentUserRole(activeUser.role)
+          const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
+          if (user.email?.toLowerCase() === adminEmail) {
+            setCurrentUserRole('head')
+          } else {
+            const activeUser = data.find((m: Member) => m.profile_id === user.id)
+            if (activeUser) setCurrentUserRole(activeUser.role)
+          }
         }
 
         if (settingsRes.status === 'fulfilled' && settingsRes.value?.data?.custom_fields_schema) {
@@ -425,9 +439,16 @@ export default function OrganizationMembersPage() {
 
               if (filteredMembers.length === 0) {
                 return (
-                  <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-xl mt-4">
-                    <Users className="h-8 w-8 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500 font-medium text-sm">Tidak ada anggota yang cocok dengan pencarian.</p>
+                  <div className="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl mt-4 space-y-2">
+                    <Users className="h-8 w-8 text-slate-300 mx-auto" />
+                    <p className="text-slate-700 font-bold text-sm">
+                      {searchQuery ? 'Tidak ada anggota yang cocok dengan pencarian.' : 'Belum ada pengurus atau anggota'}
+                    </p>
+                    <p className="text-slate-400 text-xs max-w-sm mx-auto">
+                      {searchQuery
+                        ? 'Coba gunakan kata kunci pencarian yang lain.'
+                        : 'Gunakan tombol Link Undangan di atas untuk mengundang pengurus atau pihak sekolah.'}
+                    </p>
                   </div>
                 )
               }

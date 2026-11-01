@@ -3,6 +3,7 @@ import "./globals.css";
 import { Toaster } from 'react-hot-toast';
 import { ConfirmProvider } from '@/components/ui/ConfirmDialog';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
+import { NativeNotificationBanner } from '@/components/ui/NativeNotificationBanner';
 import { SplashScreen } from '@/components/ui/SplashScreen';
 import { cookies } from 'next/headers';
 
@@ -85,7 +86,26 @@ export default function RootLayout({
         <SplashScreen hasSeenSplash={!!splashShown}>
           <ConfirmProvider>
             {children}
-            <Toaster position="top-center" />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                className: '!rounded-2xl !bg-white !text-slate-900 !border !border-slate-200/90 !shadow-xl !px-4 !py-3 !text-xs sm:!text-sm !font-semibold !max-w-md',
+                duration: 3500,
+                success: {
+                  iconTheme: {
+                    primary: '#0087FF',
+                    secondary: '#ffffff',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#ffffff',
+                  },
+                },
+              }}
+            />
+            <NativeNotificationBanner />
           </ConfirmProvider>
         </SplashScreen>
         <ServiceWorkerRegistration />

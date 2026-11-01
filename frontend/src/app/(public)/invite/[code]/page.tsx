@@ -27,6 +27,7 @@ export default function InvitePage() {
   const [joining, setJoining] = useState(false)
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [customData, setCustomData] = useState<any>({})
+  const [honeypot, setHoneypot] = useState('')
 
   useEffect(() => {
     const fetchInvite = async () => {
@@ -58,7 +59,8 @@ export default function InvitePage() {
     try {
       const res = await api.post('/org/join', { 
         invite_code: code,
-        custom_data: Object.keys(customData).length > 0 ? customData : undefined
+        custom_data: Object.keys(customData).length > 0 ? customData : undefined,
+        _company_trap: honeypot || undefined
       })
       if (res.data.success) {
         // Berhasil gabung, arahkan ke dashboard organisasi
@@ -149,6 +151,20 @@ export default function InvitePage() {
             ))}
           </div>
         )}
+
+        {/* Anti-Script Honeypot (tersembunyi dari user biasa, namun auto-filled oleh bot/script form spammer) */}
+        <div style={{ opacity: 0, position: 'absolute', top: 0, left: 0, height: 0, width: 0, zIndex: -1 }} aria-hidden="true">
+          <label htmlFor="_company_trap">Leave empty</label>
+          <input
+            id="_company_trap"
+            type="text"
+            name="_company_trap"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
 
         <button
           onClick={() => {

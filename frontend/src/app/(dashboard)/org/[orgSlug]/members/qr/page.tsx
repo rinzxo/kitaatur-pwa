@@ -70,7 +70,8 @@ export default function MemberQRCollectionPage() {
       setMembers(memberList)
 
       const current = memberList.find(m => m.profile_id === user.id)
-      const role = user.email === 'generalrino@gmail.com' ? 'head' : (current?.role || 'member')
+      const adminEmail = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com').toLowerCase()
+      const role = user.email?.toLowerCase() === adminEmail ? 'head' : (current?.role || 'member')
       setCurrentUserRole(role)
 
       const currentOrg = orgsRes.data?.find((o: any) => o.slug === orgSlug)

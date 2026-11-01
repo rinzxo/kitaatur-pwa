@@ -10,17 +10,21 @@ export async function GET(request: NextRequest) {
   const errorParam = requestUrl.searchParams.get('error')
   const errorDesc = requestUrl.searchParams.get('error_description')
 
-  let next = requestUrl.searchParams.get('next') || '/app'
+  const forwardedHost = request.headers.get('x-forwarded-host')
+  const host = forwardedHost || requestUrl.host
+  const isAdminHost = host.toLowerCase().includes('admin')
+
+  let next = requestUrl.searchParams.get('next') || (isAdminHost ? '/' : '/app')
 
   // Pastikan path internal aman dari open redirect
   if (!next.startsWith('/') || next.startsWith('//')) {
-    next = '/app'
+    next = isAdminHost ? '/' : '/app'
   }
-
-  const forwardedHost = request.headers.get('x-forwarded-host')
-  const host = forwardedHost || requestUrl.host
   const protocol = request.headers.get('x-forwarded-proto') || (process.env.NODE_ENV === 'development' ? 'http' : 'https')
   const redirectTarget = `${protocol}://${host}${next}`
+
+  const isRinz = host.toLowerCase().includes('rinzgroup.web.id')
+  const cookieDomain = (process.env.NODE_ENV === 'production' || isRinz) && isRinz ? '.rinzgroup.web.id' : undefined
 
   // Jika penyedia OAuth (misal Google) membatalkan atau mengembalikan error langsung
   if (errorParam || errorDesc) {
@@ -44,6 +48,7 @@ export async function GET(request: NextRequest) {
           response.cookies.set(name, value, {
             ...options,
             path: options?.path || '/',
+            domain: cookieDomain,
             secure: process.env.NODE_ENV === 'production',
           })
         },
@@ -52,6 +57,7 @@ export async function GET(request: NextRequest) {
           response.cookies.set(name, '', {
             ...options,
             path: options?.path || '/',
+            domain: cookieDomain,
             maxAge: 0,
             secure: process.env.NODE_ENV === 'production',
           })
@@ -66,6 +72,7 @@ export async function GET(request: NextRequest) {
             response.cookies.set(name, value, {
               ...options,
               path: options?.path || '/',
+              domain: cookieDomain,
               secure: process.env.NODE_ENV === 'production',
             })
           })
@@ -86,7 +93,7 @@ export async function GET(request: NextRequest) {
 
   // 2. Pertukaran Authorization Code untuk Sesi (OAuth seperti Google atau PKCE Auth Code)
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (error) {
       console.error('[AUTH_CALLBACK] exchangeCodeForSession failed:', error.message)
 
@@ -107,6 +114,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.redirect(`${protocol}://${host}/login?error=${encodeURIComponent(error.message)}`)
     }
+
     return response
   }
 

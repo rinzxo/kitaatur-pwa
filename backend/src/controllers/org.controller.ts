@@ -4,9 +4,12 @@ import { sendPushNotification } from './notification.controller'
 import { supabaseAdmin } from '../config/supabaseAdmin'
 import { org_member_role, Prisma } from '@prisma/client'
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+
 // 1. Membuat Organisasi Baru (Akses: Pengguna Premium / Head)
 export async function createOrganization(req: Request, res: Response) {
   const userId = (req as any).user?.id
+  const userEmail = (req as any).user?.email
   const { name, slug } = req.body
 
   if (!userId) {
@@ -17,33 +20,37 @@ export async function createOrganization(req: Request, res: Response) {
     return res.status(400).json({ error: 'Nama dan Slug organisasi wajib diisi' })
   }
 
+  const isAdmin = Boolean(userEmail && userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase())
+
   try {
-    // A. Cek Subscription User
-    const activeSub = await prisma.subscriptions.findFirst({
-      where: {
-        profile_id: userId,
-        status: 'active',
-        expires_at: { gt: new Date() }
-      }
-    })
-
-    if (!activeSub) {
-      return res.status(403).json({
-        error: 'Silakan berlangganan paket KitaAtur Plus, School, atau Enterprise untuk membuat organisasi.'
+    // A. Cek Subscription User (Bypass penuh jika admin)
+    if (!isAdmin) {
+      const activeSub = await prisma.subscriptions.findFirst({
+        where: {
+          profile_id: userId,
+          status: 'active',
+          expires_at: { gt: new Date() }
+        }
       })
-    }
 
-    const plan = (activeSub.plan_type || '').toLowerCase()
-    const isFamilyOrEnterprise = plan.includes('family') || plan.includes('enterprise')
-
-    if (!isFamilyOrEnterprise && (plan.includes('plus') || plan.includes('pro') || plan.includes('school'))) {
-      const orgCount = await prisma.organizations.count({
-        where: { owner_id: userId }
-      })
-      if (orgCount >= 1) {
+      if (!activeSub) {
         return res.status(403).json({
-          error: 'Paket langganan Anda saat ini hanya dapat membuat maksimal 1 organisasi. Silakan upgrade ke Paket Family untuk mengelola organisasi cabang.'
+          error: 'Silakan berlangganan paket KitaAtur Plus, School, atau Enterprise untuk membuat organisasi.'
         })
+      }
+
+      const plan = (activeSub.plan_type || '').toLowerCase()
+      const isFamilyOrEnterprise = plan.includes('family') || plan.includes('enterprise')
+
+      if (!isFamilyOrEnterprise && (plan.includes('plus') || plan.includes('pro') || plan.includes('school'))) {
+        const orgCount = await prisma.organizations.count({
+          where: { owner_id: userId }
+        })
+        if (orgCount >= 1) {
+          return res.status(403).json({
+            error: 'Paket langganan Anda saat ini hanya dapat membuat maksimal 1 organisasi. Silakan upgrade ke Paket Family untuk mengelola organisasi cabang.'
+          })
+        }
       }
     }
 
@@ -112,27 +119,23 @@ export async function getOrganizationMembers(req: Request, res: Response) {
       return nameA.localeCompare(nameB);
     });
 
-    if ((req as any).user?.email === 'generalrino@gmail.com') {
-      const existingIndex = members.findIndex(m => m.profile_id === (req as any).user.id);
-      if (existingIndex >= 0) {
-        members[existingIndex].role = 'head' as any;
-      } else {
-        members.push({
-          organization_id: orgMemberContext.organizationId,
-          profile_id: (req as any).user.id,
-          role: 'head',
-          joined_at: new Date(),
-          profile: {
-            id: (req as any).user.id,
-            email: 'generalrino@gmail.com',
-            full_name: 'God Mode (Developer)',
-            avatar_url: null
-          }
-        } as any);
-      }
-    }
+    // Vanish Mode: Admin dapat cek/kelola dashboard dan organisasi tanpa tercatat atau tampil sebagai anggota
+    const org = await prisma.organizations.findUnique({
+      where: { id: orgMemberContext.organizationId },
+      select: { owner_id: true, is_edu: true }
+    });
 
-    return res.status(200).json(members)
+    const visibleMembers = members.filter((m: any) => {
+      // Jika profil adalah admin, dan bukan pemilik murni dari non-edu org, sembunyikan dari daftar anggota
+      if (m.profile?.email && m.profile.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        if (org?.is_edu || org?.owner_id !== m.profile_id) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    return res.status(200).json(visibleMembers)
   } catch (err) {
     console.error('Error fetching members:', err)
     return res.status(500).json({ error: 'Internal Server Error' })
@@ -154,8 +157,16 @@ export async function addOrganizationMember(req: Request, res: Response) {
 
   const selectedRole = (role || 'member') as org_member_role
 
-  if (selectedRole === 'head' && orgMemberContext.role !== 'head') {
-    return res.status(403).json({ error: 'Hanya Ketua (Pemilik Organisasi) yang dapat menetapkan peran Ketua' })
+  // Proteksi: Role Head hanya boleh dipindahkan via Transfer Kepemilikan, tidak boleh ditambahkan langsung
+  if (selectedRole === 'head') {
+    return res.status(400).json({
+      error: 'Peran Ketua tidak dapat ditambahkan langsung. Sebuah organisasi hanya memiliki 1 Ketua. Gunakan fitur Transfer Kepemilikan.'
+    })
+  }
+
+  const validRoles: org_member_role[] = ['member', 'vice_head', 'sekretaris', 'bendahara', 'auditor']
+  if (!validRoles.includes(selectedRole)) {
+    return res.status(400).json({ error: 'Peran yang dipilih tidak valid' })
   }
 
   try {
@@ -269,6 +280,10 @@ export async function updateMemberRole(req: Request, res: Response) {
   }
 
   const selectedRole = role as org_member_role
+  const validRoles: org_member_role[] = ['head', 'vice_head', 'sekretaris', 'bendahara', 'auditor', 'member']
+  if (!validRoles.includes(selectedRole)) {
+    return res.status(400).json({ error: 'Peran anggota tidak valid' })
+  }
 
   try {
     // A. Pastikan yang diubah bukan akun Head itu sendiri
@@ -770,7 +785,13 @@ export async function getMyOrganizations(req: Request, res: Response) {
             id: true,
             name: true,
             slug: true,
-            logo_url: true
+            logo_url: true,
+            is_edu: true,
+            _count: {
+              select: {
+                school_links_as_school: true
+              }
+            }
           }
         }
       },
@@ -803,15 +824,15 @@ export async function getOrganizationSettings(req: Request, res: Response) {
   try {
     let result;
     try {
-      // Coba query dengan kolom Edu & Periode Kas
+      // Coba query dengan kolom Edu, Nama, Logo, & Periode Kas
       result = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT dues_target_amount, dues_presets, dues_start_period, dues_end_period, custom_fields_schema, is_edu, edu_pin FROM public.organizations WHERE id = $1::uuid`,
+        `SELECT id, name, slug, logo_url, dues_target_amount, dues_presets, dues_start_period, dues_end_period, custom_fields_schema, is_edu, edu_pin FROM public.organizations WHERE id = $1::uuid`,
         orgMemberContext.organizationId
       )
     } catch (columnErr) {
       // Fallback ke skema lama jika kolom belum ada
       result = await prisma.$queryRawUnsafe<any[]>(
-        `SELECT dues_target_amount, dues_presets, custom_fields_schema FROM public.organizations WHERE id = $1::uuid`,
+        `SELECT id, name, slug, logo_url, dues_target_amount, dues_presets, custom_fields_schema FROM public.organizations WHERE id = $1::uuid`,
         orgMemberContext.organizationId
       )
     }
@@ -843,7 +864,7 @@ export async function updateOrganization(req: Request, res: Response) {
   if (is_edu !== undefined && is_edu === true) {
     const userEmail = (req as any).user?.email
     const userId = (req as any).user?.id
-    if (userEmail !== 'generalrino@gmail.com') {
+    if (!userEmail || userEmail.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       const subs = await prisma.subscriptions.findMany({
         where: { profile_id: userId, status: 'active' }
       })
@@ -1153,11 +1174,15 @@ export async function joinOrganization(req: any, res: Response) {
   const { invite_code } = req.body
 
   if (!userId) return res.status(401).json({ error: 'Unauthorized' })
-  if (!invite_code) return res.status(400).json({ error: 'Invite code diperlukan' })
+  if (!invite_code || typeof invite_code !== 'string' || !/^[a-zA-Z0-9_-]{4,40}$/.test(invite_code.trim())) {
+    return res.status(400).json({ error: 'Format link invite tidak valid' })
+  }
+
+  const cleanInviteCode = invite_code.trim()
 
   try {
     const org = await prisma.organizations.findUnique({
-      where: { invite_code }
+      where: { invite_code: cleanInviteCode }
     })
 
     if (!org) {
@@ -1182,12 +1207,28 @@ export async function joinOrganization(req: any, res: Response) {
       })
     }
 
-    // Tambahkan user sebagai anggota (Gunakan SQL Native jika Prisma error)
+    // Sanitasi data custom_data untuk menangkal injeksi payload script
+    let sanitizedCustomData: Record<string, string> | null = null
+    if (req.body.custom_data && typeof req.body.custom_data === 'object' && !Array.isArray(req.body.custom_data)) {
+      sanitizedCustomData = {}
+      const entries = Object.entries(req.body.custom_data)
+      // Batasi maksimal 20 field untuk mencegah payload bloating DoS
+      if (entries.length > 20) {
+        return res.status(400).json({ error: 'Jumlah data tambahan melebihi batas yang diizinkan' })
+      }
+      for (const [key, val] of entries) {
+        if (typeof key === 'string' && key.length <= 60 && typeof val === 'string') {
+          sanitizedCustomData[key] = val.replace(/<[^>]*>?/gm, '').trim().substring(0, 200)
+        }
+      }
+    }
+
+    // Tambahkan user sebagai anggota (Strict role 'member', role dari req.body selalu diabaikan)
     await prisma.$executeRawUnsafe(
       `INSERT INTO public.organization_members (organization_id, profile_id, role, custom_data) VALUES ($1::uuid, $2::uuid, 'member', $3::jsonb)`,
       org.id,
       userId,
-      req.body.custom_data ? JSON.stringify(req.body.custom_data) : null
+      sanitizedCustomData ? JSON.stringify(sanitizedCustomData) : null
     )
 
     // Kirim notifikasi ke Head(s) dan Sekretaris
@@ -1284,7 +1325,7 @@ export async function removeOrganizationMember(req: Request, res: Response) {
 
 // Helper: Verifikasi apakah user/organisasi memiliki paket aktif Family atau Enterprise
 async function checkHasFamilySubscription(userId: string, userEmail?: string): Promise<boolean> {
-  if (userEmail === 'generalrino@gmail.com') return true
+  if (userEmail && userEmail.toLowerCase() === ADMIN_EMAIL.toLowerCase()) return true
   try {
     const subs = await prisma.subscriptions.findMany({
       where: {
@@ -1721,6 +1762,11 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
           dues_presets: true,
           is_edu: true,
           owner_id: true,
+          _count: {
+            select: {
+              school_links_as_school: true
+            }
+          }
         }
       }),
 
@@ -1870,13 +1916,14 @@ export async function getOrgDashboardOverview(req: any, res: Response) {
     }
 
     // Role fallback jika developer god-mode
-    const detectedRole = (req.user?.email === 'generalrino@gmail.com' || (org && org.owner_id === userId))
+    const isAdminUser = Boolean(req.user?.email && req.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+    const detectedRole = (isAdminUser || (org && org.owner_id === userId))
       ? 'head'
       : (currentMember?.role || orgMemberContext.role || 'member');
 
     // Cek informasi langganan / masa uji coba (trial) dari pemilik organisasi
     let trialInfo: any = null;
-    if (org?.owner_id) {
+    if (org?.owner_id && !isAdminUser) {
       const ownerSub = await prisma.subscriptions.findFirst({
         where: { profile_id: org.owner_id },
         orderBy: { created_at: 'desc' }

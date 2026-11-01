@@ -19,7 +19,8 @@ import {
   Check, 
   CalendarDots, 
   CircleNotch, 
-  CaretRight 
+  CaretRight,
+  Trash
 } from '@phosphor-icons/react'
 import { CustomSelect } from '@/components/ui/CustomSelect'
 import { useConfirm } from '@/components/ui/ConfirmDialog'
@@ -98,6 +99,28 @@ function SessionDetailContent() {
       toast.error(err.response?.data?.error || 'Gagal menutup sesi presensi.')
     } finally {
       setClosing(false)
+    }
+  }
+
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDeleteSession = async () => {
+    const ok = await confirm({
+      title: 'Hapus Sesi Agenda',
+      message: `Hapus sesi agenda "${session?.title || 'ini'}"? Sesi ini dan seluruh data presensinya akan dihapus permanen, dan anggota tidak akan dianggap alpa pada agenda ini.`,
+      confirmText: 'Ya, Hapus Sesi',
+      variant: 'danger'
+    })
+    if (!ok) return
+
+    setDeleting(true)
+    try {
+      await api.delete(`/org-attendance/${orgSlug}/sessions/${sessionId}`)
+      toast.success('Sesi agenda berhasil dihapus. Rekap alpa telah diperbarui.')
+      router.push(`/org/${orgSlug}/attendance/sessions`)
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Gagal menghapus sesi agenda.')
+      setDeleting(false)
     }
   }
 
@@ -217,13 +240,24 @@ function SessionDetailContent() {
                 <button
                   type="button"
                   onClick={handleCloseSession}
-                  disabled={closing}
-                  className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
+                  disabled={closing || deleting}
+                  className="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
                 >
                   {closing ? <CircleNotch size={16} weight="bold" className="animate-spin" /> : <StopCircle size={16} weight="duotone" />}
                   <span>Tutup Sesi</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={handleDeleteSession}
+                disabled={deleting || closing}
+                className="bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs px-3.5 py-2.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
+                title="Hapus sesi agenda ini agar tidak dihitung alpa"
+              >
+                {deleting ? <CircleNotch size={16} weight="bold" className="animate-spin" /> : <Trash size={16} weight="bold" />}
+                <span>Hapus Sesi</span>
+              </button>
             </div>
           </div>
 

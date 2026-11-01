@@ -41,11 +41,12 @@ export async function maintenanceCheck(req: Request, res: Response, next: NextFu
   if (maintenanceCache.mode) {
     // Pengecualian khusus dev
     const authHeader = req.headers.authorization
+    const adminEmail = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.split(' ')[1]
       try {
         const user = await verifyToken(token)
-        if (user && user.email === 'generalrino@gmail.com') {
+        if (user && user.email?.toLowerCase() === adminEmail.toLowerCase()) {
           return next()
         }
       } catch (e) {

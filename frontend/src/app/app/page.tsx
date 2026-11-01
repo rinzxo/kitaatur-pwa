@@ -86,6 +86,8 @@ function AppDispatcher() {
         localStorage.setItem('kitaatur_last_active_org', targetSlug)
         document.cookie = `kitaatur_last_org=${targetSlug}; path=/; max-age=31536000; SameSite=Lax`
 
+        const isSchoolOrg = Boolean(targetOrg.is_edu || ((targetOrg as any)?._count?.school_links_as_school || 0) > 0)
+
         // 4. Jika ada target eksplisit (misal dari PWA Shortcut)
         if (target === 'bantu-absen') {
           router.replace(`/org/${targetSlug}/attendance/bantu-absen`)
@@ -96,7 +98,12 @@ function AppDispatcher() {
           return
         }
         if (target === 'dashboard') {
-          router.replace(`/org/${targetSlug}/dashboard`)
+          router.replace(isSchoolOrg ? `/org/${targetSlug}/executive` : `/org/${targetSlug}/dashboard`)
+          return
+        }
+
+        if (isSchoolOrg) {
+          router.replace(`/org/${targetSlug}/executive`)
           return
         }
 

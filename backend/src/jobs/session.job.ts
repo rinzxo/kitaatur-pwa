@@ -6,24 +6,44 @@ const generatePin = () => {
   return Math.floor(1000 + Math.random() * 9000).toString();
 };
 
+const activeSyncs = new Set<string>();
+
 /**
  * Memastikan sesi dari jadwal otomatis (attendance_schedules) untuk hari ini
  * sudah dibuat di awal hari (sebelum sesi dimulai) agar anggota dan sekretaris
  * bisa mengajukan atau mencatat izin/sakit lebih awal.
  */
 export const ensureTodayScheduledSessions = async (organizationId?: string) => {
+  const syncKey = organizationId || 'GLOBAL';
+  if (activeSyncs.has(syncKey)) {
+    return;
+  }
+  activeSyncs.add(syncKey);
+
   try {
-    const nowWIB = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
-    const currentDay = nowWIB.getDay(); // 0 = Sunday, 1 = Monday...
-    
-    const hours = String(nowWIB.getHours()).padStart(2, '0');
-    const minutes = String(nowWIB.getMinutes()).padStart(2, '0');
+    // Tanggal hari ini dalam format WIB (YYYY-MM-DD)
+    const todayWIBStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(new Date());
+
+    // Jam & menit saat ini dalam WIB (HH:mm)
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Jakarta',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }).formatToParts(new Date());
+    const hours = parts.find(p => p.type === 'hour')?.value || '00';
+    const minutes = parts.find(p => p.type === 'minute')?.value || '00';
     const currentTimeStr = `${hours}:${minutes}`;
 
-    const startOfDay = new Date(nowWIB);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(nowWIB);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Awal dan akhir hari dalam WIB dengan offset eksplisit +07:00
+    const startOfWIBDay = new Date(`${todayWIBStr}T00:00:00.000+07:00`);
+    const endOfWIBDay = new Date(`${todayWIBStr}T23:59:59.999+07:00`);
+    const currentDay = startOfWIBDay.getDay(); // 0 = Sunday, 1 = Monday...
 
     const whereClause: any = {
       is_active: true,
@@ -37,6 +57,7 @@ export const ensureTodayScheduledSessions = async (organizationId?: string) => {
     // Otomatis update is_active = false untuk sesi yang waktunya sudah berakhir
     await prisma.attendance_sessions.updateMany({
       where: {
+        ...(organizationId ? { organization_id: organizationId } : {}),
         is_active: true,
         end_time: { lt: new Date() }
       },
@@ -50,33 +71,37 @@ export const ensureTodayScheduledSessions = async (organizationId?: string) => {
     for (const schedule of schedules) {
       // Sesi dibuat dari pagi asalkan belum melewati waktu selesai (end_time)
       if (currentTimeStr < schedule.end_time) {
+        // Cek apakah sesi hari ini sudah ada (berdasarkan start_time atau created_at dalam rentang hari WIB)
         const existingSession = await prisma.attendance_sessions.findFirst({
           where: {
             organization_id: schedule.organization_id,
             title: schedule.title,
-            created_at: {
-              gte: startOfDay,
-              lte: endOfDay
-            }
+            OR: [
+              {
+                start_time: {
+                  gte: startOfWIBDay,
+                  lte: endOfWIBDay
+                }
+              },
+              {
+                created_at: {
+                  gte: startOfWIBDay,
+                  lte: endOfWIBDay
+                }
+              }
+            ]
           }
         });
 
         if (!existingSession) {
           console.log(`[SessionJob] Pre-creating scheduled session for org ${schedule.organization_id}: ${schedule.title}`);
 
-          const startDateTime = new Date(nowWIB);
-          const [startH, startM] = schedule.start_time.split(':');
-          startDateTime.setHours(parseInt(startH), parseInt(startM), 0, 0);
+          const startDateTime = new Date(`${todayWIBStr}T${schedule.start_time}:00.000+07:00`);
+          const endDateTime = new Date(`${todayWIBStr}T${schedule.end_time}:00.000+07:00`);
 
-          const endDateTime = new Date(nowWIB);
-          const [endH, endM] = schedule.end_time.split(':');
-          endDateTime.setHours(parseInt(endH), parseInt(endM), 0, 0);
-
-          let lateDateTime = null;
+          let lateDateTime: Date | null = null;
           if (schedule.late_time) {
-            lateDateTime = new Date(nowWIB);
-            const [lateH, lateM] = schedule.late_time.split(':');
-            lateDateTime.setHours(parseInt(lateH), parseInt(lateM), 0, 0);
+            lateDateTime = new Date(`${todayWIBStr}T${schedule.late_time}:00.000+07:00`);
           }
 
           const checkout_pin_code = schedule.session_type === 'in_out' ? generatePin() : null;
@@ -103,6 +128,8 @@ export const ensureTodayScheduledSessions = async (organizationId?: string) => {
     }
   } catch (error) {
     console.error('[SessionJob] Error ensuring today scheduled sessions:', error);
+  } finally {
+    activeSyncs.delete(syncKey);
   }
 };
 
@@ -139,10 +166,13 @@ export const sweepExpiredSickLeaves = async () => {
 };
 
 export const initSessionJobs = () => {
-  // Jalankan tiap menit untuk memastikan sesi terjadwal otomatis selalu siap
-  // serta mengecek masa berlaku 1x24 jam surat keterangan sakit
-  cron.schedule('* * * * *', async () => {
+  // 1. Sesi terjadwal cukup dicek tiap 15 menit (menghemat 93% query & Egress dibanding tiap menit)
+  cron.schedule('*/15 * * * *', async () => {
     await ensureTodayScheduledSessions();
+  });
+
+  // 2. Pembersihan masa berlaku surat sakit (toleransi 24 jam) cukup dijalankan 1 jam sekali
+  cron.schedule('0 * * * *', async () => {
     await sweepExpiredSickLeaves();
   });
 };

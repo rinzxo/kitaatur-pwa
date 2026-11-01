@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { ArrowLeft, Check, X } from 'lucide-react'
+import { ArrowLeft, Check, X, Ticket, Tag, CheckCircle2, Sparkles, Loader2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { api, supabase } from '@/lib/api'
 import toast from 'react-hot-toast'
@@ -14,34 +14,91 @@ export default function UpgradePage() {
   const [showModal, setShowModal] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<'plus' | 'pro' | 'family'>('plus')
 
+  // Voucher state
+  const [voucherCodeInput, setVoucherCodeInput] = useState('')
+  const [voucherLoading, setVoucherLoading] = useState(false)
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    valid: boolean
+    voucher: any
+    originalAmount: number
+    discountAmount: number
+    finalAmount: number
+    isFree: boolean
+  } | null>(null)
+  const [voucherError, setVoucherError] = useState<string | null>(null)
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) setUserId(user.id)
     })
   }, [])
 
+  const isFamily = selectedPlan === 'family'
+  const isPro = selectedPlan === 'pro'
+  const baseMonthly = isFamily ? 250000 : (isPro ? 110000 : 40000)
+  const baseYearly = isFamily ? 2500000 : (isPro ? 1100000 : 400000)
+  const baseAmount = billingCycle === 'yearly' ? baseYearly : baseMonthly
+  const tax = baseAmount * 0.11
+  const subtotalWithTax = baseAmount + tax
+
   const handleSubscribeClick = (plan: 'plus' | 'pro' | 'family') => {
     if (!userId) return toast.error('Gagal mengambil data user.')
     setSelectedPlan(plan)
+    setAppliedVoucher(null)
+    setVoucherCodeInput('')
+    setVoucherError(null)
     setShowModal(true)
+  }
+
+  const handleApplyVoucher = async () => {
+    if (!voucherCodeInput.trim()) {
+      setVoucherError('Masukkan kode voucher terlebih dahulu')
+      return
+    }
+
+    setVoucherLoading(true)
+    setVoucherError(null)
+
+    try {
+      const res = await api.post('/payment/validate-voucher', {
+        code: voucherCodeInput.trim(),
+        planType: `${selectedPlan}-${billingCycle}`,
+        baseAmount: subtotalWithTax
+      })
+
+      setAppliedVoucher(res.data)
+      toast.success(`Voucher "${res.data.voucher.code}" berhasil diterapkan! Potongan Rp ${Number(res.data.discountAmount).toLocaleString('id-ID')}`)
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Kode voucher tidak valid atau sudah kedaluwarsa'
+      setVoucherError(msg)
+      toast.error(msg)
+    } finally {
+      setVoucherLoading(false)
+    }
+  }
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null)
+    setVoucherCodeInput('')
+    setVoucherError(null)
   }
 
   const confirmSubscription = async () => {
     setLoading(true)
     try {
-      const isFamily = selectedPlan === 'family'
-      const isPro = selectedPlan === 'pro'
-      const baseMonthly = isFamily ? 250000 : (isPro ? 110000 : 40000)
-      const baseYearly = isFamily ? 2500000 : (isPro ? 1100000 : 400000)
-      const baseAmount = billingCycle === 'yearly' ? baseYearly : baseMonthly
-      const tax = baseAmount * 0.11
-      const totalAmount = baseAmount + tax
-
       const res = await api.post('/payment/checkout', {
         planType: `${selectedPlan}-${billingCycle}`,
-        amount: totalAmount,
-        userId: userId
+        amount: subtotalWithTax,
+        userId: userId,
+        voucherCode: appliedVoucher?.voucher?.code || undefined
       })
+
+      if (res.data.isFree) {
+        toast.success(res.data.message || 'Langganan berhasil diaktifkan dengan voucher!')
+        setShowModal(false)
+        router.push('/personal/dashboard')
+        return
+      }
 
       if (res.data.subscriptionId) {
         toast.success('Tagihan berhasil dibuat!')
@@ -278,44 +335,165 @@ export default function UpgradePage() {
             </div>
             
             <div className="p-6">
-              <div className="space-y-4 text-sm mb-6">
+              <div className="space-y-3 text-sm mb-5">
                 <div className="flex justify-between text-slate-600">
                   <span>
                     Paket KitaAtur {selectedPlan === 'family' ? 'Family' : (selectedPlan === 'pro' ? 'School' : 'Plus')} ({billingCycle === 'monthly' ? 'Bulanan' : 'Tahunan'})
                   </span>
                   <span className="font-medium text-slate-900">
-                    Rp {selectedPlan === 'family' 
-                      ? (billingCycle === 'monthly' ? '250.000' : '2.500.000') 
-                      : (selectedPlan === 'pro' 
-                          ? (billingCycle === 'monthly' ? '110.000' : '1.100.000') 
-                          : (billingCycle === 'monthly' ? '40.000' : '400.000'))}
+                    Rp {Number(baseAmount).toLocaleString('id-ID')}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-600">
                   <span>PPN (11%)</span>
                   <span className="font-medium text-slate-900">
-                    Rp {selectedPlan === 'family' 
-                      ? (billingCycle === 'monthly' ? '27.500' : '275.000') 
-                      : (selectedPlan === 'pro' 
-                          ? (billingCycle === 'monthly' ? '12.100' : '121.000') 
-                          : (billingCycle === 'monthly' ? '4.400' : '44.000'))}
+                    Rp {Number(tax).toLocaleString('id-ID')}
                   </span>
                 </div>
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                
+                <div className="flex justify-between text-slate-600 border-t border-slate-100 pt-2 font-medium">
+                  <span>Subtotal</span>
+                  <span>Rp {Number(subtotalWithTax).toLocaleString('id-ID')}</span>
+                </div>
+
+                {appliedVoucher && (
+                  <div className="flex justify-between items-center text-emerald-600 font-medium bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
+                    <span className="flex items-center gap-1.5 text-xs">
+                      <Tag className="w-3.5 h-3.5" />
+                      Diskon Voucher ({appliedVoucher.voucher.code})
+                    </span>
+                    <span className="font-bold text-sm">
+                      - Rp {Number(appliedVoucher.discountAmount).toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                )}
+
+                <div className="pt-3 border-t border-slate-100 flex justify-between items-center">
                   <span className="font-bold text-slate-900">Total Pembayaran</span>
-                  <span className="text-xl font-bold text-[#0087FF]">
-                    Rp {selectedPlan === 'family' 
-                      ? (billingCycle === 'monthly' ? '277.500' : '2.775.000') 
-                      : (selectedPlan === 'pro' 
-                          ? (billingCycle === 'monthly' ? '122.100' : '1.221.000') 
-                          : (billingCycle === 'monthly' ? '44.400' : '444.000'))}
-                  </span>
+                  {appliedVoucher?.isFree ? (
+                    <div className="text-right">
+                      <span className="text-xs text-slate-400 line-through mr-2">
+                        Rp {Number(subtotalWithTax).toLocaleString('id-ID')}
+                      </span>
+                      <span className="text-xl font-black text-emerald-600 inline-flex items-center gap-1">
+                        <Sparkles className="w-4 h-4 fill-emerald-500 text-emerald-500" />
+                        GRATIS
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      {appliedVoucher && (
+                        <span className="text-xs text-slate-400 line-through mr-2">
+                          Rp {Number(subtotalWithTax).toLocaleString('id-ID')}
+                        </span>
+                      )}
+                      <span className="text-xl font-bold text-[#0087FF]">
+                        Rp {Number(appliedVoucher ? appliedVoucher.finalAmount : subtotalWithTax).toLocaleString('id-ID')}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="bg-[#E0F4FE] text-[#007AE6] text-xs p-3 rounded-lg mb-6 leading-relaxed font-medium">
-                Anda akan dialihkan ke payment gateway aman (KitaPay) untuk menyelesaikan pembayaran.
+              {/* Voucher Section */}
+              <div className="mb-6 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <Ticket className="w-3.5 h-3.5 text-[#0087FF]" />
+                    Punya Kode Voucher?
+                  </span>
+                  {appliedVoucher && (
+                    <span className="text-[11px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
+                      Tersimpan
+                    </span>
+                  )}
+                </div>
+
+                {!appliedVoucher ? (
+                  <div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Contoh: KITAHEMAT20"
+                        value={voucherCodeInput}
+                        onChange={(e) => {
+                          setVoucherCodeInput(e.target.value.toUpperCase())
+                          setVoucherError(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            handleApplyVoucher()
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 text-xs font-mono font-bold uppercase rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#0087FF] bg-white tracking-wider text-slate-900"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleApplyVoucher}
+                        disabled={voucherLoading || !voucherCodeInput.trim()}
+                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                      >
+                        {voucherLoading ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            Cek...
+                          </>
+                        ) : (
+                          'Terapkan'
+                        )}
+                      </button>
+                    </div>
+                    {voucherError && (
+                      <p className="text-[11px] text-red-600 mt-1.5 font-medium">{voucherError}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-emerald-200 shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-xs text-slate-900 tracking-wider">
+                            {appliedVoucher.voucher.code}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                            {appliedVoucher.voucher.discount_type === 'percentage' 
+                              ? `Diskon ${appliedVoucher.voucher.discount_value}%` 
+                              : `Potongan Rp ${Number(appliedVoucher.voucher.discount_value).toLocaleString('id-ID')}`}
+                          </span>
+                        </div>
+                        {appliedVoucher.voucher.description && (
+                          <p className="text-[11px] text-slate-500 line-clamp-1">{appliedVoucher.voucher.description}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRemoveVoucher}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Hapus voucher"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {appliedVoucher?.isFree ? (
+                <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs p-3 rounded-lg mb-6 leading-relaxed font-medium flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                  <span>
+                    Voucher ini memberikan diskon 100%! Anda tidak perlu membayar, langganan akan langsung diaktifkan sekarang.
+                  </span>
+                </div>
+              ) : (
+                <div className="bg-[#E0F4FE] text-[#007AE6] text-xs p-3 rounded-lg mb-6 leading-relaxed font-medium">
+                  Anda akan dialihkan ke payment gateway aman (KitaPay) untuk menyelesaikan pembayaran.
+                </div>
+              )}
 
               <div className="flex gap-3">
                 <button 
@@ -328,9 +506,9 @@ export default function UpgradePage() {
                 <button 
                   onClick={confirmSubscription}
                   disabled={loading}
-                  className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-[#0087FF] hover:bg-[#0077E6] transition-colors disabled:opacity-70 flex items-center justify-center gap-2"
+                  className={`flex-1 py-2.5 px-4 rounded-xl font-medium text-white transition-colors disabled:opacity-70 flex items-center justify-center gap-2 ${appliedVoucher?.isFree ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-[#0087FF] hover:bg-[#0077E6]'}`}
                 >
-                  {loading ? 'Memproses...' : 'Lanjut Bayar'}
+                  {loading ? 'Memproses...' : appliedVoucher?.isFree ? 'Aktifkan Sekarang' : 'Lanjut Bayar'}
                 </button>
               </div>
             </div>

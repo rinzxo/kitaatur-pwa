@@ -27,6 +27,8 @@ export function clearRoleCache(userId?: string, orgIdOrSlug?: string) {
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'generalrino@gmail.com'
+
 export function requireOrgRole(allowedRoles: (org_member_role | 'auditor' | 'vice_head')[]) {
   return async (req: OrganizationRequest, res: Response, next: NextFunction) => {
     const userId = req.user?.id
@@ -59,7 +61,7 @@ export function requireOrgRole(allowedRoles: (org_member_role | 'auditor' | 'vic
     }
 
     // God Mode Bypass
-    if (req.user?.email === 'generalrino@gmail.com') {
+    if (req.user?.email && req.user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
       try {
         const isId = UUID_REGEX.test(orgIdOrSlug)
         const orgs = isId
