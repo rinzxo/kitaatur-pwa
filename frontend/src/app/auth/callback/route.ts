@@ -33,10 +33,21 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(redirectTarget)
 
+  const isRinzDomain = host.includes('rinzgroup.web.id')
+  const cookieDomain = isRinzDomain ? '.rinzgroup.web.id' : undefined
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: isRinzDomain
+        ? {
+            domain: '.rinzgroup.web.id',
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          }
+        : undefined,
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value
@@ -45,17 +56,21 @@ export async function GET(request: NextRequest) {
           request.cookies.set({ name, value, ...options })
           response.cookies.set(name, value, {
             ...options,
+            domain: cookieDomain,
             path: options?.path || '/',
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
           })
         },
         remove(name: string, options: any) {
           request.cookies.set({ name, value: '', ...options })
           response.cookies.set(name, '', {
             ...options,
+            domain: cookieDomain,
             path: options?.path || '/',
             maxAge: 0,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
           })
         },
         getAll() {
@@ -66,8 +81,10 @@ export async function GET(request: NextRequest) {
             request.cookies.set(name, value)
             response.cookies.set(name, value, {
               ...options,
+              domain: cookieDomain,
               path: options?.path || '/',
               secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
             })
           })
         },
@@ -97,11 +114,12 @@ export async function GET(request: NextRequest) {
         error.message.toLowerCase().includes('challenge')
 
       if (isPkceError) {
-        // Jika PKCE gagal (misal user membuka tautan konfirmasi email di browser/aplikasi berbeda dari pendaftaran),
-        // biasanya status email sudah diverifikasi di server Supabase saat link diklik.
+        console.error('[AUTH_CALLBACK] PKCE Error on host:', host, error.message)
+        const isTargetAdmin = isAdminHost || next.startsWith('/admin')
+        const loginPath = isTargetAdmin ? (isAdminHost ? '/login' : '/admin/login') : '/login'
         return NextResponse.redirect(
-          `${protocol}://${host}/login?verified=true&info=${encodeURIComponent(
-            'Email Anda berhasil diverifikasi. Silakan masuk menggunakan email dan kata sandi Anda.'
+          `${protocol}://${host}${loginPath}?error=${encodeURIComponent(
+            'Sesi verifikasi OAuth terputus antar-domain. Silakan login langsung melalui https://kitatur.rinzgroup.web.id/admin/login atau pastikan wildcard domain sudah diizinkan di Supabase.'
           )}`
         )
       }
@@ -110,8 +128,23 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${protocol}://${host}${loginPath}?error=${encodeURIComponent(error.message)}`)
     }
 
+    if (data?.user) {
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'generalrino@gmail.com')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+      const isSuperadmin = data.user.email ? adminEmails.includes(data.user.email.toLowerCase()) : false
+
+      // Jika user adalah superadmin dan tujuannya adalah admin panel:
+      if (isSuperadmin && (isAdminHost || next.startsWith('/admin') || (next === '/' && isAdminHost))) {
+        const adminDomain = process.env.NEXT_PUBLIC_ADMIN_DOMAIN || 'admin-kitatur.rinzgroup.web.id'
+        const destination = isAdminHost ? `${protocol}://${host}/` : `https://${adminDomain}/`
+        return NextResponse.redirect(destination, { headers: response.headers })
+      }
+    }
+
     return response
   }
+
 
   return response
 }

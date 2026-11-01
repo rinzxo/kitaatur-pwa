@@ -20,10 +20,21 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(redirectTarget)
 
+  const isRinzDomain = host.includes('rinzgroup.web.id')
+  const cookieDomain = isRinzDomain ? '.rinzgroup.web.id' : undefined
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: isRinzDomain
+        ? {
+            domain: '.rinzgroup.web.id',
+            path: '/',
+            sameSite: 'lax',
+            secure: process.env.NODE_ENV === 'production',
+          }
+        : undefined,
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value
@@ -32,17 +43,21 @@ export async function GET(request: NextRequest) {
           request.cookies.set({ name, value, ...options })
           response.cookies.set(name, value, {
             ...options,
+            domain: cookieDomain,
             path: options?.path || '/',
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
           })
         },
         remove(name: string, options: any) {
           request.cookies.set({ name, value: '', ...options })
           response.cookies.set(name, '', {
             ...options,
+            domain: cookieDomain,
             path: options?.path || '/',
             maxAge: 0,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
           })
         },
         getAll() {
@@ -53,14 +68,17 @@ export async function GET(request: NextRequest) {
             request.cookies.set(name, value)
             response.cookies.set(name, value, {
               ...options,
+              domain: cookieDomain,
               path: options?.path || '/',
               secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
             })
           })
         },
       },
     }
   )
+
 
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ token_hash, type })

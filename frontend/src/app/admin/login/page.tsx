@@ -76,7 +76,7 @@ function AdminLoginContent() {
 
       const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
       const origin = isLocal ? window.location.origin : `https://${window.location.host}`
-      const redirectTarget = `${origin}/auth/callback?next=${encodeURIComponent(dashboardHref)}`
+      const redirectTarget = `${origin}/auth/callback?next=/admin`
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
