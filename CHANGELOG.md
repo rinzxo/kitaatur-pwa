@@ -4,6 +4,17 @@ Halaman ini berisi catatan pembaruan dan peningkatan fitur yang hadir di aplikas
 
 ---
 
+## [v2.5.1] - 4 November 2026
+
+### Perbaikan Sistem
+- **Stabilitas Login Google & Pemulihan Sesi Otomatis**:
+  - Menyelesaikan kendala pengguna yang terpental kembali ke halaman login saat masuk menggunakan akun Google akibat konflik cookie lama (*shadow cookie*).
+  - Sistem kini otomatis membersihkan sisa cookie lama dari peramban pengguna tanpa perlu menghapus data situs atau cache secara manual.
+  - Memastikan token autentikasi Google OAuth langsung tersinkronisasi ke dasbor utama aplikasi.
+  - Menambahkan dialog pemilihan akun Google (*account picker*) agar proses login lebih fleksibel dan transparan.
+
+---
+
 ## [v2.5.0] - 1 November 2026
 
 ### Fitur Baru

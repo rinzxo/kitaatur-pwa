@@ -13,6 +13,23 @@ export interface Release {
 
 export const changelogData: Release[] = [
   {
+    version: 'v2.5.1',
+    date: '4 November 2026',
+    title: 'Stabilitas Login Google & Pemulihan Sesi Akun',
+    description: 'Pembaruan untuk memastikan proses masuk dengan Google berjalan mulus tanpa kendala sesi atau cookie di seluruh peramban.',
+    sections: [
+      {
+        category: 'Perbaikan',
+        items: [
+          'Stabilitas Login Google: menyelesaikan kendala pengguna yang terpental kembali ke halaman login saat masuk menggunakan akun Google.',
+          'Pembersihan Cookie Otomatis: sistem otomatis membersihkan sisa cookie lama dari browser tanpa mengharuskan pengguna menghapus data situs manual.',
+          'Sinkronisasi Pengalihan OAuth: memastikan token autentikasi diproses langsung ke dasbor saat pengalihan selesai.',
+          'Pemilihan Akun Google: menampilkan dialog pemilihan akun Google agar pengguna dapat memilih email yang tepat dengan mudah.'
+        ]
+      }
+    ]
+  },
+  {
     version: 'v2.5.0',
     date: '1 November 2026',
     title: 'Sistem Voucher Diskon & Notifikasi Siaran',
