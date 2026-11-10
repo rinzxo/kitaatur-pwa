@@ -128,24 +128,25 @@ function LoginPageContent() {
     // Jangan redirect jika sedang memproses verifikasi kode auth
     if (searchParams.get('code') || searchParams.get('token_hash')) return
 
-    // Bersihkan cookie residu dengan domain .rinzgroup.web.id jika ada
+    // Bersihkan residu cookie lama host-only (tanpa domain) jika ada
     if (typeof document !== 'undefined') {
       try {
         const cookies = document.cookie.split(';')
         for (const cookie of cookies) {
           const name = cookie.split('=')[0].trim()
           if (name.startsWith('sb-')) {
-            document.cookie = `${name}=; domain=.rinzgroup.web.id; path=/; max-age=0`
+            // Hapus varian host-only tanpa domain attribute agar tidak bentrok dengan .rinzgroup.web.id
+            document.cookie = `${name}=; path=/; max-age=0`
           }
         }
       } catch (e) {
-        // Abaikan kegagalan akses cookie
+        // Abaikan
       }
     }
 
     supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error || !user) {
-        // Jika sesi lokal ternyata tidak valid / kedaluwarsa, bersihkan agar tidak terjadi redirect loop!
+        // Jika sesi lokal ternyata tidak valid / kedaluwarsa, bersihkan sesi lokal
         if (error) {
           supabase.auth.signOut({ scope: 'local' }).catch(() => {})
         }
@@ -206,10 +207,18 @@ function LoginPageContent() {
     const redirectUrl = nextParam || localStorage.getItem('redirect_after_login') || '/app'
     localStorage.removeItem('redirect_after_login')
 
+    const isLocal = typeof window !== 'undefined' && (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1')
+    const origin = isLocal ? window.location.origin : `https://${window.location.host}`
+    const callbackUrl = `${origin}/auth/callback?next=${encodeURIComponent(redirectUrl)}`
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectUrl)}`,
+        redirectTo: callbackUrl,
+        queryParams: {
+          prompt: 'select_account',
+          access_type: 'offline',
+        },
       },
     })
     

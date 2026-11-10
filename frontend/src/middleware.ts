@@ -83,6 +83,14 @@ export async function middleware(request: NextRequest) {
         },
         set(name: string, value: string, options: any) {
           request.cookies.set({ name, value, ...options })
+          if (cookieDomain) {
+            supabaseResponse.cookies.set({
+              name,
+              value: '',
+              ...options,
+              maxAge: 0,
+            })
+          }
           supabaseResponse.cookies.set({
             name,
             value,
@@ -97,9 +105,18 @@ export async function middleware(request: NextRequest) {
             name,
             value: '',
             ...options,
-            domain: cookieDomain,
-            secure: process.env.NODE_ENV === 'production',
+            maxAge: 0,
           })
+          if (cookieDomain) {
+            supabaseResponse.cookies.set({
+              name,
+              value: '',
+              ...options,
+              domain: cookieDomain,
+              maxAge: 0,
+              secure: process.env.NODE_ENV === 'production',
+            })
+          }
         },
         getAll() {
           return request.cookies.getAll()
@@ -112,6 +129,14 @@ export async function middleware(request: NextRequest) {
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) => {
+            if (cookieDomain) {
+              supabaseResponse.cookies.set({
+                name,
+                value: '',
+                ...options,
+                maxAge: 0,
+              })
+            }
             supabaseResponse.cookies.set(name, value, {
               ...options,
               domain: cookieDomain,
@@ -142,6 +167,17 @@ export async function middleware(request: NextRequest) {
     const cleanUrl = request.nextUrl.clone()
     cleanUrl.pathname = pathname.replace(/^\/\^/, '') || '/'
     return redirectWithCookies(cleanUrl, supabaseResponse)
+  }
+
+  // CRITICAL: If an OAuth code callback lands on root on any domain (e.g. /?code=...):
+  // Forward it immediately to /auth/callback so the authorization code can be exchanged for a session!
+  if ((pathname === '/' || pathname === '') && request.nextUrl.searchParams.has('code')) {
+    const callbackUrl = new URL('/auth/callback', request.url)
+    callbackUrl.search = request.nextUrl.search
+    if (!callbackUrl.searchParams.has('next')) {
+      callbackUrl.searchParams.set('next', isAdminDomain ? '/' : '/app')
+    }
+    return redirectWithCookies(callbackUrl, supabaseResponse)
   }
 
   // =========================================================================

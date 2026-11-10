@@ -54,6 +54,12 @@ export async function GET(request: NextRequest) {
         },
         set(name: string, value: string, options: any) {
           request.cookies.set({ name, value, ...options })
+          if (cookieDomain) {
+            response.cookies.set(name, '', {
+              path: options?.path || '/',
+              maxAge: 0,
+            })
+          }
           response.cookies.set(name, value, {
             ...options,
             domain: cookieDomain,
@@ -66,12 +72,19 @@ export async function GET(request: NextRequest) {
           request.cookies.set({ name, value: '', ...options })
           response.cookies.set(name, '', {
             ...options,
-            domain: cookieDomain,
             path: options?.path || '/',
             maxAge: 0,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
           })
+          if (cookieDomain) {
+            response.cookies.set(name, '', {
+              ...options,
+              domain: cookieDomain,
+              path: options?.path || '/',
+              maxAge: 0,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+            })
+          }
         },
         getAll() {
           return request.cookies.getAll()
@@ -79,6 +92,12 @@ export async function GET(request: NextRequest) {
         setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
           cookiesToSet.forEach(({ name, value, options }) => {
             request.cookies.set(name, value)
+            if (cookieDomain) {
+              response.cookies.set(name, '', {
+                path: options?.path || '/',
+                maxAge: 0,
+              })
+            }
             response.cookies.set(name, value, {
               ...options,
               domain: cookieDomain,

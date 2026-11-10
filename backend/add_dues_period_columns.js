@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 async function addPeriodColumns() {
   try {
     console.log("Menambahkan kolom dues_start_period dan dues_end_period...");
-    
+
     // Check if dues_start_period exists
     try {
       await prisma.$queryRawUnsafe(`SELECT dues_start_period FROM public.organizations LIMIT 1`);
