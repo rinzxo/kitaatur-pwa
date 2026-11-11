@@ -52,6 +52,35 @@
   box-shadow: 0 10px 25px -5px rgba(0, 135, 255, 0.25), 0 8px 10px -6px rgba(1, 196, 251, 0.2);
 }
 
+/* Elegant Glass Shine Text Effect */
+@keyframes glass-shine {
+  0% {
+    background-position: 200% center;
+  }
+  100% {
+    background-position: -200% center;
+  }
+}
+
+.text-shine-glass {
+  background: linear-gradient(
+    110deg,
+    #0062D2 0%,
+    #0087FF 25%,
+    #38BDF8 42%,
+    #FFFFFF 50%,
+    #38BDF8 58%,
+    #01C4FB 75%,
+    #0062D2 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: glass-shine 8s ease-in-out infinite;
+  filter: drop-shadow(0 2px 12px rgba(0, 135, 255, 0.16));
+  display: inline-block;
+}
+
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));

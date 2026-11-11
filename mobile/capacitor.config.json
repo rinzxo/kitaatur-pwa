@@ -1,0 +1,22 @@
+{
+  "appId": "com.rinzgroup.kitaatur",
+  "appName": "KitaAtur",
+  "webDir": "www",
+  "server": {
+    "url": "https://kitatur.rinzgroup.web.id/login",
+    "cleartext": true,
+    "allowNavigation": [
+      "kitatur.rinzgroup.web.id",
+      "*.rinzgroup.web.id",
+      "*.supabase.co",
+      "accounts.google.com",
+      "*.google.com",
+      "*.google.co.id",
+      "*.gstatic.com",
+      "*.googleapis.com"
+    ]
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

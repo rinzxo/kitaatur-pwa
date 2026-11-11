@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Search } from 'lucide-react'
+import { Menu, X, Search, Instagram } from 'lucide-react'
 import { changelogData, Release } from '@/data/changelog'
 
 export default function ChangelogPage() {
@@ -54,6 +54,7 @@ export default function ChangelogPage() {
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/#fitur" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Fitur Utama</Link>
             <Link href="/#keunggulan" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Keunggulan</Link>
+            <Link href="/#unduh" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Unduh</Link>
             <Link href="/#faq" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">FAQ</Link>
             <Link href="/school" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Portal Siswa</Link>
             <Link href="/changelog" className="text-sm font-semibold text-[#0087FF] transition-colors">
@@ -87,6 +88,7 @@ export default function ChangelogPage() {
           <div className="flex flex-col gap-6 text-center">
             <Link href="/#fitur" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800 hover:text-blue-600">Fitur Utama</Link>
             <Link href="/#keunggulan" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800 hover:text-blue-600">Keunggulan</Link>
+            <Link href="/#unduh" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800 hover:text-blue-600">Unduh</Link>
             <Link href="/#faq" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800 hover:text-blue-600">FAQ</Link>
             <Link href="/school" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-slate-800 hover:text-blue-600">Portal Siswa</Link>
             <Link href="/changelog" onClick={() => setMobileMenuOpen(false)} className="text-lg font-bold text-[#0087FF]">
@@ -221,7 +223,21 @@ export default function ChangelogPage() {
                 support.kitaatur@gmail.com
               </a>
             </div>
-            <div className="flex flex-col gap-1 mt-4 text-sm">
+            <div className="flex flex-col gap-1 mt-2 text-sm">
+              <p className="font-semibold text-slate-400 uppercase tracking-wider text-xs mb-1">Instagram Resmi:</p>
+              <a 
+                href="https://www.instagram.com/kitaekosistem.id" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2.5 text-slate-700 hover:text-blue-600 font-semibold transition-colors group w-fit"
+              >
+                <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white shadow-2xs group-hover:scale-105 transition-transform">
+                  <Instagram className="w-3.5 h-3.5" />
+                </div>
+                <span className="group-hover:underline">@kitaekosistem.id</span>
+              </a>
+            </div>
+            <div className="flex flex-col gap-1 mt-2 text-sm">
               <p className="font-semibold text-slate-400 uppercase tracking-wider text-xs mb-1">Alamat:</p>
               <p className="text-slate-500 font-medium leading-relaxed max-w-xs">
                 Jl. Baru Perjuangan No.70 RT01/07, MargaMulya, Bekasi Utara, Kota Bks 17121
@@ -238,20 +254,40 @@ export default function ChangelogPage() {
               </Link>
               <Link href="/privacy" className="hover:text-blue-600 transition-colors">Kebijakan Privasi</Link>
               <Link href="/terms" className="hover:text-blue-600 transition-colors">Syarat & Ketentuan</Link>
+              <Link href="/#unduh" className="hover:text-blue-600 transition-colors">Unduh Aplikasi (.apk & .exe)</Link>
+              <Link href="/school" className="hover:text-blue-600 transition-colors">Portal Siswa</Link>
               <Link href="/#faq" className="hover:text-blue-600 transition-colors">FAQ</Link>
             </div>
           </div>
 
-          {/* Kolom 3: Powered by Rinz Group */}
-          <div className="flex flex-col gap-4 justify-between h-full">
-            <div>
-              <h4 className="text-slate-900 font-bold mb-2">Dipersembahkan oleh</h4>
-              <div className="flex items-center gap-3 mt-1">
-                <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-7 object-contain opacity-80 hover:opacity-100 transition-opacity" />
+          {/* Kolom 3: Powered by Rinz Group & Keamanan */}
+          <div className="flex flex-col gap-6 justify-between h-full">
+            <div className="flex flex-col gap-5">
+              <div>
+                <h4 className="text-slate-900 font-bold mb-2">Dipersembahkan oleh</h4>
+                <div className="flex items-center gap-3 mt-1">
+                  <img src="/icons/RINZ%20GROUP.png" alt="Rinz Group" className="h-7 object-contain opacity-80 hover:opacity-100 transition-opacity" />
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-slate-900 font-bold mb-2.5">Keamanan Data</h4>
+                <div className="flex items-center gap-2.5 pt-0.5">
+                  <img 
+                    src="/licenses-AES-256.webp" 
+                    alt="AES 256" 
+                    className="w-9 h-9 object-contain select-none shrink-0" 
+                  />
+                  <div className="text-left">
+                    <span className="text-xs font-bold text-slate-800 block leading-tight">AES 256</span>
+                    <span className="text-[11px] text-slate-400">Standar Enkripsi Keamanan</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <p className="text-xs mt-auto text-slate-500">
-              &copy; {new Date().getFullYear()} RinzGroup.<br/>All rights reserved.
+
+            <p className="text-xs mt-auto pt-4 text-slate-500 border-t border-slate-200/80 md:border-t-0">
+              &copy; {new Date().getFullYear()} RinzGroup.<br className="hidden sm:inline" /> All rights reserved.
             </p>
           </div>
 

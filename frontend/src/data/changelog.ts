@@ -13,6 +13,40 @@ export interface Release {
 
 export const changelogData: Release[] = [
   {
+    version: 'v2.6.0',
+    date: '11 November 2026',
+    title: 'Aplikasi Android (.APK), Desktop Windows (.EXE) & Tampilan Hero Interaktif',
+    description: 'Peluncuran aplikasi mandiri Android dan Windows desktop, animasi mockup hero dinamis, desain baru FAQ interaktif modern, dan sertifikasi standar keamanan AES-256.',
+    sections: [
+      {
+        category: 'Fitur Baru',
+        items: [
+          'Aplikasi Android Mandiri (.apk): pasang langsung di smartphone tanpa browser. Dilengkapi pemindai kamera QR presensi instan dan login Google terintegrasi.',
+          'Aplikasi Desktop Windows (.exe): installer resmi untuk PC dan laptop oleh RINZ GROUP INOVASI untuk mempermudah ketua dan bendahara mengelola pembukuan di layar penuh.',
+          'Pusat Unduhan Aplikasi: bagian baru di halaman utama (#unduh) untuk mengunduh installer APK Android (3.8 MB) dan Windows EXE (81 MB) secara langsung.',
+          'FAQ Modern Interaktif: desain baru berbasis accordion yang ringkas dan responsif, dilengkapi tombol bantuan langsung via WhatsApp dan Email.'
+        ]
+      },
+      {
+        category: 'Peningkatan',
+        items: [
+          'Animasi Mockup Hero Dinamis: tampilan aplikasi Dasbor Kas dan Kartu Presensi QR kini bertukar posisi depan dan belakang secara otomatis dan mulus.',
+          'Efek Shine Glass Elegan: aksen kilau kaca profesional pada judul utama "Lebih Modern & Praktis".',
+          'Sertifikasi Standar Keamanan AES-256: lencana segel emas resmi enkripsi tingkat tinggi perbankan pada footer situs.',
+          'Tautan Instagram Ekosistem: akses langsung ke akun Instagram resmi @kitaekosistem.id pada footer.',
+          'Tipografi Mobile Proporsional: penataan ulang ukuran heading dan teks agar tidak menumpuk di layar ponsel.'
+        ]
+      },
+      {
+        category: 'Perbaikan',
+        items: [
+          'Stabilitas Login Google di Android: mengatasi kendala sesi OAuth yang sempat terputus pada aplikasi Android WebView.',
+          'Ikon Peluncur Aplikasi Android: menyematkan ikon resmi KitaAtur adaptif beresolusi tinggi di layar utama ponsel.'
+        ]
+      }
+    ]
+  },
+  {
     version: 'v2.5.1',
     date: '4 November 2026',
     title: 'Stabilitas Login Google & Pemulihan Sesi Akun',

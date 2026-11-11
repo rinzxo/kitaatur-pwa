@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" width="280" height="80" fill="none">
+  <defs>
+    <linearGradient id="aesBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B132B" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E293B" />
+    </linearGradient>
+    <linearGradient id="aesBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0087FF" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#01C4FB" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#10B981" stop-opacity="0.8" />
+    </linearGradient>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0087FF" />
+      <stop offset="100%" stop-color="#004C99" />
+    </linearGradient>
+    <linearGradient id="lockGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34D399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <filter id="badgeGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect x="1.5" y="1.5" width="277" height="77" rx="14" fill="url(#aesBg)" stroke="url(#aesBorder)" stroke-width="1.5" filter="url(#badgeGlow)" />
+
+  <!-- Subtle Circuit Accents in Background -->
+  <path d="M72 16h24l8 8h30" stroke="#38BDF8" stroke-opacity="0.12" stroke-width="1.2" stroke-linecap="round" />
+  <circle cx="134" cy="24" r="2" fill="#38BDF8" fill-opacity="0.2" />
+  <path d="M260 62h-20l-6-6h-24" stroke="#10B981" stroke-opacity="0.12" stroke-width="1.2" stroke-linecap="round" />
+  <circle cx="210" cy="56" r="2" fill="#10B981" fill-opacity="0.2" />
+
+  <!-- Left: Security Shield & Padlock -->
+  <g transform="translate(18, 15)">
+    <!-- Outer Shield Glow -->
+    <path d="M25 2C25 2 41 6.5 49 13.5C49 31.5 45 47 25 50C5 47 1 31.5 1 13.5C9 6.5 25 2 25 2Z" 
+          fill="url(#shieldGrad)" stroke="#38BDF8" stroke-width="1.5" stroke-linejoin="round" />
+    
+    <!-- Shield Inner Core Highlight -->
+    <path d="M25 6C25 6 38 9.8 44 15.5C44 30.5 40.5 43 25 46C9.5 43 6 30.5 6 15.5C12 9.8 25 6 25 6Z" 
+          fill="#0B132B" fill-opacity="0.45" />
+
+    <!-- Padlock Body -->
+    <rect x="16" y="24" width="18" height="15" rx="3.5" fill="url(#lockGrad)" />
+    
+    <!-- Padlock Shackle -->
+    <path d="M19.5 24v-6.5a5.5 5.5 0 0 1 11 0V24" 
+          fill="none" stroke="#A7F3D0" stroke-width="2.5" stroke-linecap="round" />
+    
+    <!-- Keyhole -->
+    <circle cx="25" cy="30" r="1.6" fill="#064E3B" />
+    <path d="M25 31.6v3.2" stroke="#064E3B" stroke-width="1.6" stroke-linecap="round" />
+  </g>
+
+  <!-- Right: Badge Typography -->
+  <g transform="translate(78, 17)">
+    <!-- Top Row: Verified Dot + Subtitle -->
+    <g transform="translate(0, 7)">
+      <circle cx="4" cy="0" r="3" fill="#10B981" />
+      <circle cx="4" cy="0" r="5" fill="#10B981" fill-opacity="0.3" />
+      <text x="14" y="3.5" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            font-size="8.5" font-weight="700" fill="#34D399" letter-spacing="1.2">BANK-GRADE ENCRYPTION</text>
+    </g>
+
+    <!-- Middle Row: AES-256 + BIT Badge -->
+    <g transform="translate(0, 29)">
+      <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            font-size="20" font-weight="900" fill="#FFFFFF" letter-spacing="0.5">AES-256</text>
+      
+      <!-- BIT Pill -->
+      <rect x="96" y="-13" width="28" height="15" rx="4" fill="#0087FF" fill-opacity="0.25" stroke="#38BDF8" stroke-width="1" />
+      <text x="110" y="-2" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            font-size="8.5" font-weight="800" fill="#38BDF8" text-anchor="middle" letter-spacing="0.8">BIT</text>
+    </g>
+
+    <!-- Bottom Row: Security Standard Details -->
+    <g transform="translate(0, 44)">
+      <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" 
+            font-size="8" font-weight="600" fill="#94A3B8" letter-spacing="0.6">MILITARY-GRADE DATA SECURITY</text>
+    </g>
+  </g>
+</svg>
+
